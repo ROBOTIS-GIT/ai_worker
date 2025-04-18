@@ -17,11 +17,9 @@
 # Author: Wonho Yoon, Sungho Woo
 
 import os
-import xacro
-import xacro
 from pathlib import Path
-from ament_index_python.packages import get_package_share_directory
 
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription
 from launch.actions import RegisterEventHandler, SetEnvironmentVariable
@@ -29,7 +27,7 @@ from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
+import xacro
 
 
 def generate_launch_description():
@@ -51,7 +49,7 @@ def generate_launch_description():
 
     arguments = LaunchDescription([
                 DeclareLaunchArgument('world', default_value='empty_world',
-                          description='Gz sim World'),
+                                      description='Gz sim World'),
            ]
     )
 
@@ -59,20 +57,21 @@ def generate_launch_description():
                 PythonLaunchDescriptionSource([os.path.join(
                     get_package_share_directory('ros_gz_sim'), 'launch'), '/gz_sim.launch.py']),
                 launch_arguments=[
-                    ('gz_args', [LaunchConfiguration('world'),
-                                 '.sdf',
-                                 ' -v 1',
-                                 ' -r']
-                    )
+                    ('gz_args', [
+                        LaunchConfiguration('world'),
+                        '.sdf',
+                        ' -v 1',
+                        ' -r'
+                    ])
                 ]
              )
 
     xacro_file = os.path.join(ffw_description_path,
-                              "urdf",
-                              "follower",
-                              "ffw_follower.urdf.xacro")
+                              'urdf',
+                              'follower',
+                              'ffw_follower_with_rh.urdf.xacro')
 
-    doc = xacro.process_file(xacro_file, mappings={'use_sim' : 'true'})
+    doc = xacro.process_file(xacro_file, mappings={'use_sim': 'true'})
 
     robot_desc = doc.toprettyxml(indent='  ')
 
@@ -96,9 +95,9 @@ def generate_launch_description():
                    '-R', '0.0',
                    '-P', '0.0',
                    '-Y', '0.0',
-                   '-name', 'om',
+                   '-name', 'ffw',
                    '-allow_renaming', 'true'
-                   '-use_sim','true'],
+                   '-use_sim', 'true'],
     )
 
     load_joint_state_controller = ExecuteProcess(
@@ -141,11 +140,11 @@ def generate_launch_description():
     rviz_config_file = os.path.join(ffw_description_path, 'rviz', 'ffw.rviz')
 
     rviz = Node(
-        package="rviz2",
-        executable="rviz2",
-        name="rviz2",
-        output="log",
-        arguments=["-d", rviz_config_file],
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2',
+        output='log',
+        arguments=['-d', rviz_config_file],
     )
 
     return LaunchDescription([

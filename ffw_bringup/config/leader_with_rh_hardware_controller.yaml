@@ -1,0 +1,94 @@
+/**:
+  controller_manager:
+    ros__parameters:
+      update_rate: 100
+      use_sim_time: false
+
+      joint_state_broadcaster:
+        type: joint_state_broadcaster/JointStateBroadcaster
+
+      joint_trajectory_command_broadcaster_left:
+        type: joint_trajectory_command_broadcaster/JointTrajectoryCommandBroadcaster
+
+      joint_trajectory_command_broadcaster_right:
+        type: joint_trajectory_command_broadcaster/JointTrajectoryCommandBroadcaster
+
+      spring_actuator_controller_left:
+        type: spring_actuator_controller/SpringActuatorController
+
+      spring_actuator_controller_right:
+        type: spring_actuator_controller/SpringActuatorController
+
+/**:
+  joint_trajectory_command_broadcaster_left:
+    ros__parameters:
+      joints:
+        - arm_l_joint1
+        - arm_l_joint2
+        - arm_l_joint3
+        - arm_l_joint4
+        - arm_l_joint5
+        - arm_l_joint6
+        - arm_l_joint7
+        - l_rh_r1_joint
+      interfaces:
+        - position
+      offsets:
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.2
+      action_monitor_rate: 20.0
+      use_local_topics: true
+
+/**:
+  joint_trajectory_command_broadcaster_right:
+    ros__parameters:
+      joints:
+        - arm_r_joint1
+        - arm_r_joint2
+        - arm_r_joint3
+        - arm_r_joint4
+        - arm_r_joint5
+        - arm_r_joint6
+        - arm_r_joint7
+        - r_rh_r1_joint
+      interfaces:
+        - position
+      offsets:
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.2
+      action_monitor_rate: 20.0
+      use_local_topics: true
+
+/**:
+  spring_actuator_controller_left:
+    ros__parameters:
+      joints:
+        - l_rh_r1_joint
+      command_interfaces:
+        - effort
+      state_interfaces:
+        - position
+        - velocity
+
+/**:
+  spring_actuator_controller_right:
+    ros__parameters:
+      joints:
+        - r_rh_r1_joint
+      command_interfaces:
+        - effort
+      state_interfaces:
+        - position
+        - velocity

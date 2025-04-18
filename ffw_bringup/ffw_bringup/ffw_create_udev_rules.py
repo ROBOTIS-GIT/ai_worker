@@ -19,6 +19,7 @@
 import os
 import subprocess
 
+
 def main():
     print('')
     print('This script copies the udev rule to /etc/udev/rules.d/')
@@ -55,6 +56,7 @@ def main():
 
     print('')
     print('Done!')
+
 
 if __name__ == '__main__':
     main()

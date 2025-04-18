@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright 2024 ROBOTIS CO., LTD.
+# Copyright 2025 ROBOTIS CO., LTD.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,8 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Author: Sungho Woo
-
+# Authors: Sungho Woo, Woojin Wie, Wonho Yun
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, GroupAction
@@ -27,40 +26,24 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     declared_arguments = [
         DeclareLaunchArgument(
-            'prefix',
-            default_value='""',
-            description='Prefix of the joint names, useful for multi-robot setup. '
-                        'If changed, then also joint names in the controllers configuration '
-                        'must be updated.',
-        ),
-        DeclareLaunchArgument(
             'description_file',
-            default_value='hand_left_standalone.urdf.xacro',
-            description='URDF/XACRO description file with the robot.',
+            default_value='ffw_leader_with_rh.urdf.xacro',
+            description='URDF/XACRO file for the robot model.',
         ),
     ]
 
     description_file = LaunchConfiguration('description_file')
 
+    # Robot controllers config file path
     robot_controllers = PathJoinSubstitution(
         [
             FindPackageShare('ffw_bringup'),
             'config',
-            'hand_left_hardware_controller_manager.yaml',
+            'leader_with_rh_hardware_controller.yaml',
         ]
     )
 
-    rviz_config_file = PathJoinSubstitution([
-        FindPackageShare('ffw_description'), 'rviz', 'hand.rviz'
-    ])
-
-    rviz_node = Node(
-        package='rviz2',
-        executable='rviz2',
-        arguments=['-d', rviz_config_file],
-        output='screen',
-    )
-
+    # ros2_control Node
     control_node = Node(
         package='controller_manager',
         executable='ros2_control_node',
@@ -73,7 +56,7 @@ def generate_launch_description():
             PathJoinSubstitution([FindExecutable(name='xacro')]),
             ' ',
             PathJoinSubstitution(
-                [FindPackageShare('ffw_description'), 'urdf', '', description_file]
+                [FindPackageShare('ffw_description'), 'urdf', 'leader', description_file]
             ),
         ]
     )
@@ -83,8 +66,11 @@ def generate_launch_description():
         package='controller_manager',
         executable='spawner',
         arguments=[
+            'joint_trajectory_command_broadcaster_left',
+            'joint_trajectory_command_broadcaster_right',
+            'spring_actuator_controller_left',
+            'spring_actuator_controller_right',
             'joint_state_broadcaster',
-            'joint_trajectory_command_broadcaster',
         ],
         parameters=[robot_description],
     )
@@ -96,6 +82,7 @@ def generate_launch_description():
         parameters=[robot_description],
     )
 
+    # Wrap everything in a namespace 'leader'
     leader_with_namespace = GroupAction(
         actions=[
             PushRosNamespace('leader'),
@@ -105,4 +92,5 @@ def generate_launch_description():
         ]
     )
 
-    return LaunchDescription(declared_arguments + [leader_with_namespace, rviz_node])
+    # Return combined LaunchDescription
+    return LaunchDescription(declared_arguments + [leader_with_namespace])

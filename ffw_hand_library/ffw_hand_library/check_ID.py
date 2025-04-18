@@ -16,19 +16,20 @@
 #
 # Authors: Wonho Yun
 
-from pymodbus.client import ModbusSerialClient
 import time
+
+from pymodbus.client import ModbusSerialClient
 
 PORT = '/dev/left_hand'
 BAUDRATE = 115200
 
 
 def scan_ids():
-    print("Modbus ID Scannings ...")
+    print('Modbus ID Scannings ...')
 
     client = ModbusSerialClient(port=PORT, baudrate=BAUDRATE, timeout=0.2)
     if not client.connect():
-        print(f"Serial port {PORT} connection failed")
+        print(f'Serial port {PORT} connection failed')
         return
 
     found_ids = []
@@ -38,16 +39,17 @@ def scan_ids():
             result = client.read_holding_registers(address=0x0006, count=1, slave=slave_id)
             if not result.isError():
                 found_ids.append(slave_id)
-        except:
+        except Exception:
             pass
         time.sleep(0.01)
 
     client.close()
 
     if found_ids:
-        print(f"\nAvailable ID List: {found_ids}")
+        print(f'\nAvailable ID List: {found_ids}')
     else:
-        print("No connected devices found.")
+        print('No connected devices found.')
+
 
 if __name__ == '__main__':
     scan_ids()

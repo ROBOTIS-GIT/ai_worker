@@ -21,7 +21,7 @@
           </xacro:if>
           <xacro:unless value="${use_fake_hardware}">
             <plugin>dynamixel_hardware_interface/DynamixelHardware</plugin>
-            <param name="port_name">/dev/leader</param>
+            <param name="port_name">/dev/left_leader</param>
             <param name="baud_rate">4000000</param>
             <param name="error_timeout_sec">0.2</param>
             <param name="dynamixel_model_folder">/param/dxl_model</param>

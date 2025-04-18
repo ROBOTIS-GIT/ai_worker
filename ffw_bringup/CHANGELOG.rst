@@ -2,6 +2,13 @@
 Changelog for package ffw_bringup
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.2 (2025-04-16)
+------------------
+* Added support for ROBOTIS RH Gripper
+* Added differentiation between slow and fast versions
+* Updated codebase to comply with flake8 linting standards
+* Contributors: Wonho Yun
+
 1.0.1 (2025-04-07)
 ------------------
 * Modified the profile velocity parameters for enhanced arm and hand teleoperation performance

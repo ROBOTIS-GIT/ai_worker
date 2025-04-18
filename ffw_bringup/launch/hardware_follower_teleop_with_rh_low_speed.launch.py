@@ -51,7 +51,7 @@ def generate_launch_description():
         PathJoinSubstitution([FindPackageShare('ffw_description'),
                               'urdf',
                               'follower',
-                              'ffw_follower.urdf.xacro']),
+                              'ffw_follower_with_rh_low_speed.urdf.xacro']),
         ' ',
         'use_sim:=', use_sim,
         ' ',
@@ -63,7 +63,7 @@ def generate_launch_description():
     ])
 
     controller_manager_config = PathJoinSubstitution([
-        FindPackageShare('ffw_bringup'), 'config', 'follower_with_hand_hardware_controller.yaml'
+        FindPackageShare('ffw_bringup'), 'config', 'follower_with_rh_hardware_controller.yaml'
     ])
     rviz_config_file = PathJoinSubstitution([
         FindPackageShare('ffw_description'), 'rviz', 'ffw.rviz'
@@ -79,11 +79,7 @@ def generate_launch_description():
             ('/arm_l_controller/joint_trajectory',
              '/leader/joint_trajectory_left/joint_trajectory'),
             ('/arm_r_controller/joint_trajectory',
-             '/leader/joint_trajectory_right/joint_trajectory'),
-            ('/left_hand_controller/joint_trajectory',
-             '/leader/joint_trajectory_left_hand/joint_trajectory'),
-            ('/right_hand_controller/joint_trajectory',
-             '/leader/joint_trajectory_right_hand/joint_trajectory')
+             '/leader/joint_trajectory_right/joint_trajectory')
         ]
     )
 
@@ -137,20 +133,6 @@ def generate_launch_description():
         output='screen'
     )
 
-    left_hand_controller_spawner = Node(
-        package='controller_manager',
-        executable='spawner',
-        arguments=['left_hand_controller'],
-        output='screen'
-    )
-
-    right_hand_controller_spawner = Node(
-        package='controller_manager',
-        executable='spawner',
-        arguments=['right_hand_controller'],
-        output='screen'
-    )
-
     delay_rviz_after_joint_state_broadcaster_spawner = RegisterEventHandler(
         event_handler=OnProcessExit(
             target_action=joint_state_broadcaster_spawner,
@@ -186,22 +168,6 @@ def generate_launch_description():
         )
     )
 
-    delay_left_hand_controller_spawner_after_joint_state_broadcaster_spawner = \
-        RegisterEventHandler(
-            event_handler=OnProcessExit(
-                target_action=joint_state_broadcaster_spawner,
-                on_exit=[left_hand_controller_spawner]
-            )
-        )
-
-    delay_right_hand_controller_spawner_after_joint_state_broadcaster_spawner = \
-        RegisterEventHandler(
-            event_handler=OnProcessExit(
-                target_action=joint_state_broadcaster_spawner,
-                on_exit=[right_hand_controller_spawner]
-            )
-        )
-
     return LaunchDescription(
         declared_arguments + [
             control_node,
@@ -212,7 +178,5 @@ def generate_launch_description():
             delay_arm_r_controller_spawner_after_joint_state_broadcaster_spawner,
             delay_body_controller_spawner_after_joint_state_broadcaster_spawner,
             delay_neck_controller_spawner_after_joint_state_broadcaster_spawner,
-            delay_left_hand_controller_spawner_after_joint_state_broadcaster_spawner,
-            delay_right_hand_controller_spawner_after_joint_state_broadcaster_spawner,
         ]
     )

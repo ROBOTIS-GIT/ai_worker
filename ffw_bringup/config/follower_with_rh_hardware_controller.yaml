@@ -1,23 +1,19 @@
 controller_manager:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
     update_rate: 100  # Hz
 
     arm_l_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
-
     arm_r_controller:
       type: joint_trajectory_controller/JointTrajectoryController
-
 
     neck_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
-
     body_controller:
       type: joint_trajectory_controller/JointTrajectoryController
-
 
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
@@ -38,15 +34,7 @@ arm_l_controller:
     state_interfaces:
       - position
       - velocity
-    state_publish_rate: 200.0
-    action_monitor_rate: 20.0
-
-    allow_partial_joints_goal: false
-    open_loop_control: true
-    allow_integration_in_goal_trajectories: true
-    constraints:
-      stopped_velocity_tolerance: 0.01
-      goal_time: 0.0
+    allow_nonzero_velocity_at_trajectory_end: true
 arm_r_controller:
   ros__parameters:
     joints:
@@ -63,15 +51,7 @@ arm_r_controller:
     state_interfaces:
       - position
       - velocity
-    state_publish_rate: 200.0
-    action_monitor_rate: 20.0
-
-    allow_partial_joints_goal: false
-    open_loop_control: true
-    allow_integration_in_goal_trajectories: true
-    constraints:
-      stopped_velocity_tolerance: 0.01
-      goal_time: 0.0
+    allow_nonzero_velocity_at_trajectory_end: true
 neck_controller:
   ros__parameters:
     joints:
@@ -82,15 +62,7 @@ neck_controller:
     state_interfaces:
       - position
       - velocity
-    state_publish_rate: 200.0
-    action_monitor_rate: 20.0
-
-    allow_partial_joints_goal: false
-    open_loop_control: true
-    allow_integration_in_goal_trajectories: true
-    constraints:
-      stopped_velocity_tolerance: 0.01
-      goal_time: 0.0
+    allow_nonzero_velocity_at_trajectory_end: true
 body_controller:
   ros__parameters:
     joints:
@@ -100,12 +72,4 @@ body_controller:
     state_interfaces:
       - position
       - velocity
-    state_publish_rate: 200.0
-    action_monitor_rate: 20.0
-
-    allow_partial_joints_goal: false
-    open_loop_control: true
-    allow_integration_in_goal_trajectories: true
-    constraints:
-      stopped_velocity_tolerance: 0.01
-      goal_time: 0.0
+    allow_nonzero_velocity_at_trajectory_end: true

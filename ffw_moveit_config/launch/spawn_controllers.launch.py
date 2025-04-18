@@ -21,5 +21,5 @@ from moveit_configs_utils.launches import generate_spawn_controllers_launch
 
 
 def generate_launch_description():
-    moveit_config = MoveItConfigsBuilder("ffw", package_name="ffw").to_moveit_configs()
+    moveit_config = MoveItConfigsBuilder('ffw', package_name='ffw').to_moveit_configs()
     return generate_spawn_controllers_launch(moveit_config)

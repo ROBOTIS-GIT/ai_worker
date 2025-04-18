@@ -16,19 +16,19 @@
 #
 # Authors: Sungho Woo, Woojin Wie, Wonho Yun
 
-import serial
-import yaml
 import os
 
-from trajectory_msgs.msg import JointTrajectory
-from std_msgs.msg import Int32MultiArray
+from ament_index_python.packages import get_package_share_directory
 from ffw_hand_library.library import InspireHand
 import rclpy
 from rclpy.node import Node
-from ament_index_python.packages import get_package_share_directory  # Keep
+from std_msgs.msg import Int32MultiArray
+from trajectory_msgs.msg import JointTrajectory
+import yaml
 
 
 class LeaderFollowerHand(Node):
+
     def __init__(self):
         super().__init__('leader_follower_right_hand')
 
@@ -95,7 +95,6 @@ class LeaderFollowerHand(Node):
         scaled = int(norm * 1000)
         return 1000 - scaled
 
-
     def leader_callback(self, msg: JointTrajectory):
         if not msg.points:
             self.get_logger().warn('Trajectory message has no points')
@@ -115,7 +114,6 @@ class LeaderFollowerHand(Node):
 
         angles = self.hand.get_actangle()
         self.hand_pub.publish(Int32MultiArray(data=angles))
-
 
     def destroy_node(self):
         self.hand.ser.close()

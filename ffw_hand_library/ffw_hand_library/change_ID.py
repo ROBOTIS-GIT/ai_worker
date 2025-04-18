@@ -16,35 +16,38 @@
 #
 # Authors: Wonho Yun
 
-from library import InspireHand
 import time
+
+from library import InspireHand
 
 CURRENT_ID = 1      # Currently set ID
 NEW_ID = 2          # New ID to be set
 PORT = '/dev/left_hand'  # Serial port path
 
+
 def change_hand_id(current_id, new_id, port):
-    print(f"Attempting to change ID {current_id} ➜ {new_id}...")
+    print(f'Attempting to change ID {current_id} ➜ {new_id}...')
 
     hand = InspireHand(port=port, hand_id=current_id)
 
     data = [new_id] + [-1] * 5
-    res = hand.set_6val(addr=0x03E8, values=data, label="set_ID_RAM")
+    res = hand.set_6val(addr=0x03E8, values=data, label='set_ID_RAM')
     if not res:
-        print("Failed to change ID (RAM)")
+        print('Failed to change ID (RAM)')
         return
 
-    print("ID changed (RAM applied). Current ID is now", new_id)
+    print('ID changed (RAM applied). Current ID is now', new_id)
 
-    print("Waiting for stabilization...")
+    print('Waiting for stabilization...')
     time.sleep(0.2)
 
     hand = InspireHand(port=port, hand_id=new_id)
     res = hand.set_save_flash()
     if res:
-        print("Flash save completed — ID permanently changed!")
+        print('Flash save completed — ID permanently changed!')
     else:
-        print("Flash save failed — ID may revert after reboot.")
+        print('Flash save failed — ID may revert after reboot.')
+
 
 if __name__ == '__main__':
     change_hand_id(CURRENT_ID, NEW_ID, PORT)

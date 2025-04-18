@@ -16,16 +16,18 @@
 #
 # Authors: Sungho Woo, Woojin Wie, Wonho Yun
 
+import os
+import time
+
+from ament_index_python.packages import get_package_share_directory
 import rclpy
 from rclpy.node import Node
 from trajectory_msgs.msg import JointTrajectory
 import yaml
-import os
-from ament_index_python.packages import get_package_share_directory
-import time
 
 
 class HandCalibrator(Node):
+
     def __init__(self):
         super().__init__('hand_calibrator_right')
         self.sub = self.create_subscription(
@@ -81,6 +83,7 @@ class HandCalibrator(Node):
             yaml.dump(data, f)
         self.get_logger().info(f'Calibration complete! Saved to: {self.output_file}')
 
+
 def main(args=None):
     rclpy.init(args=args)
     node = HandCalibrator()
@@ -88,6 +91,7 @@ def main(args=None):
         rclpy.spin_once(node, timeout_sec=0.1)
     node.destroy_node()
     rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()

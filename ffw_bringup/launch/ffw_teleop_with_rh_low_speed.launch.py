@@ -23,7 +23,8 @@ from launch.event_handlers import OnProcessExit, OnProcessStart
 
 def generate_launch_description():
     start_follower = ExecuteProcess(
-        cmd=['ros2', 'launch', 'ffw_bringup', 'hardware_follower_teleop_with_hand.launch.py'],
+        cmd=['ros2', 'launch', 'ffw_bringup',
+             'hardware_follower_teleop_with_rh_low_speed.launch.py'],
         output='screen'
     )
 
@@ -33,12 +34,7 @@ def generate_launch_description():
     )
 
     start_leader = ExecuteProcess(
-        cmd=['ros2', 'launch', 'ffw_bringup', 'hardware_leader_with_hand.launch.py'],
-        output='screen'
-    )
-
-    start_hand_controllers = ExecuteProcess(
-        cmd=['ros2', 'launch', 'ffw_bringup', 'hand_controller_two.launch.py'],
+        cmd=['ros2', 'launch', 'ffw_bringup', 'hardware_leader_with_rh.launch.py'],
         output='screen'
     )
 
@@ -76,15 +72,6 @@ def generate_launch_description():
             OnProcessStart(
                 target_action=start_leader,
                 on_start=[
-                    LogInfo(msg='Starting Hand Controllers...'),
-                    start_hand_controllers,
-                ]
-            )
-        ),
-        RegisterEventHandler(
-            OnProcessExit(
-                target_action=start_hand_controllers,
-                on_exit=[
                     LogInfo(msg='Launching Keyboard GUI...'),
                     start_keyboard_gui
                 ]

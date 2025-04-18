@@ -21,7 +21,7 @@ find_package(rclpy REQUIRED)
 install(PROGRAMS
   scripts/keyboard_control_standalone.py
   scripts/keyboard_control_teleop_with_hand.py
-  scripts/keyboard_control_only_left.py
+  scripts/keyboard_control_with_rh.py
 
   DESTINATION lib/${PROJECT_NAME}
 )

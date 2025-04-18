@@ -7,14 +7,15 @@
   <!-- Import ffw urdf file -->
   <xacro:include filename="$(find ffw_description)/urdf/follower/ffw_follower_body.urdf.xacro" />
   <!-- Import control_xacro -->
-  <xacro:include filename="$(find ffw_description)/ros2_control/ffw_follower_system_only_left.ros2_control.xacro" />
+  <xacro:include filename="$(find ffw_description)/ros2_control/ffw_follower_with_rh_system.ros2_control.xacro" />
 
-  <xacro:include filename="$(find ffw_description)/gazebo/ffw_follower.gazebo.xacro" />
+  <xacro:include filename="$(find ffw_description)/gazebo/ffw_follower_with_rh.gazebo.xacro" />
 
-  <xacro:include filename="$(find ffw_description)/urdf/urdf_left_12_20.xacro" />
-  <xacro:include filename="$(find ffw_description)/urdf/urdf_right_12_20.xacro" />
+  <xacro:include filename="$(find ffw_description)/urdf/left_rh_p12_rn_a.urdf.xacro" />
+  <xacro:include filename="$(find ffw_description)/urdf/right_rh_p12_rn_a.urdf.xacro" />
 
-
+<xacro:l_rh_p12_rn_a/>
+<xacro:r_rh_p12_rn_a/>
   <!-- World -->
   <link name="world"/>
 
@@ -25,17 +26,17 @@
   </joint>
 
   <joint name="left_hand_fixed" type="fixed">
-    <origin xyz="0 0 -0.05" rpy="0 0 0"/>
+    <origin xyz="0 0 -0.05" rpy="0 3.14 -1.57"/>
     <parent link="arm_l_link7"/>
     <axis xyz="0 0 0"/>
-    <child link="base_link_left_hand"/>
+    <child link="l_rh_p12_rn_base"/>
   </joint>
 
   <joint name="right_hand_fixed" type="fixed">
-    <origin xyz="0 0 -0.05" rpy="0 0 0"/>
+    <origin xyz="0 0 -0.05" rpy="0 3.14 1.57"/>
     <parent link="arm_r_link7"/>
     <axis xyz="0 0 0"/>
-    <child link="base_link_right_hand"/>
+    <child link="r_rh_p12_rn_base"/>
   </joint>
 
   <xacro:ffw_follower_system

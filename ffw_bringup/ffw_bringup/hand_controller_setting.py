@@ -16,10 +16,11 @@
 #
 # Authors: Sungho Woo, Woojin Wie, Wonho Yun
 
+import time
+
+from ffw_hand_library.library import InspireHand
 import rclpy
 from rclpy.node import Node
-import time
-from ffw_hand_library.library import InspireHand
 
 Speed = 500         # 0~1000
 Power = 500         # 0~1000
@@ -27,6 +28,7 @@ start_angle = 1000  # 0~1000 (open state)
 
 
 class HandControllerSetting(Node):
+
     def __init__(self):
         super().__init__('hand_controller_setting')
 
@@ -66,6 +68,7 @@ def main(args=None):
     rclpy.spin_once(node, timeout_sec=2.0)
     node.destroy_node()
     rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()

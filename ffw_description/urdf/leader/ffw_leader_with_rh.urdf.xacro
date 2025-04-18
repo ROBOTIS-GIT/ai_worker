@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ffw">
+  <xacro:arg name="use_fake_hardware" default="false" />
+  <xacro:arg name="use_sim" default="false" />
+  <xacro:arg name="fake_sensor_commands" default="false" />
+
+  <!-- Import ffw urdf file -->
+  <xacro:include filename="$(find ffw_description)/urdf/leader/ffw_leader_body.urdf.xacro" />
+
+  <!-- Import control_xacro -->
+  <xacro:include filename="$(find ffw_description)/ros2_control/ffw_leader_left_with_rh_system.ros2_control.xacro" />
+  <xacro:include filename="$(find ffw_description)/ros2_control/ffw_leader_right_with_rh_system.ros2_control.xacro" />
+
+  <xacro:include filename="$(find ffw_description)/urdf/left_rh_p12_rn_a.urdf.xacro" />
+  <xacro:include filename="$(find ffw_description)/urdf/right_rh_p12_rn_a.urdf.xacro" />
+
+  <xacro:l_rh_p12_rn_a/>
+  <xacro:r_rh_p12_rn_a/>
+
+  <!-- World -->
+  <link name="world"/>
+
+  <joint name="world_fixed" type="fixed">
+    <parent link="world"/>
+    <child link="base_link"/>
+    <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+  </joint>
+
+  <joint name="left_hand_fixed" type="fixed">
+    <origin xyz="0 0 -0.05" rpy="0 3.14 0"/>
+    <parent link="arm_l_link7"/>
+    <axis xyz="0 0 0"/>
+    <child link="l_rh_p12_rn_base"/>
+  </joint>
+
+  <joint name="right_hand_fixed" type="fixed">
+    <origin xyz="0 0 -0.05" rpy="0 3.14 0"/>
+    <parent link="arm_r_link7"/>
+    <axis xyz="0 0 0"/>
+    <child link="r_rh_p12_rn_base"/>
+  </joint>
+
+  <xacro:ffw_leader_left_system
+      use_sim="$(arg use_sim)"
+      use_fake_hardware="$(arg use_fake_hardware)"
+      fake_sensor_commands="$(arg fake_sensor_commands)" />
+
+  <xacro:ffw_leader_right_system
+      use_sim="$(arg use_sim)"
+      use_fake_hardware="$(arg use_fake_hardware)"
+      fake_sensor_commands="$(arg fake_sensor_commands)" />
+
+</robot>

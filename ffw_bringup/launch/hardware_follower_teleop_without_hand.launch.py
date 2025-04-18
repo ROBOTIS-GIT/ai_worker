@@ -17,7 +17,7 @@
 # Author: Wonho Yoon, Sungho Woo
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, RegisterEventHandler, TimerAction, ExecuteProcess
+from launch.actions import DeclareLaunchArgument, RegisterEventHandler
 from launch.conditions import IfCondition, UnlessCondition
 from launch.event_handlers import OnProcessExit
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
@@ -27,11 +27,16 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     declared_arguments = [
-        DeclareLaunchArgument('start_rviz', default_value='true', description='Whether to execute rviz2'),
-        DeclareLaunchArgument('use_sim', default_value='false', description='Start robot in Gazebo simulation.'),
-        DeclareLaunchArgument('use_fake_hardware', default_value='false', description='Use fake hardware mirroring command.'),
-        DeclareLaunchArgument('fake_sensor_commands', default_value='false', description='Enable fake sensor commands.'),
-        DeclareLaunchArgument('port_name', default_value='/dev/follower', description='Port name for hardware connection.'),
+        DeclareLaunchArgument('start_rviz', default_value='true',
+                              description='Whether to execute rviz2'),
+        DeclareLaunchArgument('use_sim', default_value='false',
+                              description='Start robot in Gazebo simulation.'),
+        DeclareLaunchArgument('use_fake_hardware', default_value='false',
+                              description='Use fake hardware mirroring command.'),
+        DeclareLaunchArgument('fake_sensor_commands', default_value='false',
+                              description='Enable fake sensor commands.'),
+        DeclareLaunchArgument('port_name', default_value='/dev/follower',
+                              description='Port name for hardware connection.'),
     ]
 
     start_rviz = LaunchConfiguration('start_rviz')
@@ -43,7 +48,10 @@ def generate_launch_description():
     urdf_file = Command([
         PathJoinSubstitution([FindExecutable(name='xacro')]),
         ' ',
-        PathJoinSubstitution([FindPackageShare('ffw_description'), 'urdf', 'follower', 'ffw_follower.urdf.xacro']),
+        PathJoinSubstitution([FindPackageShare('ffw_description'),
+                              'urdf',
+                              'follower',
+                              'ffw_follower.urdf.xacro']),
         ' ',
         'use_sim:=', use_sim,
         ' ',
@@ -68,8 +76,10 @@ def generate_launch_description():
         output='both',
         condition=UnlessCondition(use_sim),
         remappings=[
-            ('/arm_l_controller/joint_trajectory', '/leader/joint_trajectory_left/joint_trajectory'),
-            ('/arm_r_controller/joint_trajectory', '/leader/joint_trajectory_right/joint_trajectory')
+            ('/arm_l_controller/joint_trajectory',
+             '/leader/joint_trajectory_left/joint_trajectory'),
+            ('/arm_r_controller/joint_trajectory',
+             '/leader/joint_trajectory_right/joint_trajectory')
         ]
     )
 

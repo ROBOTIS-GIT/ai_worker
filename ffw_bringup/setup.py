@@ -1,5 +1,7 @@
-from setuptools import find_packages, setup
 import glob
+
+from setuptools import find_packages, setup
+
 package_name = 'ffw_bringup'
 authors_info = [
     ('Sungho Woo', 'wsh@robotis.com'),
@@ -11,7 +13,7 @@ author_emails = ', '.join(email for _, email in authors_info)
 
 setup(
     name=package_name,
-    version='1.0.1',
+    version='1.0.2',
     packages=find_packages(exclude=['test']),
     data_files=[
         ('share/ament_index/resource_index/packages',
@@ -42,10 +44,10 @@ setup(
         'console_scripts': [
             'hand_controller_left = ffw_bringup.hand_controller_left:main',
             'hand_controller_right = ffw_bringup.hand_controller_right:main',
-            'hand_calibrator_right = ffw_bringup.hand_calibrator_right:main',
             'hand_calibrator_left = ffw_bringup.hand_calibrator_left:main',
+            'hand_calibrator_right = ffw_bringup.hand_calibrator_right:main',
             'hand_controller_setting = ffw_bringup.hand_controller_setting:main',
-            'init_position_for_follower_teleop = ffw_bringup.init_position_for_follower_teleop:main',
+            'init_position = ffw_bringup.init_position:main',
             'ffw_create_udev_rules = ffw_bringup.ffw_create_udev_rules:main',
         ],
     },
