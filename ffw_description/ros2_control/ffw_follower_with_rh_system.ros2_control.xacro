@@ -32,7 +32,7 @@
               0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-              0, 0, 0, 0, 0, 0.54545454545, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+              0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -40,7 +40,7 @@
               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
-              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.54545454545, 0, 0, 0, 0, 0,
+              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
@@ -53,7 +53,7 @@
               0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-              0, 0, 0, 0, 0, 1.83333333333, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+              0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -61,7 +61,7 @@
               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
-              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1.83333333333, 0, 0, 0, 0, 0,
+              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
@@ -326,11 +326,15 @@
         <param name="Drive Mode">1</param>
         <param name="Operating Mode">3</param>
         <param name="Return Delay Time">0</param>
-        <param name="Velocity Limit">167</param>
-        <param name="Profile Velocity">167</param>
-        <param name="Profile Acceleration">0</param>
-        <param name="Max Position Limit">2596</param>
-        <param name="Min Position Limit">1500</param>
+        <param name="Velocity Limit">2020</param>
+        <param name="Acceleration Limit">20200</param>
+        <param name="Profile Velocity">2020</param>
+        <param name="Profile Acceleration">300</param>
+        <param name="Max Position Limit">131072</param>
+        <param name="Min Position Limit">-131072</param>
+        <param name="Position P Gain">1583185</param>
+        <param name="Velocity P Gain">18184</param>
+        <param name="Velocity I Gain">1085331</param>
       </gpio>
       <gpio name="dxl7">
         <param name="type">dxl</param>
@@ -341,13 +345,14 @@
         <state_interface name="Present Current"/>
         <state_interface name="Torque Enable"/>
         <state_interface name="Present Input Voltage"/>
-        <param name="Drive Mode">0</param>
+        <param name="Drive Mode">1</param>
         <param name="Operating Mode">3</param>
         <param name="Return Delay Time">0</param>
+        <param name="Velocity Limit">2020</param>
         <param name="Profile Velocity">2020</param>
         <param name="Profile Acceleration">3000</param>
         <param name="Max Position Limit">151875</param>
-        <param name="Min Position Limit">-20000</param>
+        <param name="Min Position Limit">-131875</param>
       </gpio>
       <gpio name="dxl8">
         <param name="type">dxl</param>
@@ -487,11 +492,15 @@
         <param name="Drive Mode">0</param>
         <param name="Operating Mode">3</param>
         <param name="Return Delay Time">0</param>
-        <param name="Velocity Limit">167</param>
-        <param name="Profile Velocity">167</param>
-        <param name="Profile Acceleration">0</param>
-        <param name="Max Position Limit">2596</param>
-        <param name="Min Position Limit">1500</param>
+        <param name="Velocity Limit">2020</param>
+        <param name="Acceleration Limit">20200</param>
+        <param name="Profile Velocity">2020</param>
+        <param name="Profile Acceleration">300</param>
+        <param name="Max Position Limit">131072</param>
+        <param name="Min Position Limit">-131072</param>
+        <param name="Position P Gain">1583185</param>
+        <param name="Velocity P Gain">18184</param>
+        <param name="Velocity I Gain">1085331</param>
       </gpio>
       <gpio name="dxl37">
         <param name="type">dxl</param>
@@ -502,12 +511,13 @@
         <state_interface name="Present Current"/>
         <state_interface name="Torque Enable"/>
         <state_interface name="Present Input Voltage"/>
-        <param name="Drive Mode">0</param>
+        <param name="Drive Mode">1</param>
         <param name="Operating Mode">3</param>
         <param name="Return Delay Time">0</param>
+        <param name="Velocity Limit">2020</param>
         <param name="Profile Velocity">2020</param>
         <param name="Profile Acceleration">3000</param>
-        <param name="Max Position Limit">20000</param>
+        <param name="Max Position Limit">131875</param>
         <param name="Min Position Limit">-151875</param>
       </gpio>
       <gpio name="dxl38">

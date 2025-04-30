@@ -220,8 +220,8 @@
         <param name="Acceleration Limit">20200</param>
         <param name="Profile Velocity">3591</param>
         <param name="Profile Acceleration">1000</param>
-        <param name="Max Position Limit">131072</param>
-        <param name="Min Position Limit">-131072</param>
+        <param name="Max Position Limit">262144</param>
+        <param name="Min Position Limit">-262144</param>
         <param name="Position P Gain">1583185</param>
         <param name="Velocity P Gain">41387</param>
         <param name="Velocity I Gain">1065630</param>
@@ -235,15 +235,15 @@
         <state_interface name="Present Current"/>
         <state_interface name="Torque Enable"/>
         <state_interface name="Present Input Voltage"/>
-        <param name="Drive Mode">1</param>
+        <param name="Drive Mode">0</param>
         <param name="Operating Mode">3</param>
         <param name="Return Delay Time">0</param>
         <param name="Velocity Limit">3591</param>
         <param name="Acceleration Limit">20200</param>
         <param name="Profile Velocity">3591</param>
         <param name="Profile Acceleration">1000</param>
-        <param name="Max Position Limit">131072</param>
-        <param name="Min Position Limit">0</param>
+        <param name="Max Position Limit">0</param>
+        <param name="Min Position Limit">-131072</param>
         <param name="Position P Gain">1583185</param>
         <param name="Velocity P Gain">41387</param>
         <param name="Velocity I Gain">1065630</param>
@@ -257,7 +257,7 @@
         <state_interface name="Present Current"/>
         <state_interface name="Torque Enable"/>
         <state_interface name="Present Input Voltage"/>
-        <param name="Drive Mode">0</param>
+        <param name="Drive Mode">1</param>
         <param name="Operating Mode">3</param>
         <param name="Return Delay Time">0</param>
         <param name="Velocity Limit">3591</param>
@@ -301,7 +301,7 @@
         <state_interface name="Present Current"/>
         <state_interface name="Torque Enable"/>
         <state_interface name="Present Input Voltage"/>
-        <param name="Drive Mode">0</param>
+        <param name="Drive Mode">1</param>
         <param name="Operating Mode">3</param>
         <param name="Return Delay Time">0</param>
         <param name="Velocity Limit">6486</param>
@@ -345,14 +345,14 @@
         <state_interface name="Present Current"/>
         <state_interface name="Torque Enable"/>
         <state_interface name="Present Input Voltage"/>
-        <param name="Drive Mode">0</param>
+        <param name="Drive Mode">1</param>
         <param name="Operating Mode">3</param>
         <param name="Return Delay Time">0</param>
         <param name="Velocity Limit">2920</param>
         <param name="Profile Velocity">2920</param>
         <param name="Profile Acceleration">10000</param>
-        <param name="Max Position Limit">101249</param>
-        <param name="Min Position Limit">-148630</param>
+        <param name="Max Position Limit">151875</param>
+        <param name="Min Position Limit">-131875</param>
       </gpio>
       <gpio name="dxl8">
         <param name="type">dxl</param>
@@ -386,8 +386,8 @@
         <param name="Acceleration Limit">20200</param>
         <param name="Profile Velocity">3591</param>
         <param name="Profile Acceleration">1000</param>
-        <param name="Max Position Limit">131072</param>
-        <param name="Min Position Limit">-131072</param>
+        <param name="Max Position Limit">262144</param>
+        <param name="Min Position Limit">-262144</param>
         <param name="Position P Gain">1583185</param>
         <param name="Velocity P Gain">41387</param>
         <param name="Velocity I Gain">1065630</param>
@@ -511,14 +511,14 @@
         <state_interface name="Present Current"/>
         <state_interface name="Torque Enable"/>
         <state_interface name="Present Input Voltage"/>
-        <param name="Drive Mode">0</param>
+        <param name="Drive Mode">1</param>
         <param name="Operating Mode">3</param>
         <param name="Return Delay Time">0</param>
         <param name="Velocity Limit">2920</param>
         <param name="Profile Velocity">2920</param>
         <param name="Profile Acceleration">10000</param>
-        <param name="Max Position Limit">148630</param>
-        <param name="Min Position Limit">-101249</param>
+        <param name="Max Position Limit">131875</param>
+        <param name="Min Position Limit">-151875</param>
       </gpio>
       <gpio name="dxl38">
         <param name="type">dxl</param>
@@ -588,6 +588,9 @@
         <param name="Profile Acceleration">300</param>
         <param name="Max Position Limit">0</param>
         <param name="Min Position Limit">-50000</param>
+        <param name="Position P Gain">1583185</param>
+        <param name="Velocity P Gain">41387</param>
+        <param name="Velocity I Gain">1065630</param>
       </gpio>
 
     </ros2_control>
