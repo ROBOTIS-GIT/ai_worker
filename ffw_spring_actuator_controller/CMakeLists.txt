@@ -55,7 +55,7 @@ target_include_directories(spring_actuator_controller PUBLIC
 target_link_libraries(spring_actuator_controller PUBLIC
   spring_actuator_controller_parameters
 )
-ament_target_dependencies(spring_actuator_controller PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
+target_link_libraries(spring_actuator_controller PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
 
 # Causes the visibility macros to use dllexport rather than dllimport,
 # which is appropriate when building the dll but not consuming it.

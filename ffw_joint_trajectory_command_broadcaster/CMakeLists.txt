@@ -48,7 +48,7 @@ target_include_directories(joint_trajectory_command_broadcaster PUBLIC
 target_link_libraries(joint_trajectory_command_broadcaster PUBLIC
   joint_trajectory_command_broadcaster_parameters
 )
-ament_target_dependencies(joint_trajectory_command_broadcaster PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
+target_link_libraries(joint_trajectory_command_broadcaster PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
 # Causes the visibility macros to use dllexport rather than dllimport,
 # which is appropriate when building the dll but not consuming it.
 target_compile_definitions(joint_trajectory_command_broadcaster PRIVATE "JOINT_TRAJECTORY_COMMAND_BROADCASTER_BUILDING_DLL")

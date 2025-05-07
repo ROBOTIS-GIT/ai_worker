@@ -46,7 +46,7 @@ target_include_directories(joystick_controller PUBLIC
 target_link_libraries(joystick_controller PUBLIC
   joystick_controller_parameters
 )
-ament_target_dependencies(joystick_controller PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
+target_link_libraries(joystick_controller PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
 
 # Causes the visibility macros to use dllexport rather than dllimport,
 # which is appropriate when building the dll but not consuming it.
