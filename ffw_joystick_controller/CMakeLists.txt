@@ -44,9 +44,8 @@ target_include_directories(joystick_controller PUBLIC
   $<INSTALL_INTERFACE:include/joystick_controller>
 )
 target_link_libraries(joystick_controller PUBLIC
-  joystick_controller_parameters
+  ${std_msgs_TARGETS} controller_interface::controller_interface hardware_interface::mock_components joystick_controller_parameters pluginlib::pluginlib rclcpp::rclcpp rclcpp_lifecycle::rclcpp_lifecycle
 )
-target_link_libraries(joystick_controller PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
 
 # Causes the visibility macros to use dllexport rather than dllimport,
 # which is appropriate when building the dll but not consuming it.
