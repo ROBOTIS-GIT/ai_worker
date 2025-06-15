@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <xacro:macro name="ffw_sg2_follower_gazebo" >
+
+  <xacro:macro name="SimpleTransmission" params="trans joint actuator">
+    <transmission name="${trans}">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="${joint}">
+        <hardwareInterface>PositionJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="${actuator}">
+        <mechanicalReduction>1</mechanicalReduction>
+        <hardwareInterface>PositionJointInterface</hardwareInterface>
+      </actuator>
+    </transmission>
+  </xacro:macro>
+
+  <xacro:macro name="Link" params="reference">
+    <gazebo reference="${reference}">
+      <kp>1000000.0</kp>
+      <kd>100.0</kd>
+      <mu1>30.0</mu1>
+      <mu2>30.0</mu2>
+      <maxVel>1.0</maxVel>
+      <minDepth>0.001</minDepth>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:Link reference="base_link"/>
+  <xacro:Link reference="arm_base_link"/>
+  <xacro:Link reference="head_link1"/>
+  <xacro:Link reference="head_link2"/>
+  <xacro:Link reference="arm_r_link1"/>
+  <xacro:Link reference="arm_r_link2"/>
+  <xacro:Link reference="arm_r_link3"/>
+  <xacro:Link reference="arm_r_link4"/>
+  <xacro:Link reference="arm_r_link5"/>
+  <xacro:Link reference="arm_r_link6"/>
+  <xacro:Link reference="arm_r_link7"/>
+  <xacro:Link reference="arm_l_link1"/>
+  <xacro:Link reference="arm_l_link2"/>
+  <xacro:Link reference="arm_l_link3"/>
+  <xacro:Link reference="arm_l_link4"/>
+  <xacro:Link reference="arm_l_link5"/>
+  <xacro:Link reference="arm_l_link6"/>
+  <xacro:Link reference="arm_l_link7"/>
+
+  <xacro:Link reference="r_rh_p12_rn_base"/>
+  <xacro:Link reference="r_rh_p12_rn_r1"/>
+  <xacro:Link reference="r_rh_p12_rn_r2"/>
+  <xacro:Link reference="r_rh_p12_rn_l1"/>
+  <xacro:Link reference="r_rh_p12_rn_l2"/>
+  <xacro:Link reference="l_rh_p12_rn_base"/>
+  <xacro:Link reference="l_rh_p12_rn_r1"/>
+  <xacro:Link reference="l_rh_p12_rn_r2"/>
+  <xacro:Link reference="l_rh_p12_rn_l1"/>
+  <xacro:Link reference="l_rh_p12_rn_l2"/>
+
+
+  <xacro:SimpleTransmission trans="lift_trans" joint="lift_joint" actuator="lift_actuator"/>
+  <xacro:SimpleTransmission trans="head_trans1" joint="head_joint1" actuator="head_actuator1"/>
+  <xacro:SimpleTransmission trans="head_trans2" joint="head_joint2" actuator="head_actuator2"/>
+  <xacro:SimpleTransmission trans="arm_r_trans1" joint="arm_r_joint1" actuator="arm_r_actuator1"/>
+  <xacro:SimpleTransmission trans="arm_r_trans2" joint="arm_r_joint2" actuator="arm_r_actuator2"/>
+  <xacro:SimpleTransmission trans="arm_r_trans3" joint="arm_r_joint3" actuator="arm_r_actuator3"/>
+  <xacro:SimpleTransmission trans="arm_r_trans4" joint="arm_r_joint4" actuator="arm_r_actuator4"/>
+  <xacro:SimpleTransmission trans="arm_r_trans5" joint="arm_r_joint5" actuator="arm_r_actuator5"/>
+  <xacro:SimpleTransmission trans="arm_r_trans6" joint="arm_r_joint6" actuator="arm_r_actuator6"/>
+  <xacro:SimpleTransmission trans="arm_r_trans7" joint="arm_r_joint7" actuator="arm_r_actuator7"/>
+
+  <xacro:SimpleTransmission trans="arm_l_trans1" joint="arm_l_joint1" actuator="arm_l_actuator1"/>
+  <xacro:SimpleTransmission trans="arm_l_trans2" joint="arm_l_joint2" actuator="arm_l_actuator2"/>
+  <xacro:SimpleTransmission trans="arm_l_trans3" joint="arm_l_joint3" actuator="arm_l_actuator3"/>
+  <xacro:SimpleTransmission trans="arm_l_trans4" joint="arm_l_joint4" actuator="arm_l_actuator4"/>
+  <xacro:SimpleTransmission trans="arm_l_trans5" joint="arm_l_joint5" actuator="arm_l_actuator5"/>
+  <xacro:SimpleTransmission trans="arm_l_trans6" joint="arm_l_joint6" actuator="arm_l_actuator6"/>
+  <xacro:SimpleTransmission trans="arm_l_trans7" joint="arm_l_joint7" actuator="arm_l_actuator7"/>
+
+  <xacro:SimpleTransmission trans="r_tran_r1" joint="r_rh_r1_joint" actuator="r_actuator1" />
+  <xacro:SimpleTransmission trans="r_tran_r2" joint="r_rh_r2" actuator="r_actuator2" />
+  <xacro:SimpleTransmission trans="r_tran_l1" joint="r_rh_l1" actuator="r_actuator3" />
+  <xacro:SimpleTransmission trans="r_tran_l2" joint="r_rh_l2" actuator="r_actuator4" />
+
+  <xacro:SimpleTransmission trans="l_tran_r1" joint="l_rh_r1_joint" actuator="l_actuator1" />
+  <xacro:SimpleTransmission trans="l_tran_r2" joint="l_rh_r2" actuator="l_actuator2" />
+  <xacro:SimpleTransmission trans="l_tran_l1" joint="l_rh_l1" actuator="l_actuator3" />
+  <xacro:SimpleTransmission trans="l_tran_l2" joint="l_rh_l2" actuator="l_actuator4" />
+  </xacro:macro>
+
+</robot>

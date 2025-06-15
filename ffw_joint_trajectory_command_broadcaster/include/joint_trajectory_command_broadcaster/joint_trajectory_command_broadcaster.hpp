@@ -30,6 +30,7 @@
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "urdf/model.h"
 #include "trajectory_msgs/msg/joint_trajectory.hpp"
+#include "std_msgs/msg/string.hpp"
 
 namespace joint_trajectory_command_broadcaster
 {
@@ -110,6 +111,9 @@ protected:
 
   urdf::Model model_;
   bool is_model_loaded_ = false;
+
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr mode_sub_;
+  std::string current_mode_ = "swerve";
 };
 
 }  // namespace joint_trajectory_command_broadcaster

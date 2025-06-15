@@ -1,0 +1,66 @@
+/**:
+  arm_l_joint_trajectory_executor:
+    ros__parameters:
+      joint_names:
+        - arm_l_joint1
+        - arm_l_joint2
+        - arm_l_joint3
+        - arm_l_joint4
+        - arm_l_joint5
+        - arm_l_joint6
+        - arm_l_joint7
+        - gripper_l_joint1
+      step_names: [home]
+      home: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      duration: 5.0
+      position_tolerance: 0.1
+      velocity_tolerance: 0.01
+      action_topic: '/arm_l_controller/follow_joint_trajectory'
+      joint_states_topic: '/joint_states'
+
+/**:
+  arm_r_joint_trajectory_executor:
+    ros__parameters:
+      joint_names:
+        - arm_r_joint1
+        - arm_r_joint2
+        - arm_r_joint3
+        - arm_r_joint4
+        - arm_r_joint5
+        - arm_r_joint6
+        - arm_r_joint7
+        - gripper_r_joint1
+      step_names: [home]
+      home: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      duration: 5.0
+      position_tolerance: 0.1
+      velocity_tolerance: 0.01
+      action_topic: '/arm_r_controller/follow_joint_trajectory'
+      joint_states_topic: '/joint_states'
+
+/**:
+  head_joint_trajectory_executor:
+    ros__parameters:
+      joint_names:
+        - head_joint1
+        - head_joint2
+      step_names: [home]
+      home: [0.0, 0.0]
+      duration: 5.0
+      position_tolerance: 0.1
+      velocity_tolerance: 0.01
+      action_topic: '/head_controller/follow_joint_trajectory'
+      joint_states_topic: '/joint_states'
+
+/**:
+  lift_joint_trajectory_executor:
+    ros__parameters:
+      joint_names:
+        - lift_joint
+      step_names: [home]
+      home: [0.0]
+      duration: 10.0
+      position_tolerance: 0.1
+      velocity_tolerance: 0.01
+      action_topic: '/lift_controller/follow_joint_trajectory'
+      joint_states_topic: '/joint_states'

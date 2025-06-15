@@ -19,6 +19,7 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <map>
 
 #include "controller_interface/controller_interface.hpp"
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
@@ -30,6 +31,8 @@
 #include "std_msgs/msg/float64_multi_array.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "trajectory_msgs/msg/joint_trajectory.hpp"
+#include "std_msgs/msg/string.hpp"
+#include "geometry_msgs/msg/twist.hpp"
 
 namespace joystick_controller
 {
@@ -81,22 +84,35 @@ protected:
   void joint_states_callback(const sensor_msgs::msg::JointState::SharedPtr msg);
 
   std::vector<std::string> sensorxel_joy_names_;
-  std::vector<std::string> state_interface_types_ = {"JOYSTICK X VALUE", "JOYSTICK Y VALUE"};
+  std::vector<std::string> state_interface_types_ = {"JOYSTICK X VALUE", "JOYSTICK Y VALUE", "JOYSTICK TACT SWITCH"};
   size_t n_sensorxel_joys_ = 0;
   std::vector<std::vector<double>> sensorxel_joy_values_;
   std::vector<std::vector<std::reference_wrapper<hardware_interface::LoanedStateInterface>>>
   joint_state_interface_;
   sensor_msgs::msg::JointState current_joint_states_;
   bool was_active_ = false;  // Track previous sensorxel_joy state
-  std::vector<double> last_active_positions_;  // Store last active positions
   bool has_joint_states_ = false;  // Track if joint states have been received
 
-  rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr sensorxel_joy_publisher_;
-  rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr joint_trajectory_publisher_;
+  std::map<std::string, std::vector<std::string>> sensor_controlled_joints_;
+  std::map<std::string, std::vector<std::string>> sensor_reverse_interfaces_;
+  std::map<std::string, std::string> sensor_joint_trajectory_topic_;
+  std::map<std::string, std::vector<double>> sensor_last_active_positions_;
+  std::map<std::string, rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr> sensor_joint_trajectory_publisher_;
+  std::map<std::string, rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr> sensorxel_joy_publisher_;
+
+  // Add per-sensor jog scale
+  std::map<std::string, double> sensor_jog_scale_;
+
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_states_subscriber_;
 
   std::shared_ptr<ParamListener> param_listener_;
   Params params_;
+
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr mode_pub_;
+  std::string current_mode_ = "swerve";
+  bool prev_tact_switch_ = false;
+
+  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
 };
 
 }  // namespace joystick_controller

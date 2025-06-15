@@ -130,6 +130,14 @@ controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_confi
       "Failed to parse robot description. Will proceed without URDF-based filtering.");
   }
 
+  mode_sub_ = get_node()->create_subscription<std_msgs::msg::String>(
+    "/leader/joystick_controller_right/joystick_mode", 10,
+    [this](const std_msgs::msg::String::SharedPtr msg) {
+      current_mode_ = msg->data;
+      RCLCPP_INFO(get_node()->get_logger(), "[broadcaster] Mode changed to %s", current_mode_.c_str());
+    }
+  );
+
   return CallbackReturn::SUCCESS;
 }
 
@@ -266,6 +274,12 @@ double get_value(
 controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
   const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
+
+  // mode is swerve, don't publish trajectory
+  if (current_mode_ == "swerve") {
+    return controller_interface::return_type::OK;
+  }
+
   // Update stored values
   for (const auto & state_interface : state_interfaces_) {
     std::string interface_name = state_interface.get_interface_name();

@@ -19,10 +19,7 @@
       spring_actuator_controller_right:
         type: spring_actuator_controller/SpringActuatorController
 
-      joystick_controller_left:
-        type: joystick_controller/JoystickController
-
-      joystick_controller_right:
+      joystick_controller:
         type: joystick_controller/JoystickController
 
 /**:
@@ -100,40 +97,29 @@
         - velocity
 
 /**:
-  joystick_controller_left:
+  joystick_controller:
     ros__parameters:
       joystick_sensors:
         - sensorxel_l_joy
-      state_interfaces:
-        - JOYSTICK X VALUE
-        - JOYSTICK Y VALUE
-      reverse_interfaces:
-        - JOYSTICK Y VALUE
-        - JOYSTICK X VALUE
-      joystick_calibration_min: 0.0
-      joystick_calibration_center: 2048.0
-      joystick_calibration_max: 4096.0
-      controlled_joints:
-        - head_joint1
-        - head_joint2
-      joint_states_topic: "/joint_states"
-      joint_trajectory_topic: "~/joint_trajectory"
-      jog_scale: 0.06
-      deadzone: 0.05
-
-/**:
-  joystick_controller_right:
-    ros__parameters:
-      joystick_sensors:
         - sensorxel_r_joy
       state_interfaces:
         - JOYSTICK X VALUE
+        - JOYSTICK Y VALUE
+        - JOYSTICK TACT SWITCH
+      sensorxel_l_joy_reverse_interfaces:
+        - JOYSTICK Y VALUE
+        - JOYSTICK X VALUE
       joystick_calibration_min: 0.0
-      joystick_calibration_center: 2048.0
-      joystick_calibration_max: 4096.0
-      controlled_joints:
+      joystick_calibration_center: 1830.0
+      joystick_calibration_max: 4033.0
+      sensorxel_l_joy_controlled_joints:
+        - head_joint1
+        - head_joint2
+      sensorxel_r_joy_controlled_joints:
         - lift_joint
       joint_states_topic: "/joint_states"
-      joint_trajectory_topic: "~/joint_trajectory"
-      jog_scale: 0.005
+      sensorxel_l_joy_joint_trajectory_topic: "/leader/joystick_controller_left/joint_trajectory"
+      sensorxel_r_joy_joint_trajectory_topic: "/leader/joystick_controller_right/joint_trajectory"
+      sensorxel_l_joy_jog_scale: 0.06
+      sensorxel_r_joy_jog_scale: 0.005
       deadzone: 0.05
