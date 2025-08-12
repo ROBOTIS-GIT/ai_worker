@@ -154,7 +154,6 @@ protected:
   std::vector<double> module_wheel_speed_limit_upper_;
   bool enabled_steering_flip_;
   bool enabled_steering_angular_velocity_limit_;
-  bool enabled_steering_angular_limit_;
   bool enabled_open_loop_;
   uint is_rotation_direction_;
   std::vector<double> previoud_steering_commands_;
@@ -162,6 +161,8 @@ protected:
   double steering_alignment_angle_error_threshold_;
   double steering_alignment_start_angle_error_threshold_;
   double steering_alignment_start_speed_error_threshold_;
+  double linear_vel_deadband_;
+  double angular_vel_deadband_;
   std::string odom_solver_method_str_;
 
   std::string cmd_vel_topic_;
@@ -233,7 +234,6 @@ protected:
   SpeedLimiter limiter_angular_z_;
 
   // Flag to check if stopping due to timeout
-  bool enable_direct_joint_commands_ = false;
   double wheel_saturation_scale_factor_ = 1.0;
   bool enabled_wheel_saturation_scaling_ = false;
 

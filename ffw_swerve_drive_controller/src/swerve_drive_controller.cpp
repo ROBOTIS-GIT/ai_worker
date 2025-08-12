@@ -89,6 +89,8 @@ CallbackReturn SwerveDriveController::on_init()
     auto_declare<double>("steering_alignment_angle_error_threshold", 0.1);
     auto_declare<double>("steering_alignment_start_angle_error_threshold", 0.1);
     auto_declare<double>("steering_alignment_start_speed_error_threshold", 0.1);
+    auto_declare<double>("linear_vel_deadband", 0.1);
+    auto_declare<double>("angular_vel_deadband", 0.1);
 
     auto_declare<std::string>("cmd_vel_topic", "/cmd_vel");
     auto_declare<bool>("use_stamped_cmd_vel", false);
@@ -248,14 +250,17 @@ CallbackReturn SwerveDriveController::on_configure(
     enabled_open_loop_ = get_node()->get_parameter("enabled_open_loop").as_bool();
     enabled_steering_angular_velocity_limit_ =
       get_node()->get_parameter("enabled_steering_angular_velocity_limit").as_bool();
-    enabled_steering_angular_limit_ =
-      get_node()->get_parameter("enabled_steering_angular_limit").as_bool();
     steering_alignment_angle_error_threshold_ = get_node()->get_parameter(
       "steering_alignment_angle_error_threshold").as_double();
     steering_alignment_start_angle_error_threshold_ = get_node()->get_parameter(
       "steering_alignment_start_angle_error_threshold").as_double();
     steering_alignment_start_speed_error_threshold_ = get_node()->get_parameter(
       "steering_alignment_start_speed_error_threshold").as_double();
+
+    linear_vel_deadband_ = get_node()->get_parameter(
+      "linear_vel_deadband").as_double();
+    angular_vel_deadband_ = get_node()->get_parameter(
+      "angular_vel_deadband").as_double();
 
     cmd_vel_topic_ = get_node()->get_parameter("cmd_vel_topic").as_string();
     use_stamped_cmd_vel_ = get_node()->get_parameter("use_stamped_cmd_vel").as_bool();
@@ -744,11 +749,6 @@ controller_interface::return_type SwerveDriveController::update(
 {
   double time_gap = std::max(0.001, period.seconds());
 
-  // Direct Joint Commands
-  if (enable_direct_joint_commands_) {
-    return controller_interface::return_type::OK;
-  }
-
   // 1. read the latest command velocity
   auto current_cmd_vel_ptr = cmd_vel_buffer_.readFromRT();
   RCLCPP_DEBUG(
@@ -761,7 +761,7 @@ controller_interface::return_type SwerveDriveController::update(
   if (ref_timeout_.seconds() > 0.0 && (time - last_cmd_vel_time_) > ref_timeout_) {
     RCLCPP_WARN_THROTTLE(
       get_node()->get_logger(),
-      *get_node()->get_clock(), 10000, "time: %.3f, last_cmd_vel_time_: %.3f, ref_timeout_: %.3f",
+      *get_node()->get_clock(), 100000, "time: %.3f, last_cmd_vel_time_: %.3f, ref_timeout_: %.3f",
       time.seconds(), last_cmd_vel_time_.seconds(), ref_timeout_.seconds());
     timeout = true;
   }
@@ -780,21 +780,38 @@ controller_interface::return_type SwerveDriveController::update(
     // Valid command pointer received
     const auto & current_cmd_vel = **current_cmd_vel_ptr;
 
-    // Receive the new command velocity
-    if (target_vx_ != current_cmd_vel.linear.x ||
-      target_vy_ != current_cmd_vel.linear.y ||
-      target_wz_ != current_cmd_vel.angular.z)
+    // 로컬 변수로 새로운 속도 명령을 우선 읽어옵니다.
+    double new_vx = current_cmd_vel.linear.x;
+    double new_vy = current_cmd_vel.linear.y;
+    double new_wz = current_cmd_vel.angular.z;
+
+    if (std::abs(new_vx) < linear_vel_deadband_)
+    {
+      new_vx = 0.0;
+    }
+    if (std::abs(new_vy) < linear_vel_deadband_)
+    {
+      new_vy = 0.0;
+    }
+    if (std::abs(new_wz) < angular_vel_deadband_)
+    {
+      new_wz = 0.0;
+    }
+    // ==========================================================
+
+    if (target_vx_ != new_vx ||
+      target_vy_ != new_vy ||
+      target_wz_ != new_wz)
     {
       RCLCPP_DEBUG(
         get_node()->get_logger(),
-        "Received new command velocity: vx=%.2f, vy=%.2f, wz=%.2f",
-        current_cmd_vel.linear.x, current_cmd_vel.linear.y, current_cmd_vel.angular.z);
+        "Received new command velocity (deadband applied): vx=%.2f, vy=%.2f, wz=%.2f",
+        new_vx, new_vy, new_wz);
       is_rotation_direction_ = Rotation::STOP;
     }
-    target_vx_ = current_cmd_vel.linear.x;
-    target_vy_ = current_cmd_vel.linear.y;
-    target_wz_ = current_cmd_vel.angular.z;
-
+    target_vx_ = new_vx;
+    target_vy_ = new_vy;
+    target_wz_ = new_wz;
 
     // last_cmd_vel_time_ is updated in the callback
   }
