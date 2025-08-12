@@ -791,8 +791,7 @@ controller_interface::return_type SwerveDriveController::update(
       new_wz = 0.0;
     }
 
-    if (target_vx_ != new_vx || target_vy_ != new_vy || target_wz_ != new_wz)
-    {
+    if (target_vx_ != new_vx || target_vy_ != new_vy || target_wz_ != new_wz) {
       is_rotation_direction_ = Rotation::STOP;
     }
     target_vx_ = new_vx;
