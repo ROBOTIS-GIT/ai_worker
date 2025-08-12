@@ -164,6 +164,8 @@ protected:
   double linear_vel_deadband_;
   double angular_vel_deadband_;
   std::string odom_solver_method_str_;
+  bool is_in_alignment_mode_ = false;
+  double alignment_target_angle_;
 
   std::string cmd_vel_topic_;
   bool use_stamped_cmd_vel_;

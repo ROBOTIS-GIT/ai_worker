@@ -780,7 +780,6 @@ controller_interface::return_type SwerveDriveController::update(
     // Valid command pointer received
     const auto & current_cmd_vel = **current_cmd_vel_ptr;
 
-    // 로컬 변수로 새로운 속도 명령을 우선 읽어옵니다.
     double new_vx = current_cmd_vel.linear.x;
     double new_vy = current_cmd_vel.linear.y;
     double new_wz = current_cmd_vel.angular.z;
@@ -797,7 +796,6 @@ controller_interface::return_type SwerveDriveController::update(
     {
       new_wz = 0.0;
     }
-    // ==========================================================
 
     if (target_vx_ != new_vx ||
       target_vy_ != new_vy ||
@@ -1083,38 +1081,72 @@ controller_interface::return_type SwerveDriveController::update(
         double max_allowed_steering_change_this_dt = steering_angular_velocity_limit_ *
           time_gap;
 
-        if (is_no_limitation) {
-          // If no limitation, just use the optimized steering angle
+        if (is_in_alignment_mode_)
+        {
+            target_wheel_speed = 0.0;
 
-          double absolute_current_steering_angle = std::fmod(current_steering_angle, 2.0 * M_PI);
+            optimized_steering_angle = alignment_target_angle_;
 
-          double desired_steering_change_rad =
-            shortest_angular_distance(
-            absolute_current_steering_angle,
-            limited_steering_cmd);
-          double actual_steering_change_this_dt = std::clamp(
-            desired_steering_change_rad,
-            -max_allowed_steering_change_this_dt,
-            max_allowed_steering_change_this_dt
-          );
+            double current_error = shortest_angular_distance(current_steering_angle, alignment_target_angle_);
+            const double ALIGNMENT_TOLERANCE =0.1;
+            if (std::abs(current_error) < ALIGNMENT_TOLERANCE)
+            {
+                RCLCPP_INFO(get_node()->get_logger(), "Steering alignment complete. Resuming normal operation.");
+                is_in_alignment_mode_ = false;
+            }
 
-          // If the desired steering change is larger than the maximum allowed change,
-          optimized_steering_angle = current_steering_angle + actual_steering_change_this_dt;
-
-        } else {
-          double desired_steering_change_rad = shortest_angular_distance(
-            current_steering_angle,
-            limited_steering_cmd);
-
-          double actual_steering_change_this_dt = std::clamp(
-            desired_steering_change_rad,
-            -max_allowed_steering_change_this_dt,
-            max_allowed_steering_change_this_dt
-          );
-
-          optimized_steering_angle = normalize_angle(
-            current_steering_angle + actual_steering_change_this_dt);
         }
+        else{
+          if (is_no_limitation) {
+            // If no limitation, just use the optimized steering angle
+
+            double absolute_current_steering_angle = std::fmod(current_steering_angle, 2.0 * M_PI);
+
+            double desired_steering_change_rad =
+              shortest_angular_distance(
+              absolute_current_steering_angle,
+              limited_steering_cmd);
+            double actual_steering_change_this_dt = std::clamp(
+              desired_steering_change_rad,
+              -max_allowed_steering_change_this_dt,
+              max_allowed_steering_change_this_dt
+            );
+
+            // If the desired steering change is larger than the maximum allowed change,
+            optimized_steering_angle = current_steering_angle + actual_steering_change_this_dt;
+
+            if (optimized_steering_angle >= limit_upper || optimized_steering_angle <= limit_lower)
+            {
+              RCLCPP_WARN(
+                get_node()->get_logger(),
+                "Steering angle (%.2f) exceeds limits [%.2f, %.2f]. Stopping wheel and adjusting angle.",
+                optimized_steering_angle, limit_lower, limit_upper);
+
+              target_wheel_speed = 0.0;
+
+              if (optimized_steering_angle > limit_upper) {
+                optimized_steering_angle -= M_PI;
+              } else {
+                optimized_steering_angle += M_PI;
+              }
+              is_in_alignment_mode_ = true;
+            }
+          } else {
+            double desired_steering_change_rad = shortest_angular_distance(
+              current_steering_angle,
+              limited_steering_cmd);
+
+            double actual_steering_change_this_dt = std::clamp(
+              desired_steering_change_rad,
+              -max_allowed_steering_change_this_dt,
+              max_allowed_steering_change_this_dt
+            );
+
+            optimized_steering_angle = normalize_angle(
+              current_steering_angle + actual_steering_change_this_dt);
+          }
+        }
+
       }
     }
 
@@ -1288,7 +1320,7 @@ controller_interface::return_type SwerveDriveController::update(
             get_node()->get_logger(), "Failed to set value for interface %s",
             module_handles_[i].wheel_cmd_vel.get().get_name().c_str());
         }
-        RCLCPP_WARN(
+        RCLCPP_DEBUG(
           get_node()->get_logger(),
           "Steering not aligned, stopping wheel. final_steering_commands: %f",
           final_steering_commands[i]);
