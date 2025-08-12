@@ -784,16 +784,13 @@ controller_interface::return_type SwerveDriveController::update(
     double new_vy = current_cmd_vel.linear.y;
     double new_wz = current_cmd_vel.angular.z;
 
-    if (std::abs(new_vx) < linear_vel_deadband_)
-    {
+    if (std::abs(new_vx) < linear_vel_deadband_) {
       new_vx = 0.0;
     }
-    if (std::abs(new_vy) < linear_vel_deadband_)
-    {
+    if (std::abs(new_vy) < linear_vel_deadband_) {
       new_vy = 0.0;
     }
-    if (std::abs(new_wz) < angular_vel_deadband_)
-    {
+    if (std::abs(new_wz) < angular_vel_deadband_) {
       new_wz = 0.0;
     }
 
@@ -1081,22 +1078,23 @@ controller_interface::return_type SwerveDriveController::update(
         double max_allowed_steering_change_this_dt = steering_angular_velocity_limit_ *
           time_gap;
 
-        if (is_in_alignment_mode_)
-        {
-            target_wheel_speed = 0.0;
+        if (is_in_alignment_mode_) {
+          target_wheel_speed = 0.0;
 
-            optimized_steering_angle = alignment_target_angle_;
+          optimized_steering_angle = alignment_target_angle_;
 
-            double current_error = shortest_angular_distance(current_steering_angle, alignment_target_angle_);
-            const double ALIGNMENT_TOLERANCE =0.1;
-            if (std::abs(current_error) < ALIGNMENT_TOLERANCE)
-            {
-                RCLCPP_INFO(get_node()->get_logger(), "Steering alignment complete. Resuming normal operation.");
-                is_in_alignment_mode_ = false;
-            }
+          double current_error = shortest_angular_distance(
+            current_steering_angle,
+            alignment_target_angle_);
+          const double ALIGNMENT_TOLERANCE = 0.1;
+          if (std::abs(current_error) < ALIGNMENT_TOLERANCE) {
+            RCLCPP_INFO(
+              get_node()->get_logger(),
+              "Steering alignment complete. Resuming normal operation.");
+            is_in_alignment_mode_ = false;
+          }
 
-        }
-        else{
+        } else {
           if (is_no_limitation) {
             // If no limitation, just use the optimized steering angle
 
@@ -1115,7 +1113,8 @@ controller_interface::return_type SwerveDriveController::update(
             // If the desired steering change is larger than the maximum allowed change,
             optimized_steering_angle = current_steering_angle + actual_steering_change_this_dt;
 
-            if (optimized_steering_angle >= limit_upper || optimized_steering_angle <= limit_lower)
+            if (optimized_steering_angle >= limit_upper ||
+              optimized_steering_angle <= limit_lower)
             {
               RCLCPP_WARN(
                 get_node()->get_logger(),
