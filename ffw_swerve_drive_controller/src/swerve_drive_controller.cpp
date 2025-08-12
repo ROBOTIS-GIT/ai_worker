@@ -1129,6 +1129,7 @@ controller_interface::return_type SwerveDriveController::update(
                 optimized_steering_angle += M_PI;
               }
               is_in_alignment_mode_ = true;
+              alignment_target_angle_ = optimized_steering_angle;
             }
           } else {
             double desired_steering_change_rad = shortest_angular_distance(
