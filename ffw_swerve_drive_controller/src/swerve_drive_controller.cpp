@@ -927,7 +927,6 @@ controller_interface::return_type SwerveDriveController::update(
     } else {
       RCLCPP_ERROR(get_node()->get_logger(), "Invalid odometry source selected.");
     }
-
   }
 
   // --- 4. calculate the wheel velocities and steering angles based on the inverse kinematics ---
