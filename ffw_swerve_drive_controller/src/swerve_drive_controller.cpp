@@ -847,7 +847,7 @@ controller_interface::return_type SwerveDriveController::update(
     limiter_linear_x_.limit(
       target_vx_, previous_cmd.linear.x, pprevious_cmd.linear.x,
       time_gap);
-    limiter_linear_x_.limit(
+    limiter_linear_y_.limit(
       target_vy_, previous_cmd.linear.y, pprevious_cmd.linear.y,
       time_gap);
     limiter_angular_z_.limit(
@@ -1011,10 +1011,6 @@ controller_interface::return_type SwerveDriveController::update(
     }
 
     // 4.3.check if fliped steering is allowed
-    RCLCPP_DEBUG(
-      get_node()->get_logger(),
-      "target_steering_joint_angle: %.2f, current_steering_angle: %.2f",
-      target_steering_joint_angle, current_steering_angle);
     double optimized_steering_angle = target_steering_joint_angle;
     double wheel_rotation_direction = 1.0;
 
@@ -1118,7 +1114,7 @@ controller_interface::return_type SwerveDriveController::update(
             {
               RCLCPP_WARN(
                 get_node()->get_logger(),
-                "Steering angle (%.2f) exceeds limits [%.2f, %.2f]. Stopping wheel and adjusting angle.",
+                "Steering (%.2f) exceeds limits [%.2f, %.2f]. Stopping wheel, adjusting angle.",
                 optimized_steering_angle, limit_lower, limit_upper);
 
               target_wheel_speed = 0.0;
@@ -1146,7 +1142,6 @@ controller_interface::return_type SwerveDriveController::update(
               current_steering_angle + actual_steering_change_this_dt);
           }
         }
-
       }
     }
 
@@ -1230,7 +1225,11 @@ controller_interface::return_type SwerveDriveController::update(
             get_node()->get_logger(), "Failed to set value for interface %s",
             module_handles_[i].steering_cmd_pos.get().get_name().c_str());
         }
-        if (!module_handles_[i].wheel_cmd_vel.get().set_value(0.0)) {
+        if (!module_handles
+        RCLCPP_DEBUG(
+          get_node()->get_logger(),
+          "Steering not aligned, stopping wheel. final_steering_commands: %f",
+          final_steering_commands[i]);_[i].wheel_cmd_vel.get().set_value(0.0)) {
           RCLCPP_WARN(
             get_node()->get_logger(), "Failed to set value for interface %s",
             module_handles_[i].wheel_cmd_vel.get().get_name().c_str());
@@ -1320,10 +1319,6 @@ controller_interface::return_type SwerveDriveController::update(
             get_node()->get_logger(), "Failed to set value for interface %s",
             module_handles_[i].wheel_cmd_vel.get().get_name().c_str());
         }
-        RCLCPP_DEBUG(
-          get_node()->get_logger(),
-          "Steering not aligned, stopping wheel. final_steering_commands: %f",
-          final_steering_commands[i]);
       }
     }
   }
@@ -1406,7 +1401,6 @@ controller_interface::return_type SwerveDriveController::update(
       }
     }
   }
-
   return controller_interface::return_type::OK;
 }
 
