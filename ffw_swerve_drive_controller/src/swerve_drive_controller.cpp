@@ -754,6 +754,7 @@ controller_interface::return_type SwerveDriveController::update(
 
   // check if the command velocity is valid
   bool timeout = false;
+  // Check if ref_timeout_ is valid (non-zero duration) before calculating difference
   if (ref_timeout_.seconds() > 0.0 && (time - last_cmd_vel_time_) > ref_timeout_) {
     RCLCPP_WARN_THROTTLE(
       get_node()->get_logger(),
@@ -773,7 +774,9 @@ controller_interface::return_type SwerveDriveController::update(
       *get_node()->get_clock(), 1000, "Resetting odometry accumulators due to timeout.");
     odometry_.resetAccumulators();
   } else if (current_cmd_vel_ptr && *current_cmd_vel_ptr) {
+    // Valid command pointer received
     const auto & current_cmd_vel = **current_cmd_vel_ptr;
+
     double new_vx = current_cmd_vel.linear.x;
     double new_vy = current_cmd_vel.linear.y;
     double new_wz = current_cmd_vel.angular.z;
@@ -788,7 +791,8 @@ controller_interface::return_type SwerveDriveController::update(
       new_wz = 0.0;
     }
 
-    if (target_vx_ != new_vx || target_vy_ != new_vy || target_wz_ != new_wz) {
+    if (target_vx_ != new_vx || target_vy_ != new_vy || target_wz_ != new_wz)
+    {
       is_rotation_direction_ = Rotation::STOP;
     }
     target_vx_ = new_vx;
@@ -823,7 +827,7 @@ controller_interface::return_type SwerveDriveController::update(
     limiter_linear_x_.limit(
       target_vx_, previous_cmd.linear.x, pprevious_cmd.linear.x,
       time_gap);
-    limiter_linear_y_.limit(
+    limiter_linear_x_.limit(
       target_vy_, previous_cmd.linear.y, pprevious_cmd.linear.y,
       time_gap);
     limiter_angular_z_.limit(
@@ -994,11 +998,6 @@ controller_interface::return_type SwerveDriveController::update(
           // Flip the steering angle by adding M_PI
           optimized_steering_angle = normalize_angle(target_steering_joint_angle + M_PI);
           wheel_rotation_direction = -1.0;
-        } else {
-          RCLCPP_WARN(
-            get_node()->get_logger(),
-            "Module %zu: Flipping steering angle would result in out-of-bounds angle %.2f.",
-            i, normalize_angle(target_steering_joint_angle + M_PI));
         }
       } else {
         if (target_steering_joint_angle < limit_lower ||
@@ -1041,6 +1040,7 @@ controller_interface::return_type SwerveDriveController::update(
         if (is_in_alignment_mode_) {
           target_wheel_speed = 0.0;
           optimized_steering_angle = alignment_target_angle_;
+
           double current_error = shortest_angular_distance(
             current_steering_angle,
             alignment_target_angle_);
@@ -1051,6 +1051,7 @@ controller_interface::return_type SwerveDriveController::update(
               "Steering alignment complete. Resuming normal operation.");
             is_in_alignment_mode_ = false;
           }
+
         } else {
           if (is_no_limitation) {
             // If no limitation, just use the optimized steering angle
@@ -1075,7 +1076,9 @@ controller_interface::return_type SwerveDriveController::update(
                 get_node()->get_logger(),
                 "Steering (%.2f) exceeds limits [%.2f, %.2f]. Stopping wheel, adjusting angle.",
                 optimized_steering_angle, limit_lower, limit_upper);
+
               target_wheel_speed = 0.0;
+
               if (optimized_steering_angle > limit_upper) {
                 optimized_steering_angle -= M_PI;
               } else {
@@ -1088,11 +1091,13 @@ controller_interface::return_type SwerveDriveController::update(
             double desired_steering_change_rad = shortest_angular_distance(
               current_steering_angle,
               limited_steering_cmd);
+
             double actual_steering_change_this_dt = std::clamp(
               desired_steering_change_rad,
               -max_allowed_steering_change_this_dt,
               max_allowed_steering_change_this_dt
             );
+
             optimized_steering_angle = normalize_angle(
               current_steering_angle + actual_steering_change_this_dt);
           }
@@ -1135,6 +1140,12 @@ controller_interface::return_type SwerveDriveController::update(
       if (final_wheel_vel_cmd < module_wheel_speed_limit_lower_[i] ||
         final_wheel_vel_cmd > module_wheel_speed_limit_upper_[i])
       {
+        RCLCPP_WARN(
+          get_node()->get_logger(),
+          "Module %zu: Wheel velocity command %.2f outside limits [%.2f, %.2f]. Clamping.",
+          i, final_wheel_vel_cmd, module_wheel_speed_limit_lower_[i],
+          module_wheel_speed_limit_upper_[i]);
+
         double clipped_wheel_vel_cmd;
         clipped_wheel_vel_cmd = std::clamp(
           final_wheel_vel_cmd,
@@ -1169,12 +1180,7 @@ controller_interface::return_type SwerveDriveController::update(
             get_node()->get_logger(), "Failed to set value for interface %s",
             module_handles_[i].steering_cmd_pos.get().get_name().c_str());
         }
-        if (!module_handles
-          RCLCPP_DEBUG(
-            get_node()->get_logger(),
-            "Steering not aligned, stopping wheel. final_steering_commands: %f",
-            final_steering_commands[i]);_[i].wheel_cmd_vel.get().set_value(0.0))
-        {
+        if (!module_handles_[i].wheel_cmd_vel.get().set_value(0.0)) {
           RCLCPP_WARN(
             get_node()->get_logger(), "Failed to set value for interface %s",
             module_handles_[i].wheel_cmd_vel.get().get_name().c_str());
@@ -1236,11 +1242,6 @@ controller_interface::return_type SwerveDriveController::update(
   } else {
     // Update the final commands
     for (size_t i = 0; i < num_modules_; ++i) {
-      RCLCPP_DEBUG(
-        get_node()->get_logger(), "Command Module %zu: Steering command %.2f, Wheel command %.2f",
-        i, final_steering_commands[i],
-        final_wheel_velocity_commands[i] * wheel_saturation_scale_factor_);
-
       // Set the steering and wheel commands
       if (!module_handles_[i].steering_cmd_pos.get().set_value(final_steering_commands[i])) {
         RCLCPP_WARN(
