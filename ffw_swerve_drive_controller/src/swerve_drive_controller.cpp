@@ -788,8 +788,7 @@ controller_interface::return_type SwerveDriveController::update(
       new_wz = 0.0;
     }
 
-    if (target_vx_ != new_vx || target_vy_ != new_vy || target_wz_ != new_wz)
-    {
+    if (target_vx_ != new_vx || target_vy_ != new_vy || target_wz_ != new_wz) {
       is_rotation_direction_ = Rotation::STOP;
     }
     target_vx_ = new_vx;
@@ -926,15 +925,7 @@ controller_interface::return_type SwerveDriveController::update(
       RCLCPP_ERROR(get_node()->get_logger(), "Invalid odometry source selected.");
     }
 
-  } else {
-    RCLCPP_WARN_THROTTLE(
-      get_node()->get_logger(),
-      *get_node()->get_clock(), 1000, "Skipping odometry update due to state reading errors.");
   }
-  RCLCPP_DEBUG(
-    get_node()->get_logger(), "Computed odometry: x=%.2f, y=%.2f, theta=%.2f ",
-    odometry_.getX(), odometry_.getY(), odometry_.getYaw());
-
 
   // --- 4. calculate the wheel velocities and steering angles based on the inverse kinematics ---
   bool is_steering_aligned = false;
@@ -1003,10 +994,6 @@ controller_interface::return_type SwerveDriveController::update(
           // Flip the steering angle by adding M_PI
           optimized_steering_angle = normalize_angle(target_steering_joint_angle + M_PI);
           wheel_rotation_direction = -1.0;
-          RCLCPP_DEBUG(
-            get_node()->get_logger(),
-            "Module %zu: Flipping steering angle from %.2f to %.2f (angle diff %.2f rad).",
-            i, target_steering_joint_angle, optimized_steering_angle, angle_diff);
         } else {
           RCLCPP_WARN(
             get_node()->get_logger(),
@@ -1183,10 +1170,11 @@ controller_interface::return_type SwerveDriveController::update(
             module_handles_[i].steering_cmd_pos.get().get_name().c_str());
         }
         if (!module_handles
-        RCLCPP_DEBUG(
-          get_node()->get_logger(),
-          "Steering not aligned, stopping wheel. final_steering_commands: %f",
-          final_steering_commands[i]);_[i].wheel_cmd_vel.get().set_value(0.0)) {
+          RCLCPP_DEBUG(
+            get_node()->get_logger(),
+            "Steering not aligned, stopping wheel. final_steering_commands: %f",
+            final_steering_commands[i]);_[i].wheel_cmd_vel.get().set_value(0.0))
+        {
           RCLCPP_WARN(
             get_node()->get_logger(), "Failed to set value for interface %s",
             module_handles_[i].wheel_cmd_vel.get().get_name().c_str());
