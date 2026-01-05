@@ -1,34 +1,38 @@
 import os
+
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.actions import IncludeLaunchDescription
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, Command
+from launch.substitutions import LaunchConfiguration
+from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import Node
-from ament_index_python.packages import get_package_share_directory
+
 
 def generate_launch_description():
 
     pkg_navigation = get_package_share_directory('ffw_navigation')
-    os.environ.setdefault("GZ_SIM_RESOURCE_PATH", "")
-    os.environ["GZ_SIM_RESOURCE_PATH"] += os.pathsep + pkg_navigation + "/gazebo_models/"
+    os.environ.setdefault('GZ_SIM_RESOURCE_PATH', '')
+    os.environ['GZ_SIM_RESOURCE_PATH'] += os.pathsep + pkg_navigation + '/gazebo_models/'
 
     rviz_launch_arg = DeclareLaunchArgument(
         'rviz',
-        default_value = 'true',
-        description = 'Open RViz'
+        default_value='true',
+        description='Open RViz'
     )
 
     rviz_config_arg = DeclareLaunchArgument(
         'rviz_config',
-        default_value = 'navigation.rviz',
-        description = 'RViz config file'
+        default_value='navigation.rviz',
+        description='RViz config file'
     )
 
     sim_time_arg = DeclareLaunchArgument(
         'use_sim_time',
-        default_value = 'True',
-        description = 'Flag to enable use_sim_time'
+        default_value='True',
+        description='Flag to enable use_sim_time'
     )
 
     nav2_localization_launch_path = os.path.join(
@@ -64,7 +68,10 @@ def generate_launch_description():
     rviz_node = Node(
         package='rviz2',
         executable='rviz2',
-        arguments=['-d', PathJoinSubstitution([pkg_navigation, 'rviz', LaunchConfiguration('rviz_config')])],
+        arguments=[
+            '-d',
+            PathJoinSubstitution([pkg_navigation, 'rviz', LaunchConfiguration('rviz_config')])
+        ],
         condition=IfCondition(LaunchConfiguration('rviz')),
         parameters=[
             {'use_sim_time': LaunchConfiguration('use_sim_time')},
@@ -84,7 +91,7 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(nav2_navigation_launch_path),
         launch_arguments={
             'use_sim_time': LaunchConfiguration('use_sim_time'),
-            params_file': navigation_params_path,
+            'params_file': navigation_params_path,
         }.items()
     )
 
