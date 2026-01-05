@@ -346,7 +346,7 @@ def generate_launch_description():
             'enable_shadow_filter': True,
             'enable_average_filter': True,
         }, {
-            'use_sim_time': True,
+            'use_sim_time': use_sim,
         }],
     )
 

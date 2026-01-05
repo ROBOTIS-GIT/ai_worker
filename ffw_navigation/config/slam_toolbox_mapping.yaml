@@ -26,7 +26,7 @@ slam_toolbox:
     # map_start_pose: [0.0, 0.0, 0.0]
     #map_start_at_dock: true
 
-    debug_logging: true
+    debug_logging: false
     throttle_scans: 1
     transform_publish_period: 0.02 #if 0 never publishes odometry
     map_update_interval: 5.0

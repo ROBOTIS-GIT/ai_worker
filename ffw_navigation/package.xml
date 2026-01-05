@@ -3,7 +3,7 @@
 <package format="3">
   <name>ffw_navigation</name>
   <version>1.0.0</version>
-  <description>ffw_navigation</description>
+  <description>ROS 2 package for ffw robot navigation using Nav2 and SLAM Toolbox</description>
   <maintainer email="pyo@robotis.com">Pyo</maintainer>
   <license>Apache License 2.0</license>
 
