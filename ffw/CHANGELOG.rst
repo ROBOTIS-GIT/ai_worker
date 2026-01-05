@@ -2,6 +2,11 @@
 Changelog for package ffw
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.16 (2026-01-05)
+-------------------
+* Added ffw_navigation package
+* Contributors: Hyungyu Kim, Yongjun Kwon
+
 1.1.15 (2025-12-09)
 -------------------
 * Fixed Position and Velocity Unit for lift

@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>ffw_moveit_config</name>
-  <version>1.1.15</version>
+  <version>1.1.16</version>
   <description>
      An automatically generated package with all the configuration and launch files for using the ffw with the MoveIt Motion Planning Framework
   </description>

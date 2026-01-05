@@ -2,6 +2,10 @@
 Changelog for package ffw_joint_trajectory_command_broadcaster
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.16 (2026-01-05)
+-------------------
+* None
+
 1.1.15 (2025-12-09)
 -------------------
 * Updated for new realtime_tools::RealtimePublisher API

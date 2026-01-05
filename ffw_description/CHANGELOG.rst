@@ -2,6 +2,10 @@
 Changelog for package ffw_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.16 (2026-01-05)
+-------------------
+* None
+
 1.1.15 (2025-12-09)
 -------------------
 * Fixed deprecated fake_hardware to mock_hardware

@@ -2,6 +2,10 @@
 Changelog for package ffw_bringup
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.16 (2026-01-05)
+-------------------
+* None
+
 1.1.15 (2025-12-09)
 -------------------
 * Added head eef tracker feature
