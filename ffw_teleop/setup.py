@@ -25,7 +25,7 @@ setup(
     maintainer_email='pyo@robotis.com',
     description='FFW teleop ROS 2 package.',
     license='Apache 2.0',
-    tests_require=['pytest'],
+    # tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'keyborad_control = ffw_teleop.keyboard_control:main',

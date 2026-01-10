@@ -43,13 +43,13 @@ setup(
     keywords=['ROS'],
     classifiers=[
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: Apache Software License',
+        # 'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python',
         'Topic :: Software Development',
     ],
     description='ROS 2 launch scripts for starting the FFW',
     license='Apache 2.0',
-    tests_require=['pytest'],
+    # tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'joint_trajectory_executor = ffw_bringup.joint_trajectory_executor:main',
