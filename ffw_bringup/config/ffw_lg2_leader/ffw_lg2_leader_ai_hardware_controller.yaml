@@ -22,24 +22,24 @@
 /**:
   joint_trajectory_command_broadcaster:
     ros__parameters:
-      left_joints:
-        - arm_l_joint1
-        - arm_l_joint2
-        - arm_l_joint3
-        - arm_l_joint4
-        - arm_l_joint5
-        - arm_l_joint6
-        - arm_l_joint7
-        - gripper_l_joint1
-      left_offsets:
-        - 0.0
-        - 0.0
-        - 0.0
-        - 0.0
-        - 0.0
-        - 0.0
-        - 0.0
-        - 0.3
+      # left_joints:
+      #   - arm_l_joint1
+      #   - arm_l_joint2
+      #   - arm_l_joint3
+      #   - arm_l_joint4
+      #   - arm_l_joint5
+      #   - arm_l_joint6
+      #   - arm_l_joint7
+      #   - gripper_l_joint1
+      # left_offsets:
+      #   - 0.0
+      #   - 0.0
+      #   - 0.0
+      #   - 0.0
+      #   - 0.0
+      #   - 0.0
+      #   - 0.0
+      #   - 0.3
       right_joints:
         - arm_r_joint1
         - arm_r_joint2

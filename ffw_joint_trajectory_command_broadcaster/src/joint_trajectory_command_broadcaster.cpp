@@ -96,19 +96,27 @@ controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_confi
 
   try {
     // Create publishers for left and right groups
-    std::vector<std::string> groups = {"left", "right"};
+    std::vector<std::string> groups;
+    
+    // Only add groups that have joints configured
+    if (!params_.left_joints.empty()) {
+      groups.push_back("left");
+    }
+    if (!params_.right_joints.empty()) {
+      groups.push_back("right");
+    }
 
     for (const auto & group_name : groups) {
       // Get joints for this group
       std::vector<std::string> group_joints;
-      if (group_name == "left" && !params_.left_joints.empty()) {
+      if (group_name == "left") {
         group_joints = params_.left_joints;
-      } else if (group_name == "right" && !params_.right_joints.empty()) {
+      } else if (group_name == "right") {
         group_joints = params_.right_joints;
       }
 
       if (group_joints.empty()) {
-        continue;  // Skip empty groups
+        continue;  // Skip empty groups (safety check)
       }
 
       group_joint_names_[group_name] = group_joints;
@@ -287,7 +295,12 @@ double get_value(
   const std::unordered_map<std::string, std::unordered_map<std::string, double>> & map,
   const std::string & name, const std::string & interface_name)
 {
-  const auto & interfaces_and_values = map.at(name);
+  auto name_it = map.find(name);
+  if (name_it == map.end()) {
+    return kUninitializedValue;
+  }
+  
+  const auto & interfaces_and_values = name_it->second;
   const auto interface_and_value = interfaces_and_values.find(interface_name);
   if (interface_and_value != interfaces_and_values.cend()) {
     return interface_and_value->second;
@@ -328,6 +341,12 @@ double JointTrajectoryCommandBroadcaster::calculate_mean_error() const
   for (const auto & group_pair : group_joint_names_) {
     const auto & group_name = group_pair.first;
     const auto & group_joints = group_pair.second;
+    
+    // Skip empty groups
+    if (group_joints.empty()) {
+      continue;
+    }
+    
     // Safely get group offsets and reverse joints
     std::vector<double> group_offsets;
     std::vector<std::string> group_reverse_joints;
@@ -380,12 +399,26 @@ bool JointTrajectoryCommandBroadcaster::check_trigger_active() const
   double gripper_r_pos = get_value(name_if_value_mapping_, "gripper_r_joint1", HW_IF_POSITION);
   double gripper_l_pos = get_value(name_if_value_mapping_, "gripper_l_joint1", HW_IF_POSITION);
 
-  // Return true if both grippers are above threshold
-  return (!std::isnan(gripper_r_pos) &&
-         gripper_r_pos * params_.trigger_sign >=
-         params_.trigger_threshold * params_.trigger_sign) &&
-         (!std::isnan(gripper_l_pos) &&
-         gripper_l_pos * params_.trigger_sign >= params_.trigger_threshold * params_.trigger_sign);
+  // Check if left arm is configured (has joints)
+  bool left_arm_configured = false;
+  auto left_it = group_joint_names_.find("left");
+  if (left_it != group_joint_names_.end() && !left_it->second.empty()) {
+    left_arm_configured = true;
+  }
+
+  // If left arm is configured, require both grippers
+  // If left arm is disabled, only require right gripper
+  bool right_trigger_active = (!std::isnan(gripper_r_pos) &&
+         gripper_r_pos * params_.trigger_sign >= params_.trigger_threshold * params_.trigger_sign);
+
+  if (left_arm_configured) {
+    bool left_trigger_active = (!std::isnan(gripper_l_pos) &&
+           gripper_l_pos * params_.trigger_sign >= params_.trigger_threshold * params_.trigger_sign);
+    return right_trigger_active && left_trigger_active;
+  } else {
+    // Left arm disabled, only check right gripper
+    return right_trigger_active;
+  }
 }
 
 void JointTrajectoryCommandBroadcaster::update_trigger_state(const rclcpp::Time & current_time)
@@ -483,7 +516,18 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
 
   // Publish JointTrajectory messages for each group with current positions
   for (const auto & group_name : trajectory_groups_) {
-    const auto & group_joints = group_joint_names_[group_name];
+    // Check if group exists in the map (safety check)
+    auto joints_it = group_joint_names_.find(group_name);
+    if (joints_it == group_joint_names_.end()) {
+      continue;  // Skip groups that weren't configured
+    }
+    
+    const auto & group_joints = joints_it->second;
+    
+    if (group_joints.empty()) {
+      continue;  // Skip empty groups
+    }
+    
     // Safely get group offsets and reverse joints
     std::vector<double> group_offsets;
     std::vector<std::string> group_reverse_joints;
@@ -496,10 +540,6 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
     auto reverse_it = group_reverse_joints_.find(group_name);
     if (reverse_it != group_reverse_joints_.end()) {
       group_reverse_joints = reverse_it->second;
-    }
-
-    if (group_joints.empty()) {
-      continue;  // Skip empty groups
     }
 
     auto & realtime_publisher = realtime_joint_trajectory_publishers_[group_name];
