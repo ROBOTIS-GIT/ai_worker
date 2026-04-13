@@ -1,4 +1,6 @@
 # Serial numbers for RealSense cameras
 # You can add or modify serial numbers as needed
-camera1_serial: "'335122270624'"
-camera2_serial: "'335122272052'"
+# camera1_serial: "'335122270745'"
+# camera2_serial: "'335122272602'"
+camera1_serial: "'335122272602'"
+camera2_serial: "'335122270745'"

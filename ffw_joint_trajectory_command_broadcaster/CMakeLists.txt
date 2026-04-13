@@ -18,6 +18,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   rclcpp_lifecycle
   rcutils
   realtime_tools
+  std_srvs
   urdf
   trajectory_msgs
 )
@@ -46,6 +47,7 @@ target_include_directories(joint_trajectory_command_broadcaster PUBLIC
 target_link_libraries(joint_trajectory_command_broadcaster PUBLIC
   ${builtin_interfaces_TARGETS}
   ${trajectory_msgs_TARGETS}
+  ${std_srvs_TARGETS}
   controller_interface::controller_interface
   joint_trajectory_command_broadcaster_parameters
   pluginlib::pluginlib

@@ -1,3 +1,4 @@
+
 // Copyright 2021 ros2_control development team
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -180,35 +181,12 @@ controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_confi
 
     // Store the groups for later use
     trajectory_groups_ = groups;
-    for (const auto& group_name : trajectory_groups_) {
-      group_first_publish_[group_name] = true;
-      group_joints_synced_[group_name] = false;
-    }
 
     // Create subscriber for follower joint states
     joint_states_subscriber_ = get_node()->create_subscription<sensor_msgs::msg::JointState>(
       params_.follower_joint_states_topic, rclcpp::SystemDefaultsQoS(),
       std::bind(&JointTrajectoryCommandBroadcaster::joint_states_callback, this,
         std::placeholders::_1));
-
-    // Enable topic subscriptions
-    left_enable_sub_ = get_node()->create_subscription<std_msgs::msg::Bool>(
-      "/leader/left_enable", rclcpp::SystemDefaultsQoS(),
-      [this](std_msgs::msg::Bool::SharedPtr msg) {
-        if (msg->data && !left_enabled_) {
-          group_joints_synced_["left"] = false;
-          group_first_publish_["left"] = true;
-        }
-        left_enabled_ = msg->data;
-      });
-
-    right_enable_sub_ = get_node()->create_subscription<std_msgs::msg::Bool>(
-    "/leader/right_enable", rclcpp::SystemDefaultsQoS(),
-    [this](const std_msgs::msg::Bool::SharedPtr msg) {
-      right_enabled_ = msg->data;
-    });
-
-
 
     RCLCPP_INFO(
       get_node()->get_logger(),
@@ -388,69 +366,128 @@ void JointTrajectoryCommandBroadcaster::joint_states_callback(
   }
 }
 
-double JointTrajectoryCommandBroadcaster::calculate_mean_error(const std::string & group_name) const
+double JointTrajectoryCommandBroadcaster::calculate_mean_error() const
 {
   // Check if we have received any follower joint states
   if (follower_joint_positions_.empty()) {
     return std::numeric_limits<double>::max();  // Return max error if no follower data
   }
 
-  auto group_it = group_joint_names_.find(group_name);
-  if (group_it == group_joint_names_.end()) {
-    return std::numeric_limits<double>::max();
-  }
-
-  const auto & group_joints = group_it->second;
   double total_error = 0.0;
   int valid_joints = 0;
 
-  std::vector<double> group_offsets;
-  std::vector<std::string> group_reverse_joints;
+  // Calculate mean error across all joints in all groups
+  for (const auto & group_pair : group_joint_names_) {
+    const auto & group_name = group_pair.first;
+    const auto & group_joints = group_pair.second;
+    // Safely get group offsets and reverse joints
+    std::vector<double> group_offsets;
+    std::vector<std::string> group_reverse_joints;
 
-  auto offsets_it = group_joint_offsets_.find(group_name);
-  if (offsets_it != group_joint_offsets_.end()) {
-    group_offsets = offsets_it->second;
-  }
-
-  auto reverse_it = group_reverse_joints_.find(group_name);
-  if (reverse_it != group_reverse_joints_.end()) {
-    group_reverse_joints = reverse_it->second;
-  }
-
-  for (size_t i = 0; i < group_joints.size(); ++i) {
-    const auto & joint_name = group_joints[i];
-    auto follower_it = follower_joint_positions_.find(joint_name);
-    if (follower_it == follower_joint_positions_.end()) {
-      continue;  // Skip joints not available in follower
+    auto offsets_it = group_joint_offsets_.find(group_name);
+    if (offsets_it != group_joint_offsets_.end()) {
+      group_offsets = offsets_it->second;
     }
 
-    double leader_pos = get_value(name_if_value_mapping_, joint_name, HW_IF_POSITION);
-    if (std::isnan(leader_pos)) {
-      continue;  // Skip joints without valid leader position
+    auto reverse_it = group_reverse_joints_.find(group_name);
+    if (reverse_it != group_reverse_joints_.end()) {
+      group_reverse_joints = reverse_it->second;
     }
 
-    // Apply reverse and offset to leader position for comparison
-    if (std::find(group_reverse_joints.begin(), group_reverse_joints.end(), joint_name) !=
-      group_reverse_joints.end())
-    {
-      leader_pos = -leader_pos;
-    }
+    for (size_t i = 0; i < group_joints.size(); ++i) {
+      const auto & joint_name = group_joints[i];
+      auto follower_it = follower_joint_positions_.find(joint_name);
+      if (follower_it == follower_joint_positions_.end()) {
+        continue;  // Skip joints not available in follower
+      }
 
-    // Apply group offset
-    if (i < group_offsets.size()) {
-      leader_pos += group_offsets[i];
-    }
+      double leader_pos = get_value(name_if_value_mapping_, joint_name, HW_IF_POSITION);
+      if (std::isnan(leader_pos)) {
+        continue;  // Skip joints without valid leader position
+      }
 
-    total_error += std::abs(leader_pos - follower_it->second);
-    valid_joints++;
+      // Apply reverse and offset to leader position for comparison
+      if (std::find(group_reverse_joints.begin(), group_reverse_joints.end(), joint_name) !=
+        group_reverse_joints.end())
+      {
+        leader_pos = -leader_pos;
+      }
+
+      // Apply group offset
+      if (i < group_offsets.size()) {
+        leader_pos += group_offsets[i];
+      }
+
+      total_error += std::abs(leader_pos - follower_it->second);
+      valid_joints++;
+    }
   }
 
   return valid_joints > 0 ? total_error / valid_joints : std::numeric_limits<double>::max();
 }
 
-bool JointTrajectoryCommandBroadcaster::check_joints_synced(const std::string & group_name) const
+bool JointTrajectoryCommandBroadcaster::check_trigger_active() const
 {
-  double mean_error = calculate_mean_error(group_name);
+  // Check if gripper trigger joints are above threshold
+  double gripper_r_pos = get_value(name_if_value_mapping_, "gripper_r_joint1", HW_IF_POSITION);
+  double gripper_l_pos = get_value(name_if_value_mapping_, "gripper_l_joint1", HW_IF_POSITION);
+
+  // Return true if both grippers are above threshold
+  return (!std::isnan(gripper_r_pos) &&
+         gripper_r_pos * params_.trigger_sign >=
+         params_.trigger_threshold * params_.trigger_sign) &&
+         (!std::isnan(gripper_l_pos) &&
+         gripper_l_pos * params_.trigger_sign >= params_.trigger_threshold * params_.trigger_sign);
+}
+
+void JointTrajectoryCommandBroadcaster::update_trigger_state(const rclcpp::Time & current_time)
+{
+  bool current_trigger_active = check_trigger_active();
+
+  if (current_trigger_active && !trigger_counting_) {
+    // Start trigger counting (only if mode hasn't changed in this trigger session)
+    if (!mode_changed_in_this_trigger_) {
+      trigger_counting_ = true;
+      trigger_start_time_ = current_time;
+      RCLCPP_INFO(get_node()->get_logger(), "Trigger activated - counting started");
+    }
+  } else if (!current_trigger_active) {
+    // Trigger released - reset all states
+    if (trigger_counting_) {
+      trigger_counting_ = false;
+      RCLCPP_INFO(get_node()->get_logger(), "Trigger released - counting stopped");
+    }
+    // Reset for next trigger session when trigger is completely released
+    mode_changed_in_this_trigger_ = false;
+  }
+
+  // Check if trigger has been held for specified duration and mode hasn't changed in this session
+  if (trigger_counting_ && !mode_changed_in_this_trigger_ &&
+    (current_time - trigger_start_time_) >=
+    rclcpp::Duration::from_seconds(params_.trigger_duration))
+  {
+    // Toggle auto mode state
+    if (auto_mode_ == AutoMode::STOPPED) {
+      auto_mode_ = AutoMode::ACTIVE;
+      // Reset sync state when starting auto mode
+      joints_synced_ = false;
+      first_publish_ = true;
+      RCLCPP_INFO(get_node()->get_logger(),
+          "Auto mode ACTIVATED - follower will slowly follow leader");
+    } else {
+      auto_mode_ = AutoMode::STOPPED;
+      RCLCPP_INFO(get_node()->get_logger(), "Auto mode STOPPED - follower paused");
+    }
+
+    // Mark that mode has changed in this trigger session
+    mode_changed_in_this_trigger_ = true;
+    trigger_counting_ = false;  // Stop counting
+  }
+}
+
+bool JointTrajectoryCommandBroadcaster::check_joints_synced() const
+{
+  double mean_error = calculate_mean_error();
   return mean_error <= params_.sync_threshold;
 }
 
@@ -469,102 +506,36 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
     }
   }
 
-  // // gripper state check
-  //   for (const auto & group_name : trajectory_groups_) {
-  //     const auto & group_joints = group_joint_names_[group_name];
+  // Update trigger state for auto mode control
+  update_trigger_state(time);
 
-  //     for (const auto & joint_name : group_joints) {
-  //       double pos = get_value(name_if_value_mapping_, joint_name, HW_IF_POSITION);
-
-  //       if (!std::isnan(pos) && pos < -2.7) {
-  //         right_enabled_ = false;
-  //         left_enabled_ = false;
-
-  //         // if (group_name == "left") {
-  //         //   right_enabled_ = false;
-  //         //   left_enabled_ = false;
-  //         // } else if (group_name == "right") {
-  //         //   right_enabled_ = false;
-  //         //   left_enable = false;
-  //         // }
-          
-
-  //         RCLCPP_WARN(get_node()->get_logger(),
-  //           "[%s] Gripper below threshold (%.2f < -2.7) → force disable",
-  //           group_name.c_str(), pos);
-
-  //         break;
-  //       }
-  //     }
-  //   }
-
-  // gripper state check
-  for (const auto & group_name : trajectory_groups_) {
-    const auto & group_joints = group_joint_names_[group_name];
-
-    if (group_joints.empty()) {
-      continue;
-    }
-
-    // 가장 끝 조인트를 gripper로 사용
-    const std::string & gripper_joint_name = group_joints.back();
-    double gripper_pos = get_value(name_if_value_mapping_, gripper_joint_name, HW_IF_POSITION);
-
-    if (!std::isnan(gripper_pos) && gripper_pos < -2.7) {
-      right_enabled_ = false;
-      left_enabled_ = false;
-
-      RCLCPP_WARN(
-        get_node()->get_logger(),
-        "[%s] Gripper joint '%s' below threshold (%.2f < -2.7)",
-        group_name.c_str(), gripper_joint_name.c_str(), gripper_pos);
-
-      if (group_name == "left") {
-        trajectory_msgs::msg::JointTrajectory traj_msg;
-        traj_msg.header.stamp = rclcpp::Time(0, 0);
-        traj_msg.joint_names = group_joints;
-        traj_msg.points.resize(1);
-        traj_msg.points[0].positions = left_position;
-        traj_msg.points[0].time_from_start = rclcpp::Duration(2, 0);
-
-        auto & realtime_publisher = realtime_joint_trajectory_publishers_[group_name];
-        if (realtime_publisher) {
-          realtime_publisher->try_publish(traj_msg);
-        }
-      } else if (group_name == "right") {
-        trajectory_msgs::msg::JointTrajectory traj_msg;
-        traj_msg.header.stamp = rclcpp::Time(0, 0);
-        traj_msg.joint_names = group_joints;
-        traj_msg.points.resize(1);
-        traj_msg.points[0].positions = right_position;
-        traj_msg.points[0].time_from_start = rclcpp::Duration(2, 0);
-        auto & realtime_publisher = realtime_joint_trajectory_publishers_[group_name];
-        if (realtime_publisher) {
-          realtime_publisher->try_publish(traj_msg);
-        }
-      }
-    }
+  // Skip publishing if auto mode is STOPPED
+  if (auto_mode_ == AutoMode::STOPPED) {
+    return controller_interface::return_type::OK;
   }
 
-  // If no follower values, terminate node for safety
-  if (follower_joint_positions_.empty()) {
-    RCLCPP_ERROR(get_node()->get_logger(), "No follower joint states received. Terminating node/controller.");
-    return controller_interface::return_type::ERROR;
+  // Calculate mean error and check if joints are synced
+  double mean_error = calculate_mean_error();
+  bool current_synced = check_joints_synced();
+
+  // Update sync status and handle first publish
+  if (first_publish_) {
+    joints_synced_ = false;
+    first_publish_ = false;
+    RCLCPP_INFO(get_node()->get_logger(),
+        "First publish - using adaptive time_from_start based on error");
+  } else {
+    // Once synced, stay synced permanently
+    if (!joints_synced_ && current_synced) {
+      joints_synced_ = true;
+      RCLCPP_INFO(get_node()->get_logger(),
+          "Joints synced for the first time - switching to immediate time_from_start permanently");
+    }
   }
 
   // Publish JointTrajectory messages for each group with current positions
   for (const auto & group_name : trajectory_groups_) {
     const auto & group_joints = group_joint_names_[group_name];
-
-    // Per-group enable logic
-    bool group_enabled = true;
-    if (group_name == "left") {
-      group_enabled = left_enabled_;
-    } else if (group_name == "right") {
-      group_enabled = right_enabled_;
-    }
-
-    
     // Safely get group offsets and reverse joints
     std::vector<double> group_offsets;
     std::vector<std::string> group_reverse_joints;
@@ -584,25 +555,7 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
     }
 
     auto & realtime_publisher = realtime_joint_trajectory_publishers_[group_name];
-    if (group_enabled && realtime_publisher) {
-      // Calculate group mean error and synced state
-      double mean_error = calculate_mean_error(group_name);
-      bool current_synced = check_joints_synced(group_name);
-
-      if (group_first_publish_[group_name]) {
-        group_joints_synced_[group_name] = false;
-        group_first_publish_[group_name] = false;
-        RCLCPP_INFO(get_node()->get_logger(),
-            "[%s] First publish - using adaptive time_from_start based on error", group_name.c_str());
-      } else {
-        // Once synced, stay synced permanently
-        if (!group_joints_synced_[group_name] && current_synced) {
-          group_joints_synced_[group_name] = true;
-          RCLCPP_INFO(get_node()->get_logger(),
-              "[%s] Joints synced for the first time - switching to immediate time_from_start permanently", group_name.c_str());
-        }
-      }
-
+    if (realtime_publisher) {
       trajectory_msgs::msg::JointTrajectory traj_msg;
       traj_msg.header.stamp = rclcpp::Time(0, 0);
       traj_msg.joint_names = group_joints;
@@ -635,7 +588,7 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
       }
 
       // Set time_from_start based on sync status and mean error
-      if (group_joints_synced_[group_name]) {
+      if (joints_synced_) {
         traj_msg.points[0].time_from_start = rclcpp::Duration(0, 0);  // immediate when synced
       } else {
         // Adaptive timing based on mean error using parameters
@@ -647,6 +600,7 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
         // Corrected logic: small error -> small delay, large error -> large delay
         double adaptive_delay = params_.min_delay + (params_.max_delay - params_.min_delay) *
           error_ratio;
+
 
         // Convert to nanoseconds
         int32_t delay_ns = static_cast<int32_t>(adaptive_delay * 1e9);
@@ -660,11 +614,11 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
     // Real-time safe: message size pre-allocated in on_activate(), only copy values here
     // Apply same transformations (reverse, offsets) as joint_trajectory
     auto joint_state_pub_it = realtime_joint_state_stamped_publishers_.find(group_name);
-      if (joint_state_pub_it != realtime_joint_state_stamped_publishers_.end() &&
-        joint_state_pub_it->second)
-      {
-        auto & realtime_joint_state_publisher = joint_state_pub_it->second;
-        if (realtime_joint_state_publisher->trylock()) {
+    if (joint_state_pub_it != realtime_joint_state_stamped_publishers_.end() &&
+      joint_state_pub_it->second)
+    {
+      auto & realtime_joint_state_publisher = joint_state_pub_it->second;
+      if (realtime_joint_state_publisher->trylock()) {
         auto & msg = realtime_joint_state_publisher->msg_;
 
         // Set timestamp from update() function argument (actual sensor read time)
@@ -676,29 +630,23 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
         // No string operations, no dynamic allocation - only value copying
         for (size_t i = 0; i < group_joints.size() && i < msg.name.size(); ++i) {
           const std::string & joint_name = group_joints[i];
-          double pos_value;
 
-          if (!group_enabled && follower_joint_positions_.find(joint_name) != follower_joint_positions_.end()) {
-            // When disabled, use FOLLOWER's actual current position
-            pos_value = follower_joint_positions_[joint_name];
-          } else {
-            // When enabled, use LEADER's value and apply mirroring/offset (transform to follower space)
-            pos_value = get_value(name_if_value_mapping_, joint_name, HW_IF_POSITION);
+          // Get position and apply reverse/offset (same as joint_trajectory)
+          double pos_value = get_value(name_if_value_mapping_, joint_name, HW_IF_POSITION);
 
-            // Check if the current joint is in the reverse_joints parameter
-            if (
-              std::find(
-                group_reverse_joints.begin(),
-                group_reverse_joints.end(),
-                joint_name) != group_reverse_joints.end())
-            {
-              pos_value = -pos_value;
-            }
+          // Check if the current joint is in the reverse_joints parameter
+          if (
+            std::find(
+              group_reverse_joints.begin(),
+              group_reverse_joints.end(),
+              joint_name) != group_reverse_joints.end())
+          {
+            pos_value = -pos_value;
+          }
 
-            // Apply group offset
-            if (i < group_offsets.size()) {
-              pos_value += group_offsets[i];
-            }
+          // Apply group offset
+          if (i < group_offsets.size()) {
+            pos_value += group_offsets[i];
           }
 
           msg.position[i] = std::isnan(pos_value) ? std::numeric_limits<double>::quiet_NaN() :

@@ -331,13 +331,10 @@ void JoystickController::handle_tact_switches(
   if (right_tact_pressed && !right_tact_long_press_triggered_) {
     auto press_duration = current_time - right_tact_press_start_time_;
     if (press_duration.seconds() >= params_.long_press_duration) {
-      tact_mode_ = (tact_mode_ == TactMode::DEFAULT) ? TactMode::ENABLE_PUBLISH : TactMode::DEFAULT;
-      RCLCPP_INFO(get_node()->get_logger(), "Right tact switch long press triggered! Tact Mode switched to: %s", 
-                  tact_mode_ == TactMode::DEFAULT ? "DEFAULT" : "ENABLE_PUBLISH");
-
       std_msgs::msg::String trigger_msg;
       trigger_msg.data = "right_long_time";
       tact_trigger_pub_->publish(trigger_msg);
+      RCLCPP_INFO(get_node()->get_logger(), "Right tact switch long press triggered!");
       right_tact_long_press_triggered_ = true;
     }
   }
@@ -368,35 +365,19 @@ void JoystickController::handle_tact_switches(
       switch (prev_state) {
         case 1:  // 01 -> 00 (right button only was pressed)
           if (!right_tact_long_press_triggered_) {
-            if (tact_mode_ == TactMode::DEFAULT) {
-              std_msgs::msg::String trigger_msg;
-              trigger_msg.data = "right";
-              tact_trigger_pub_->publish(trigger_msg);
-              RCLCPP_INFO(get_node()->get_logger(), "Right tact switch triggered!");
-            } else if (tact_mode_ == TactMode::ENABLE_PUBLISH) {
-              right_enable_state_ = !right_enable_state_;
-              std_msgs::msg::Bool enable_msg;
-              enable_msg.data = right_enable_state_;
-              right_enable_pub_->publish(enable_msg);
-              RCLCPP_INFO(get_node()->get_logger(), "Right enable toggled to: %s", right_enable_state_ ? "true" : "false");
-            }
+            std_msgs::msg::String trigger_msg;
+            trigger_msg.data = "right";
+            tact_trigger_pub_->publish(trigger_msg);
+            RCLCPP_INFO(get_node()->get_logger(), "Right tact switch triggered!");
           }
           break;
 
         case 2:  // 10 -> 00 (left button only was pressed)
           if (!left_tact_long_press_triggered_) {
-            if (tact_mode_ == TactMode::DEFAULT) {
-              std_msgs::msg::String trigger_msg;
-              trigger_msg.data = "left";
-              tact_trigger_pub_->publish(trigger_msg);
-              RCLCPP_INFO(get_node()->get_logger(), "Left tact switch triggered!");
-            } else if (tact_mode_ == TactMode::ENABLE_PUBLISH) {
-              left_enable_state_ = !left_enable_state_;
-              std_msgs::msg::Bool enable_msg;
-              enable_msg.data = left_enable_state_;
-              left_enable_pub_->publish(enable_msg);
-              RCLCPP_INFO(get_node()->get_logger(), "Left enable toggled to: %s", left_enable_state_ ? "true" : "false");
-            }
+            std_msgs::msg::String trigger_msg;
+            trigger_msg.data = "left";
+            tact_trigger_pub_->publish(trigger_msg);
+            RCLCPP_INFO(get_node()->get_logger(), "Left tact switch triggered!");
           }
           break;
       }
@@ -469,9 +450,9 @@ void JoystickController::joint_states_callback(const sensor_msgs::msg::JointStat
 controller_interface::return_type JoystickController::update(
   const rclcpp::Time & time, const rclcpp::Duration & /*period*/)
 {
-  // if (!has_joint_states_) {
-  //   return controller_interface::return_type::OK;
-  // }
+  if (!has_joint_states_) {
+    return controller_interface::return_type::OK;
+  }
 
   const bool joystick_update_enabled = params_.enable_joystick_update;
   bool swerve_mode = (current_mode_ == constants::SWERVE_MODE);
@@ -726,13 +707,6 @@ controller_interface::CallbackReturn JoystickController::on_configure(
   // Create publisher for right tact switch trigger
   tact_trigger_pub_ = get_node()->create_publisher<std_msgs::msg::String>(
     "/leader/joystick_controller/tact_trigger", 10);
-
-  // Create publishers for left/right enable
-  left_enable_pub_ = get_node()->create_publisher<std_msgs::msg::Bool>(
-    "/leader/left_enable", rclcpp::SystemDefaultsQoS().transient_local());
-  right_enable_pub_ = get_node()->create_publisher<std_msgs::msg::Bool>(
-    "/leader/right_enable", rclcpp::SystemDefaultsQoS().transient_local());
-
   prev_right_tact_switch_ = false;
   prev_left_tact_switch_ = false;
   both_pressed_flag_ = false;

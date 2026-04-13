@@ -1,7 +1,8 @@
 services:
   ai_worker:
     container_name: ai_worker
-    image: robotis/ai-worker:1.1.20
+    # image: robotis/ai-worker:latest
+    image: robotis/ai-worker:latest
     tty: true
     restart: always
     cap_add:

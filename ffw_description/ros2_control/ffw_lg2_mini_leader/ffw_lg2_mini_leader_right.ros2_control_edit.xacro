@@ -55,6 +55,7 @@
         <command_interface name="position"/>
         <state_interface name="position"/>
       </joint>
+      <!-- =================1063 change==================== -->
       <joint name="arm_r_joint1">
         <command_interface name="position"/>
         <state_interface name="position"/>
@@ -83,6 +84,7 @@
         <command_interface name="position"/>
         <state_interface name="position"/>
       </joint>
+      <!-- =================change finish==================== -->
 
       <gpio name="sensorxel_r_joy">
         <param name="type">sensor</param>
@@ -105,18 +107,21 @@
         <param name="Current Limit">100</param>
         <param name="Homing Offset">-200</param>
       </gpio>
+      <!-- =================1063 change==================== -->
       <gpio name="dxl1">
         <param name="type">dxl</param>
         <param name="ID">1</param>
         <command_interface name="Goal Position"/>
         <state_interface name="Present Position"/>
         <param name="Drive Mode">1</param>
-        <param name="Operating Mode">3</param>
-        <param name="Return Delay Time">0</param>
+        <!-- <param name="Operating Mode">3</param> -->
+        <param name="Operating Mode">5</param>
+        <param name="Return Delay Time">1</param>
+        <!-- <param name="Torque Enable">0</param> -->
         <param name="Torque Enable">0</param>
+        <param name="Position P Gain">300</param>
+        <param name="Position D Gain">150</param>
         <param name="Current Limit">100</param>
-        <param name="Position P Gain">150</param>
-        <param name="Position D Gain">300</param>
       </gpio>
       <gpio name="dxl2">
         <param name="type">dxl</param>
@@ -124,12 +129,14 @@
         <command_interface name="Goal Position"/>
         <state_interface name="Present Position"/>
         <param name="Drive Mode">0</param>
-        <param name="Operating Mode">3</param>
-        <param name="Return Delay Time">0</param>
+        <!-- <param name="Operating Mode">3</param> -->
+        <param name="Operating Mode">5</param>
+        <param name="Return Delay Time">1</param>
+        <!-- <param name="Torque Enable">0</param> -->
         <param name="Torque Enable">0</param>
+        <param name="Position P Gain">300</param>
+        <param name="Position D Gain">150</param>
         <param name="Current Limit">100</param>
-        <param name="Position P Gain">150</param>
-        <param name="Position D Gain">300</param>
       </gpio>
       <gpio name="dxl3">
         <param name="type">dxl</param>
@@ -137,12 +144,14 @@
         <command_interface name="Goal Position"/>
         <state_interface name="Present Position"/>
         <param name="Drive Mode">1</param>
-        <param name="Operating Mode">3</param>
-        <param name="Return Delay Time">0</param>
+        <!-- <param name="Operating Mode">3</param> -->
+        <param name="Operating Mode">5</param>
+        <param name="Return Delay Time">1</param>
+        <!-- <param name="Torque Enable">0</param> -->
         <param name="Torque Enable">0</param>
+        <param name="Position P Gain">300</param>
+        <param name="Position D Gain">150</param>
         <param name="Current Limit">100</param>
-        <param name="Position P Gain">150</param>
-        <param name="Position D Gain">300</param>
       </gpio>
       <gpio name="dxl4">
         <param name="type">dxl</param>
@@ -150,12 +159,14 @@
         <command_interface name="Goal Position"/>
         <state_interface name="Present Position"/>
         <param name="Drive Mode">1</param>
-        <param name="Operating Mode">3</param>
-        <param name="Return Delay Time">0</param>
+        <!-- <param name="Operating Mode">3</param> -->
+        <param name="Operating Mode">5</param>
+        <param name="Return Delay Time">1</param>
+        <!-- <param name="Torque Enable">0</param> -->
         <param name="Torque Enable">0</param>
+        <param name="Position P Gain">300</param>
+        <param name="Position D Gain">150</param>
         <param name="Current Limit">100</param>
-        <param name="Position P Gain">150</param>
-        <param name="Position D Gain">300</param>
       </gpio>
       <gpio name="dxl5">
         <param name="type">dxl</param>
@@ -163,12 +174,14 @@
         <command_interface name="Goal Position"/>
         <state_interface name="Present Position"/>
         <param name="Drive Mode">1</param>
-        <param name="Operating Mode">3</param>
+        <!-- <param name="Operating Mode">3</param> -->
+        <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
+        <!-- <param name="Torque Enable">0</param> -->
         <param name="Torque Enable">0</param>
+        <param name="Position P Gain">300</param>
+        <param name="Position D Gain">150</param>
         <param name="Current Limit">100</param>
-        <param name="Position P Gain">150</param>
-        <param name="Position D Gain">300</param>
       </gpio>
       <gpio name="dxl6">
         <param name="type">dxl</param>
@@ -176,12 +189,14 @@
         <command_interface name="Goal Position"/>
         <state_interface name="Present Position"/>
         <param name="Drive Mode">1</param>
-        <param name="Operating Mode">3</param>
+        <!-- <param name="Operating Mode">3</param> -->
+        <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
+        <!-- <param name="Torque Enable">0</param> -->
         <param name="Torque Enable">0</param>
+        <param name="Position P Gain">300</param>
+        <param name="Position D Gain">150</param>
         <param name="Current Limit">100</param>
-        <param name="Position P Gain">150</param>
-        <param name="Position D Gain">300</param>
       </gpio>
       <gpio name="dxl7">
         <param name="type">dxl</param>
@@ -189,13 +204,16 @@
         <command_interface name="Goal Position"/>
         <state_interface name="Present Position"/>
         <param name="Drive Mode">0</param>
-        <param name="Operating Mode">3</param>
+        <!-- <param name="Operating Mode">3</param> -->
+        <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
+        <!-- <param name="Torque Enable">0</param> -->
         <param name="Torque Enable">0</param>
+        <param name="Position P Gain">300</param>
+        <param name="Position D Gain">150</param>
         <param name="Current Limit">100</param>
-        <param name="Position P Gain">150</param>
-        <param name="Position D Gain">300</param>
       </gpio>
+      <!-- =================change finish==================== -->
 
     </ros2_control>
 

@@ -18,7 +18,8 @@ joint_trajectory_command_broadcaster:
   }
   sync_threshold: {
     type: double,
-    default_value: 0.01,
+    # default_value: 0.01,
+    default_value: 0.1,
     description: "Threshold value (in radians) to determine if follower joints are synced with leader joints."
   }
   max_error: {

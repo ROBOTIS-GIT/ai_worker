@@ -28,7 +28,6 @@
   <ffw_joint_trajectory_command_broadcaster/joint_trajectory_command_broadcaster_parameters.hpp>
 #include "realtime_tools/realtime_publisher.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
-#include "std_msgs/msg/bool.hpp"
 #include "urdf/model.h"
 #include "trajectory_msgs/msg/joint_trajectory.hpp"
 #include "rclcpp/subscription.hpp"
@@ -93,8 +92,10 @@ public:
 protected:
   bool init_joint_data();
   void joint_states_callback(const sensor_msgs::msg::JointState::SharedPtr msg);
-  bool check_joints_synced(const std::string & group_name) const;
-  double calculate_mean_error(const std::string & group_name) const;
+  bool check_joints_synced() const;
+  double calculate_mean_error() const;
+  void update_trigger_state(const rclcpp::Time & current_time);
+  bool check_trigger_active() const;
 
 protected:
   // Optional parameters
@@ -138,21 +139,20 @@ protected:
   // Follower joint states tracking
   std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::JointState>> joint_states_subscriber_;
   std::unordered_map<std::string, double> follower_joint_positions_;
-  bool joints_synced_ = false; // DEPRECATED, kept for backward compatibility (in case) but will not be used
+  bool joints_synced_ = false;
   bool first_publish_ = true;
 
-  std::unordered_map<std::string, bool> group_joints_synced_;
-  std::unordered_map<std::string, bool> group_first_publish_;
+  // Trigger-based auto mode control
+  enum class AutoMode
+  {
+    STOPPED,     // pause mode
+    ACTIVE       // follow mode (slowly following)
+  };
 
-  // Topic-based auto mode control
-  bool left_enabled_ = false;
-  bool right_enabled_ = false;
-  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr left_enable_sub_;
-  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr right_enable_sub_;
-
-  std::vector<double> left_position = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-  std::vector<double> right_position = {0.75, 0.0, 0.0, -2.3, 0.0, 0.0, 0.0, 0.0};
-
+  AutoMode auto_mode_ = AutoMode::STOPPED;
+  rclcpp::Time trigger_start_time_{0, 0, RCL_ROS_TIME};  // Initialize to zero time
+  bool trigger_counting_ = false;
+  bool mode_changed_in_this_trigger_ = false;
 };
 
 }  // namespace joint_trajectory_command_broadcaster

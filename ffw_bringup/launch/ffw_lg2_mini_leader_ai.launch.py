@@ -18,6 +18,7 @@
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, GroupAction, RegisterEventHandler
+from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node, PushRosNamespace
@@ -31,9 +32,15 @@ def generate_launch_description():
             default_value='ffw_lg2_mini_leader.urdf.xacro',
             description='URDF/XACRO file for the robot model.',
         ),
+        DeclareLaunchArgument(
+            'launch_foot_switch',
+            default_value='false',
+            description='Whether to launch the foot switch node.',
+        ),
     ]
 
     description_file = LaunchConfiguration('description_file')
+    launch_foot_switch = LaunchConfiguration('launch_foot_switch')
 
     # Robot controllers config file path
     robot_controllers = PathJoinSubstitution(
@@ -83,6 +90,14 @@ def generate_launch_description():
         parameters=[robot_description, {'frame_prefix': 'leader_'}],
     )
 
+    foot_switch_node = Node(
+        package='ffw_bringup',
+        executable='foot_switch_trajectory_node',
+        name='foot_switch_trajectory_node',
+        output='both',
+        condition=IfCondition(launch_foot_switch),
+    )
+
     # Execute process to publish position command
     position_command_process = ExecuteProcess(
         name='trigger_position_command',
@@ -93,7 +108,7 @@ def generate_launch_description():
             '-p', '50',
             '/leader/trigger_position_controller/commands',
             'std_msgs/msg/Float64MultiArray',
-            'data: [0.0, 0.0]',
+            'data: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',
         ],
     )
 
@@ -116,4 +131,4 @@ def generate_launch_description():
     )
 
     # Return combined LaunchDescription
-    return LaunchDescription(declared_arguments + [leader_with_namespace])
+    return LaunchDescription(declared_arguments + [leader_with_namespace, foot_switch_node])
