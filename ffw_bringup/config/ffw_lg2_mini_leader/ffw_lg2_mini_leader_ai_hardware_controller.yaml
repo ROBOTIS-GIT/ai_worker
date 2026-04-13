@@ -105,5 +105,5 @@
       sensorxel_r_joy_joint_states_stamped_topic: "/robot/lift_leader/joint_states"
       sensorxel_l_joy_jog_scale: 0.06
       sensorxel_r_joy_jog_scale: 0.01
-      deadzone: 0.05
-      enable_joystick_update: false
+      deadzone: 1.00
+      enable_joystick_update: true

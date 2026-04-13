@@ -102,7 +102,7 @@ joystick_controller:
     type: double,
     default_value: 0.05,
     description: "Deadzone around center position [0.0, 1.0)",
-    read_only: true
+    read_only: false
   }
   enable_joystick_update: {
     type: bool,

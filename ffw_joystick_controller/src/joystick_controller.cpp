@@ -61,7 +61,8 @@ double JoystickController::normalize_joystick_value(double raw_adc, bool is_tact
     return raw_adc;
   }
 
-  const double deadzone = std::clamp(params_.deadzone, 0.0, std::nextafter(1.0, 0.0));
+  // const double deadzone = std::clamp(params_.deadzone, 0.0, std::nextafter(1.0, 0.0));
+  const double deadzone = std::clamp(params_.deadzone, 0.0, 1.0);
 
   double normalized_value;
   if (raw_adc < params_.joystick_calibration_center) {
@@ -73,7 +74,7 @@ double JoystickController::normalize_joystick_value(double raw_adc, bool is_tact
   }
 
   // Apply deadzone
-  if (std::abs(normalized_value) < deadzone) {
+  if (std::abs(normalized_value) <= deadzone) {
     return 0.0;
   }
 
@@ -473,6 +474,10 @@ controller_interface::return_type JoystickController::update(
   //   return controller_interface::return_type::OK;
   // }
 
+  if (param_listener_->is_old(params_)) {
+    params_ = param_listener_->get_params();
+  }
+
   const bool joystick_update_enabled = params_.enable_joystick_update;
   bool swerve_mode = (current_mode_ == constants::SWERVE_MODE);
   JoystickValues joystick_values;
@@ -603,7 +608,7 @@ controller_interface::CallbackReturn JoystickController::on_configure(
   // get parameters from the listener in case they were updated
   params_ = param_listener_->get_params();
 
-  if (params_.deadzone < 0.0 || params_.deadzone >= 1.0) {
+  if (params_.deadzone < 0.0 || params_.deadzone > 1.0) {
     RCLCPP_ERROR(
       logger,
       "Invalid deadzone %.3f. 'deadzone' must be in the range [0.0, 1.0).",

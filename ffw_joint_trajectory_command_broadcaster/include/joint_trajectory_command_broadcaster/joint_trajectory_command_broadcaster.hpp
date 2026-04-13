@@ -150,7 +150,7 @@ protected:
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr left_enable_sub_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr right_enable_sub_;
 
-  std::vector<double> left_position = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  std::vector<double> left_position = {0.75, 0.0, 0.0, -2.3, 0.0, 0.0, 0.0, 0.0};
   std::vector<double> right_position = {0.75, 0.0, 0.0, -2.3, 0.0, 0.0, 0.0, 0.0};
 
 };

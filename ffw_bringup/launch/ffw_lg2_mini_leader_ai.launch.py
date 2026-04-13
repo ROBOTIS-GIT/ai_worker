@@ -34,7 +34,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             'launch_foot_switch',
-            default_value='false',
+            default_value='true',
             description='Whether to launch the foot switch node.',
         ),
     ]

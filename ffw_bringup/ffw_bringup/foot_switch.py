@@ -10,6 +10,8 @@ from rclpy.node import Node
 from builtin_interfaces.msg import Duration
 from std_msgs.msg import Bool, String
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+from rcl_interfaces.srv import SetParameters
+from rcl_interfaces.msg import Parameter, ParameterValue, ParameterType
 
 
 DEVICE = "/dev/input/by-id/usb-PCsensor_FootSwitch-event-kbd"
@@ -56,6 +58,12 @@ class FootSwitchTrajectoryNode(Node):
             String,
             "/leader/joystick_controller/tact_trigger",
             10,
+        )
+
+        # Parameter client for joystick_controller deadzone
+        self.deadzone_param_client = self.create_client(
+            SetParameters,
+            '/leader/joystick_controller/set_parameters'
         )
 
         # joint names
@@ -106,6 +114,9 @@ class FootSwitchTrajectoryNode(Node):
         except FileNotFoundError:
             self.get_logger().error(f"Device not found: {DEVICE}")
             raise
+
+        # Initialize deadzone to 1.0 (joystick disabled)
+        self._set_deadzone(1.0)
 
         # Polling timer
         self.timer = self.create_timer(0.01, self.read_foot_switch)
@@ -158,50 +169,68 @@ class FootSwitchTrajectoryNode(Node):
             f"Middle pedal -> published tact trigger '{trigger}' to /leader/joystick_controller/tact_trigger"
         )
 
+    # def handle_middle_press(self):
+    #     # Ignore duplicate press events while already pressed
+    #     now = time.monotonic()
+    #
+    #     if self.middle_pressed:
+    #         return
+    #
+    #     if now - self.middle_last_event_time < MIDDLE_DEBOUNCE_SEC:
+    #         self.get_logger().debug("Ignoring bounced middle press")
+    #         return
+    #
+    #     self.middle_pressed = True
+    #     self.middle_press_time = now
+    #     self.middle_last_event_time = now
+    #
+    # def handle_middle_release(self):
+    #     # Atomically check and clear to prevent duplicate processing
+    #     now = time.monotonic()
+    #
+    #     if not self.middle_pressed:
+    #         return
+    #
+    #     self.middle_pressed = False
+    #
+    #     if now - self.middle_last_event_time < MIDDLE_DEBOUNCE_SEC:
+    #         self.get_logger().debug("Ignoring bounced middle release")
+    #         return
+    #
+    #     self.middle_last_event_time = now
+    #
+    #     duration = now - self.middle_press_time
+    #
+    #     if duration >= MIDDLE_LONG_PRESS_SEC:
+    #         # Long press -> left (discard/cancel path in ai_server)
+    #         self.publish_tact_trigger("left")
+    #         self.get_logger().info(
+    #             f"Middle long press ({duration:.3f}s) -> left"
+    #         )
+    #     else:
+    #         # Short press -> right (record/save toggle in ai_server)
+    #         self.publish_tact_trigger("right")
+    #         self.get_logger().info(
+    #             f"Middle short press ({duration:.3f}s) -> right"
+    #         )
+
+    def _set_deadzone(self, value: float):
+        req = SetParameters.Request()
+        param = Parameter()
+        param.name = 'deadzone'
+        param.value = ParameterValue(
+            type=ParameterType.PARAMETER_DOUBLE,
+            double_value=value
+        )
+        req.parameters = [param]
+        self.deadzone_param_client.call_async(req)
+        self.get_logger().info(f"Set joystick_controller deadzone to {value}")
+
     def handle_middle_press(self):
-        # Ignore duplicate press events while already pressed
-        now = time.monotonic()
-
-        if self.middle_pressed:
-            return
-
-        if now - self.middle_last_event_time < MIDDLE_DEBOUNCE_SEC:
-            self.get_logger().debug("Ignoring bounced middle press")
-            return
-
-        self.middle_pressed = True
-        self.middle_press_time = now
-        self.middle_last_event_time = now
+        self._set_deadzone(0.05)
 
     def handle_middle_release(self):
-        # Atomically check and clear to prevent duplicate processing
-        now = time.monotonic()
-
-        if not self.middle_pressed:
-            return
-
-        self.middle_pressed = False
-
-        if now - self.middle_last_event_time < MIDDLE_DEBOUNCE_SEC:
-            self.get_logger().debug("Ignoring bounced middle release")
-            return
-
-        self.middle_last_event_time = now
-
-        duration = now - self.middle_press_time
-
-        if duration >= MIDDLE_LONG_PRESS_SEC:
-            # Long press -> left (discard/cancel path in ai_server)
-            self.publish_tact_trigger("left")
-            self.get_logger().info(
-                f"Middle long press ({duration:.3f}s) -> left"
-            )
-        else:
-            # Short press -> right (record/save toggle in ai_server)
-            self.publish_tact_trigger("right")
-            self.get_logger().info(
-                f"Middle short press ({duration:.3f}s) -> right"
-            )
+        self._set_deadzone(1.0)
 
     def handle_key_event(self, event_code: int, event_value: int):
         # event_value: 0=release, 1=press, 2=repeat
