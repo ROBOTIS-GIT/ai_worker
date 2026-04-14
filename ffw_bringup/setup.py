@@ -65,7 +65,7 @@ setup(
             'joint_trajectory_executor = ffw_bringup.joint_trajectory_executor:main',
             'head_eef_tracker = ffw_bringup.head_eef_tracker:main',
             'finish_monitor = ffw_bringup.finish_monitor:main',
-            'foot_switch_trajectory_node = ffw_bringup.foot_switch:main',
+            'foot_switch_node = ffw_bringup.foot_switch:main',
         ],
     },
 )

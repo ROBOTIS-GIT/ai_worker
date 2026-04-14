@@ -4,15 +4,15 @@ import os
 import struct
 import time
 
+import yaml
+
 import rclpy
 from rclpy.node import Node
-
-from builtin_interfaces.msg import Duration
-from std_msgs.msg import Bool, String
-from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from rcl_interfaces.srv import SetParameters
 from rcl_interfaces.msg import Parameter, ParameterValue, ParameterType
-
+from builtin_interfaces.msg import Duration
+from std_msgs.msg import Bool
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 DEVICE = "/dev/input/by-id/usb-PCsensor_FootSwitch-event-kbd"
 
@@ -24,24 +24,34 @@ KEY_LEFT = 30
 KEY_MIDDLE = 48
 KEY_RIGHT = 46
 
-# Middle pedal press duration threshold.
-# duration < threshold -> "right" (record/save toggle)
-# duration >= threshold -> "left" (discard/cancel path)
-MIDDLE_LONG_PRESS_SEC = 2.0
-
-# Ignore rapid duplicate middle-button events caused by switch bounce.
-MIDDLE_DEBOUNCE_SEC = 0.05
+# 같은 버튼에서 너무 짧은 시간 안에 다시 들어온 이벤트는 무시
+DEBOUNCE_SEC = 0.5
+DEBOUNCE_ENABLED = True
 
 
-class FootSwitchTrajectoryNode(Node):
-    def __init__(self):
-        super().__init__("foot_switch_trajectory_node")
+class FootSwitchReader(Node):
+    def __init__(self, device: str):
+        super().__init__("foot_switch_node")
+        self.device = device
+        self.fd = None
 
-        # enable false publisher
+        # (버튼, value)별 마지막 처리 시각
+        self.last_event_time = {}
+
+        # Middle 페달이 눌려 있는 동안 deadzone set을 한 번만 발행하기 위한 플래그
+        self.middle_already_pub = False
+
+        # Parameter client for joystick_controller deadzone
+        self.deadzone_param_client = self.create_client(
+            SetParameters,
+            '/leader/joystick_controller/set_parameters'
+        )
+
+        # enable publishers
         self.left_enable_pub = self.create_publisher(Bool, "/leader/left_enable", 10)
         self.right_enable_pub = self.create_publisher(Bool, "/leader/right_enable", 10)
 
-        # trajectory publisher
+        # trajectory publishers
         self.left_traj_pub = self.create_publisher(
             JointTrajectory,
             "/leader/joint_trajectory_command_broadcaster_left/joint_trajectory",
@@ -53,82 +63,112 @@ class FootSwitchTrajectoryNode(Node):
             10,
         )
 
-        # ai_server trigger publisher (reuse existing joystick trigger path)
-        self.tact_trigger_pub = self.create_publisher(
-            String,
-            "/leader/joystick_controller/tact_trigger",
-            10,
-        )
+        # joint names — load from controller config yaml
+        self.declare_parameter('controller_config_path', '')
+        self.left_joint_names = []
+        self.right_joint_names = []
+        self._load_joint_names_from_yaml()
 
-        # Parameter client for joystick_controller deadzone
-        self.deadzone_param_client = self.create_client(
-            SetParameters,
-            '/leader/joystick_controller/set_parameters'
-        )
-
-        # joint names
-        self.left_joint_names = [
-            "arm_l_joint1",
-            "arm_l_joint2",
-            "arm_l_joint3",
-            "arm_l_joint4",
-            "arm_l_joint5",
-            "arm_l_joint6",
-            "arm_l_joint7",
-            "gripper_l_joint1",
-        ]
-
-        self.right_joint_names = [
-            "arm_r_joint1",
-            "arm_r_joint2",
-            "arm_r_joint3",
-            "arm_r_joint4",
-            "arm_r_joint5",
-            "arm_r_joint6",
-            "arm_r_joint7",
-            "gripper_r_joint1",
-        ]
-
-        # Saved postures for left/right pedal trajectory behavior
+        # Saved postures
         self.left_position = [0.75, 0.0, 0.0, -2.3, 0.0, 0.5, 0.0, 0.0]
         self.right_position = [0.75, 0.0, 0.0, -2.3, 0.0, -0.5, 0.0, 0.0]
 
-        self.traj_duration_sec = 5.0
+        self.traj_duration_sec = 3.0
 
-        # Middle pedal state for short/long press detection
-        self.middle_pressed = False
-        self.middle_press_time = 0.0
-        self.middle_last_event_time = 0.0
-
-        # Open foot switch device in non-blocking mode for timer callback safety
+    def open_device(self):
         try:
-            self.fd = os.open(DEVICE, os.O_RDONLY | os.O_NONBLOCK)
-            self.get_logger().info(f"Opened device: {DEVICE}")
+            # self.fd = os.open(DEVICE, os.O_RDONLY | os.O_NONBLOCK)
+            self.fd = os.open(self.device, os.O_RDONLY)
+            print(f"Opened device: {self.device}")
         except PermissionError:
-            self.get_logger().error(
-                f"Permission denied: {DEVICE}\n"
-                f"Try: sudo chmod 666 {DEVICE}\n"
-                f"or run with sudo / udev rule."
-            )
+            print(f"Permission denied: {self.device}")
             raise
         except FileNotFoundError:
-            self.get_logger().error(f"Device not found: {DEVICE}")
+            print(f"Device not found: {self.device}")
             raise
 
-        # Initialize deadzone to 1.0 (joystick disabled)
-        self._set_deadzone(1.0)
+    def close_device(self):
+        if self.fd is not None:
+            os.close(self.fd)
+            self.fd = None
+            print("Device closed")
 
-        # Polling timer
-        self.timer = self.create_timer(0.01, self.read_foot_switch)
+    def get_key_name(self, event_code: int) -> str:
+        if event_code == KEY_LEFT:
+            return "left"
+        if event_code == KEY_MIDDLE:
+            return "middle"
+        if event_code == KEY_RIGHT:
+            return "right"
+        return f"unknown({event_code})"
 
-    def publish_disable(self):
-        msg = Bool()
-        msg.data = False
-        self.left_enable_pub.publish(msg)
-        self.right_enable_pub.publish(msg)
-        self.get_logger().info("Published false to /leader/left_enable and /leader/right_enable")
+    def is_debounced(self, event_code: int, event_value: int) -> bool:
+        if not DEBOUNCE_ENABLED:
+            return True
 
-    def make_trajectory(self, joint_names, positions):
+        key = (event_code, event_value)
+        now = time.monotonic()
+        last_time = self.last_event_time.get(key, 0.0)
+
+        if now - last_time < DEBOUNCE_SEC:
+            return False
+
+        self.last_event_time[key] = now
+        return True
+
+    def _load_joint_names_from_yaml(self):
+        yaml_path = self.get_parameter('controller_config_path').value
+        if not yaml_path or not os.path.isfile(yaml_path):
+            raise RuntimeError(
+                f"controller_config_path is empty or file not found: '{yaml_path}'"
+            )
+
+        with open(yaml_path, 'r') as f:
+            lines = f.readlines()
+
+        def extract_list(key: str):
+            result = []
+            in_block = False
+            indent = None
+            for line in lines:
+                stripped = line.rstrip('\n')
+                if not in_block:
+                    if stripped.lstrip().startswith(f'{key}:'):
+                        indent = len(stripped) - len(stripped.lstrip())
+                        in_block = True
+                    continue
+                cur_indent = len(stripped) - len(stripped.lstrip())
+                item = stripped.lstrip()
+                if item.startswith('- '):
+                    result.append(item[2:].strip())
+                elif stripped.strip() and cur_indent <= indent:
+                    break
+            return result
+
+        self.left_joint_names = extract_list('left_joints')
+        self.right_joint_names = extract_list('right_joints')
+
+        if not self.left_joint_names or not self.right_joint_names:
+            raise RuntimeError(
+                f"Failed to parse left_joints/right_joints from {yaml_path}"
+            )
+
+        print(f"Loaded left_joints: {self.left_joint_names}")
+        print(f"Loaded right_joints: {self.right_joint_names}")
+
+    def _set_deadzone(self, value: float):
+        req = SetParameters.Request()
+        param = Parameter()
+        param.name = 'deadzone'
+        param.value = ParameterValue(
+            type=ParameterType.PARAMETER_DOUBLE,
+            double_value=value,
+        )
+        req.parameters = [param]
+        self.deadzone_param_client.call_async(req)
+        print(f"deadzone : {value}")
+
+    def _make_trajectory(self, joint_names, positions):
         traj = JointTrajectory()
         traj.joint_names = joint_names
 
@@ -142,157 +182,97 @@ class FootSwitchTrajectoryNode(Node):
         traj.points.append(point)
         return traj
 
-    def publish_target(self, positions, label, side):
-        # Publish disable first
-        self.publish_disable()
+    def handle_left(self, event_value: int):
+        if event_value == 1:
+            msg = Bool()
+            msg.data = False
+            self.left_enable_pub.publish(msg)
 
-        if side == "left":
-            traj = self.make_trajectory(self.left_joint_names, positions)
+            # Give broadcaster time to process the disable before publishing trajectory
+            time.sleep(0.1)
+
+            traj = self._make_trajectory(self.left_joint_names, self.left_position)
             self.left_traj_pub.publish(traj)
-            self.get_logger().info(
-                f"{label} pedal pressed -> published left-arm trajectory"
-            )
-        elif side == "right":
-            traj = self.make_trajectory(self.right_joint_names, positions)
+            print("((Publish) left arm trajectory")
+
+    def handle_middle(self, event_value: int):
+        # 2 (repeat) 동안만 deadzone을 0.05로, 0 (release) 시 1.0로 복귀
+        if event_value == 2:
+            if not self.middle_already_pub:
+                self._set_deadzone(0.05)
+                self.middle_already_pub = True
+        elif event_value == 0:
+            if self.middle_already_pub:
+                self._set_deadzone(1.0)
+                self.middle_already_pub = False
+
+    def handle_right(self, event_value: int):
+        if event_value == 1:
+            msg = Bool()
+            msg.data = False
+            self.right_enable_pub.publish(msg)
+
+            # Give broadcaster time to process the disable before publishing trajectory
+            time.sleep(0.1)
+
+            traj = self._make_trajectory(self.right_joint_names, self.right_position)
             self.right_traj_pub.publish(traj)
-            self.get_logger().info(
-                f"{label} pedal pressed -> published right-arm trajectory"
-            )
-        else:
-            self.get_logger().error(f"Unknown side '{side}' for pedal label '{label}'")
+            print("((Publish) right arm trajectory")
 
-    def publish_tact_trigger(self, trigger: str):
-        msg = String()
-        msg.data = trigger
-        self.tact_trigger_pub.publish(msg)
-        self.get_logger().info(
-            f"Middle pedal -> published tact trigger '{trigger}' to /leader/joystick_controller/tact_trigger"
-        )
+    def process_key_event(self, event_code: int, event_value: int):
 
-    # def handle_middle_press(self):
-    #     # Ignore duplicate press events while already pressed
-    #     now = time.monotonic()
-    #
-    #     if self.middle_pressed:
-    #         return
-    #
-    #     if now - self.middle_last_event_time < MIDDLE_DEBOUNCE_SEC:
-    #         self.get_logger().debug("Ignoring bounced middle press")
-    #         return
-    #
-    #     self.middle_pressed = True
-    #     self.middle_press_time = now
-    #     self.middle_last_event_time = now
-    #
-    # def handle_middle_release(self):
-    #     # Atomically check and clear to prevent duplicate processing
-    #     now = time.monotonic()
-    #
-    #     if not self.middle_pressed:
-    #         return
-    #
-    #     self.middle_pressed = False
-    #
-    #     if now - self.middle_last_event_time < MIDDLE_DEBOUNCE_SEC:
-    #         self.get_logger().debug("Ignoring bounced middle release")
-    #         return
-    #
-    #     self.middle_last_event_time = now
-    #
-    #     duration = now - self.middle_press_time
-    #
-    #     if duration >= MIDDLE_LONG_PRESS_SEC:
-    #         # Long press -> left (discard/cancel path in ai_server)
-    #         self.publish_tact_trigger("left")
-    #         self.get_logger().info(
-    #             f"Middle long press ({duration:.3f}s) -> left"
-    #         )
-    #     else:
-    #         # Short press -> right (record/save toggle in ai_server)
-    #         self.publish_tact_trigger("right")
-    #         self.get_logger().info(
-    #             f"Middle short press ({duration:.3f}s) -> right"
-    #         )
-
-    def _set_deadzone(self, value: float):
-        req = SetParameters.Request()
-        param = Parameter()
-        param.name = 'deadzone'
-        param.value = ParameterValue(
-            type=ParameterType.PARAMETER_DOUBLE,
-            double_value=value
-        )
-        req.parameters = [param]
-        self.deadzone_param_client.call_async(req)
-        self.get_logger().info(f"Set joystick_controller deadzone to {value}")
-
-    def handle_middle_press(self):
-        self._set_deadzone(0.05)
-
-    def handle_middle_release(self):
-        self._set_deadzone(1.0)
-
-    def handle_key_event(self, event_code: int, event_value: int):
-        # event_value: 0=release, 1=press, 2=repeat
-        if event_code == KEY_MIDDLE:
-            if event_value == 1:
-                self.handle_middle_press()
-            elif event_value == 0:
-                self.handle_middle_release()
-            # ignore repeat(2)
+        # left / middle / right 외 입력 무시
+        if event_code not in (KEY_LEFT, KEY_MIDDLE, KEY_RIGHT):
             return
 
-        # Keep existing left/right behavior unchanged: act on key press only
-        if event_value != 1:
+        if not self.is_debounced(event_code, event_value):
             return
+
+        key_name = self.get_key_name(event_code)
+        print(f"input detected -> key: {key_name}, value: {event_value}")
 
         if event_code == KEY_LEFT:
-            self.publish_target(self.left_position, "left", side="left")
+            self.handle_left(event_value)
+        elif event_code == KEY_MIDDLE:
+            self.handle_middle(event_value)
         elif event_code == KEY_RIGHT:
-            self.publish_target(self.right_position, "right", side="right")
+            self.handle_right(event_value)
 
-    def read_foot_switch(self):
-        try:
-            # Drain all available input events from non-blocking fd.
-            while True:
-                data = os.read(self.fd, INPUT_EVENT_SIZE)
-                if len(data) != INPUT_EVENT_SIZE:
-                    break
+    def run(self):
+        if self.fd is None:
+            raise RuntimeError("Device is not opened")
 
-                _, _, event_type, event_code, event_value = struct.unpack(
-                    INPUT_EVENT_FORMAT, data
-                )
+        print("Start reading foot switch (blocking mode)...")
 
-                if event_type != EV_KEY:
-                    continue
+        while True:
+            data = os.read(self.fd, INPUT_EVENT_SIZE)
 
-                self.handle_key_event(event_code, event_value)
+            if len(data) != INPUT_EVENT_SIZE:
+                print(f"Incomplete input event: {len(data)} bytes")
+                continue
 
-        except BlockingIOError:
-            # No new input event available in non-blocking mode.
-            return
-        except Exception as e:
-            self.get_logger().error(f"Error while reading foot switch: {e}")
+            _, _, event_type, event_code, event_value = struct.unpack(
+                INPUT_EVENT_FORMAT, data
+            )
 
-    def destroy_node(self):
-        try:
-            if hasattr(self, "fd"):
-                os.close(self.fd)
-        except Exception:
-            pass
-        super().destroy_node()
+            if event_type != EV_KEY:
+                continue
+
+            self.process_key_event(event_code, event_value)
 
 
 def main(args=None):
     rclpy.init(args=args)
-    node = FootSwitchTrajectoryNode()
+    reader = FootSwitchReader(DEVICE)
 
     try:
-        rclpy.spin(node)
+        reader.open_device()
+        reader.run()
     except KeyboardInterrupt:
-        pass
+        print("\nStopped by user")
     finally:
-        node.destroy_node()
+        reader.close_device()
+        reader.destroy_node()
         rclpy.shutdown()
 
 

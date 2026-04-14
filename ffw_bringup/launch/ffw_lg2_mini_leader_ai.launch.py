@@ -92,9 +92,10 @@ def generate_launch_description():
 
     foot_switch_node = Node(
         package='ffw_bringup',
-        executable='foot_switch_trajectory_node',
-        name='foot_switch_trajectory_node',
+        executable='foot_switch_node',
+        name='foot_switch_node',
         output='both',
+        parameters=[{'controller_config_path': robot_controllers}],
         condition=IfCondition(launch_foot_switch),
     )
 
