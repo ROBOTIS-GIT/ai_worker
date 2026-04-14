@@ -109,7 +109,7 @@ def generate_launch_description():
             '-p', '50',
             '/leader/trigger_position_controller/commands',
             'std_msgs/msg/Float64MultiArray',
-            'data: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',
+            'data: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',
         ],
     )
 
