@@ -97,3 +97,13 @@ joint_trajectory_command_broadcaster:
     default_value: -1.0,
     description: "Sign of the trigger joints. 1.0 for positive sign, -1.0 for negative sign."
   }
+  leader_position_command_topic: {
+    type: string,
+    default_value: "/leader/leader_position_controller/commands",
+    description: "Topic to publish Float64MultiArray commands that drive the leader arms back to follower poses (used while leader torque is ON)."
+  }
+  leader_position_command_joints: {
+    type: string_array,
+    default_value: [],
+    description: "Joint name order matching leader_position_controller/joints. Each cycle, follower positions for these joints are published as command."
+  }

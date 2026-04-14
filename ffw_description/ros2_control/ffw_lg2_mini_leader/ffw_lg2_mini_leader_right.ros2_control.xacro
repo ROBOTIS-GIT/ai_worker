@@ -111,7 +111,7 @@
         <command_interface name="Goal Position"/>
         <state_interface name="Present Position"/>
         <param name="Drive Mode">1</param>
-        <param name="Operating Mode">3</param>
+        <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
         <param name="Current Limit">100</param>
@@ -124,10 +124,10 @@
         <command_interface name="Goal Position"/>
         <state_interface name="Present Position"/>
         <param name="Drive Mode">0</param>
-        <param name="Operating Mode">3</param>
+        <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
-        <param name="Current Limit">100</param>
+        <param name="Current Limit">300</param>
         <param name="Position P Gain">150</param>
         <param name="Position D Gain">300</param>
       </gpio>
@@ -137,7 +137,7 @@
         <command_interface name="Goal Position"/>
         <state_interface name="Present Position"/>
         <param name="Drive Mode">1</param>
-        <param name="Operating Mode">3</param>
+        <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
         <param name="Current Limit">100</param>
@@ -150,10 +150,10 @@
         <command_interface name="Goal Position"/>
         <state_interface name="Present Position"/>
         <param name="Drive Mode">1</param>
-        <param name="Operating Mode">3</param>
+        <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
-        <param name="Current Limit">100</param>
+        <param name="Current Limit">300</param>
         <param name="Position P Gain">150</param>
         <param name="Position D Gain">300</param>
       </gpio>
@@ -163,7 +163,7 @@
         <command_interface name="Goal Position"/>
         <state_interface name="Present Position"/>
         <param name="Drive Mode">1</param>
-        <param name="Operating Mode">3</param>
+        <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
         <param name="Current Limit">100</param>
@@ -176,7 +176,7 @@
         <command_interface name="Goal Position"/>
         <state_interface name="Present Position"/>
         <param name="Drive Mode">1</param>
-        <param name="Operating Mode">3</param>
+        <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
         <param name="Current Limit">100</param>
@@ -189,7 +189,7 @@
         <command_interface name="Goal Position"/>
         <state_interface name="Present Position"/>
         <param name="Drive Mode">0</param>
-        <param name="Operating Mode">3</param>
+        <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
         <param name="Current Limit">100</param>

@@ -195,9 +195,8 @@ controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_confi
     left_enable_sub_ = get_node()->create_subscription<std_msgs::msg::Bool>(
       "/leader/left_enable", rclcpp::SystemDefaultsQoS(),
       [this](std_msgs::msg::Bool::SharedPtr msg) {
-        if (msg->data && !left_enabled_) {
-          group_joints_synced_["left"] = false;
-          group_first_publish_["left"] = true;
+        if (msg->data != left_enabled_) {
+          already_left_t_set_ = false;   // state changed -> need to resend torque
         }
         left_enabled_ = msg->data;
       });
@@ -205,10 +204,35 @@ controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_confi
     right_enable_sub_ = get_node()->create_subscription<std_msgs::msg::Bool>(
     "/leader/right_enable", rclcpp::SystemDefaultsQoS(),
     [this](const std_msgs::msg::Bool::SharedPtr msg) {
+      if (msg->data != right_enabled_) {
+        already_right_t_set_ = false;   // state changed -> need to resend torque
+      }
       right_enabled_ = msg->data;
     });
 
+    // Service client for per-ID dynamixel data write (Torque Enable for ID 1~7)
+    dxl_data_client_ = get_node()->create_client<dynamixel_interfaces::srv::SetDataToDxl>(
+      "/leader/dynamixel_hardware_interface/set_dxl_data");
 
+    // Continuous publisher: follower joint positions -> leader_position_controller
+    if (!params_.leader_position_command_joints.empty()) {
+      leader_position_command_publisher_ =
+        get_node()->create_publisher<std_msgs::msg::Float64MultiArray>(
+        params_.leader_position_command_topic, rclcpp::SystemDefaultsQoS());
+      realtime_leader_position_command_publisher_ =
+        std::make_shared<realtime_tools::RealtimePublisher<std_msgs::msg::Float64MultiArray>>(
+        leader_position_command_publisher_);
+      auto & msg = realtime_leader_position_command_publisher_->msg_;
+      msg.data.assign(params_.leader_position_command_joints.size(),
+        std::numeric_limits<double>::quiet_NaN());
+      RCLCPP_INFO(get_node()->get_logger(),
+        "Leader position command publisher created on topic %s with %zu joints",
+        params_.leader_position_command_topic.c_str(),
+        params_.leader_position_command_joints.size());
+    } else {
+      RCLCPP_INFO(get_node()->get_logger(),
+        "leader_position_command_joints is empty; leader position command publisher disabled.");
+    }
 
     RCLCPP_INFO(
       get_node()->get_logger(),
@@ -469,35 +493,6 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
     }
   }
 
-  // // gripper state check
-  //   for (const auto & group_name : trajectory_groups_) {
-  //     const auto & group_joints = group_joint_names_[group_name];
-
-  //     for (const auto & joint_name : group_joints) {
-  //       double pos = get_value(name_if_value_mapping_, joint_name, HW_IF_POSITION);
-
-  //       if (!std::isnan(pos) && pos < -2.7) {
-  //         right_enabled_ = false;
-  //         left_enabled_ = false;
-
-  //         // if (group_name == "left") {
-  //         //   right_enabled_ = false;
-  //         //   left_enabled_ = false;
-  //         // } else if (group_name == "right") {
-  //         //   right_enabled_ = false;
-  //         //   left_enable = false;
-  //         // }
-          
-
-  //         RCLCPP_WARN(get_node()->get_logger(),
-  //           "[%s] Gripper below threshold (%.2f < -2.7) → force disable",
-  //           group_name.c_str(), pos);
-
-  //         break;
-  //       }
-  //     }
-  //   }
-
   // gripper state check
   for (const auto & group_name : trajectory_groups_) {
     const auto & group_joints = group_joint_names_[group_name];
@@ -506,20 +501,17 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
       continue;
     }
 
-    // 가장 끝 조인트를 gripper로 사용
     const std::string & gripper_joint_name = group_joints.back();
     double gripper_pos = get_value(name_if_value_mapping_, gripper_joint_name, HW_IF_POSITION);
 
     if (!std::isnan(gripper_pos) && gripper_pos < -2.7) {
-      right_enabled_ = false;
-      left_enabled_ = false;
-
       RCLCPP_WARN(
         get_node()->get_logger(),
         "[%s] Gripper joint '%s' below threshold (%.2f < -2.7)",
         group_name.c_str(), gripper_joint_name.c_str(), gripper_pos);
 
       if (group_name == "left") {
+        left_enabled_ = false;
         trajectory_msgs::msg::JointTrajectory traj_msg;
         traj_msg.header.stamp = rclcpp::Time(0, 0);
         traj_msg.joint_names = group_joints;
@@ -532,6 +524,7 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
           realtime_publisher->try_publish(traj_msg);
         }
       } else if (group_name == "right") {
+        right_enabled_ = false;
         trajectory_msgs::msg::JointTrajectory traj_msg;
         traj_msg.header.stamp = rclcpp::Time(0, 0);
         traj_msg.joint_names = group_joints;
@@ -556,15 +549,52 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
   for (const auto & group_name : trajectory_groups_) {
     const auto & group_joints = group_joint_names_[group_name];
 
-    // Per-group enable logic
+    // Per-group enable logic + leader torque ID / flag selection
+    static const std::vector<uint8_t> right_ids = {1, 2, 3, 4, 5, 6, 7};
+    // static const std::vector<uint8_t> left_ids = {31, 32, 33, 34, 35, 36, 37};
+    static const std::vector<uint8_t> left_ids = {91, 92, 93, 94, 95, 96, 97};
+
     bool group_enabled = true;
+    const std::vector<uint8_t> * torque_ids = nullptr;
+    bool * already_t_set = nullptr;
     if (group_name == "left") {
       group_enabled = left_enabled_;
+      torque_ids = &left_ids;
+      already_t_set = &already_left_t_set_;
     } else if (group_name == "right") {
       group_enabled = right_enabled_;
+      torque_ids = &right_ids;
+      already_t_set = &already_right_t_set_;
     }
 
-    
+    // Per-group leader Torque Enable via set_dxl_data
+    // enabled == true  -> Torque Enable = 0 (torque OFF for leader arm)
+    // enabled == false -> Torque Enable = 1 (torque ON  for leader arm)
+    // already_t_set: "already sent for current enable state" one-shot flag.
+    // Reset to false by the enable subscriber callback whenever the state changes.
+    {
+      if (torque_ids && already_t_set && !*already_t_set) {
+        if (dxl_data_client_ && dxl_data_client_->service_is_ready()) {
+          const uint32_t torque_value = group_enabled ? 0u : 1u;
+          for (uint8_t id : *torque_ids) {
+            auto request =
+              std::make_shared<dynamixel_interfaces::srv::SetDataToDxl::Request>();
+            request->id = id;
+            request->item_name = "Torque Enable";
+            request->item_data = torque_value;
+            dxl_data_client_->async_send_request(request);
+          }
+          RCLCPP_INFO(get_node()->get_logger(),
+            "[%s] set_dxl_data Torque Enable -> %u for %zu IDs",
+            group_name.c_str(), torque_value, torque_ids->size());
+          *already_t_set = true;
+        } else {
+          RCLCPP_WARN_THROTTLE(get_node()->get_logger(), *get_node()->get_clock(), 2000,
+            "[%s] set_dxl_data service not ready", group_name.c_str());
+        }
+      }
+    }
+
     // Safely get group offsets and reverse joints
     std::vector<double> group_offsets;
     std::vector<std::string> group_reverse_joints;
@@ -740,6 +770,25 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
         realtime_joint_state_publisher->unlockAndPublish();
       }
     }
+  }
+
+  // Continuously publish follower joint positions to leader_position_controller.
+  // Effective only while leader torque is ON (disabled side); ignored when torque OFF.
+  if (realtime_leader_position_command_publisher_ &&
+    realtime_leader_position_command_publisher_->trylock())
+  {
+    auto & cmd_msg = realtime_leader_position_command_publisher_->msg_;
+    const auto & cmd_joints = params_.leader_position_command_joints;
+    if (cmd_msg.data.size() != cmd_joints.size()) {
+      cmd_msg.data.assign(cmd_joints.size(), std::numeric_limits<double>::quiet_NaN());
+    }
+    for (size_t i = 0; i < cmd_joints.size(); ++i) {
+      auto it = follower_joint_positions_.find(cmd_joints[i]);
+      cmd_msg.data[i] = (it != follower_joint_positions_.end())
+        ? it->second
+        : std::numeric_limits<double>::quiet_NaN();
+    }
+    realtime_leader_position_command_publisher_->unlockAndPublish();
   }
 
   return controller_interface::return_type::OK;

@@ -78,6 +78,7 @@ def generate_launch_description():
             'joint_state_broadcaster',
             'joint_trajectory_command_broadcaster',
             'trigger_position_controller',
+            'leader_position_controller',
             'joystick_controller',
         ],
         parameters=[robot_description],
@@ -109,9 +110,13 @@ def generate_launch_description():
             '-p', '50',
             '/leader/trigger_position_controller/commands',
             'std_msgs/msg/Float64MultiArray',
-            'data: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',
+            'data: [0.0, 0.0]',
         ],
     )
+
+    # Note: leader_position_controller commands are now continuously published by
+    # joint_trajectory_command_broadcaster (mirrors follower poses every cycle).
+    # No initial-kick process needed.
 
     delay_position_command_after_controllers = RegisterEventHandler(
         event_handler=OnProcessExit(

@@ -39,7 +39,7 @@ class FootSwitchReader(Node):
         self.last_event_time = {}
 
         # Middle 페달이 눌려 있는 동안 deadzone set을 한 번만 발행하기 위한 플래그
-        self.middle_already_pub = False
+        self.already_middle_pub = False
 
         # Parameter client for joystick_controller deadzone
         self.deadzone_param_client = self.create_client(
@@ -198,13 +198,13 @@ class FootSwitchReader(Node):
     def handle_middle(self, event_value: int):
         # 2 (repeat) 동안만 deadzone을 0.05로, 0 (release) 시 1.0로 복귀
         if event_value == 2:
-            if not self.middle_already_pub:
+            if not self.already_middle_pub:
                 self._set_deadzone(0.05)
-                self.middle_already_pub = True
+                self.already_middle_pub = True
         elif event_value == 0:
-            if self.middle_already_pub:
+            if self.already_middle_pub:
                 self._set_deadzone(1.0)
-                self.middle_already_pub = False
+                self.already_middle_pub = False
 
     def handle_right(self, event_value: int):
         if event_value == 1:

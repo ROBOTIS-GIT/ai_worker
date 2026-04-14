@@ -19,6 +19,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   rcutils
   realtime_tools
   std_srvs
+  dynamixel_interfaces
   urdf
   trajectory_msgs
 )
@@ -48,6 +49,7 @@ target_link_libraries(joint_trajectory_command_broadcaster PUBLIC
   ${builtin_interfaces_TARGETS}
   ${trajectory_msgs_TARGETS}
   ${std_srvs_TARGETS}
+  ${dynamixel_interfaces_TARGETS}
   controller_interface::controller_interface
   joint_trajectory_command_broadcaster_parameters
   pluginlib::pluginlib
