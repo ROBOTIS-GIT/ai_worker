@@ -1,0 +1,233 @@
+#!/usr/bin/env python3
+"""Read multiple control table values from left/right OpenRB buses."""
+
+import serial
+import struct
+import time
+
+LEFT_PORT = "/dev/serial/by-id/usb-ROBOTIS_OpenRB-150_00000002-if00"
+RIGHT_PORT = "/dev/serial/by-id/usb-ROBOTIS_OpenRB-150_00000001-if00"
+BAUD = 1_000_000
+
+LEFT_IDS = [31, 32, 33, 34, 35, 36, 37, 38]
+RIGHT_IDS = [1, 2, 3, 4, 5, 6, 7, 8]
+
+REGISTERS = [
+    ("Current Limit", 38, 2),
+    ("Acceleration Limit", 40, 4),
+    ("Velocity Limit", 44, 4),
+    ("Velocity I Gain", 76, 2),
+    ("Velocity P Gain", 78, 2),
+    ("Position D Gain", 80, 2),
+    ("Position I Gain", 82, 2),
+    ("Position P Gain", 84, 2),
+    ("Profile Acceleration", 108, 4),
+    ("Profile Velocity", 112, 4),
+]
+
+CRC_TABLE = [
+    0x0000, 0x8005, 0x800F, 0x000A, 0x801B, 0x001E, 0x0014, 0x8011,
+    0x8033, 0x0036, 0x003C, 0x8039, 0x0028, 0x802D, 0x8027, 0x0022,
+    0x8063, 0x0066, 0x006C, 0x8069, 0x0078, 0x807D, 0x8077, 0x0072,
+    0x0050, 0x8055, 0x805F, 0x005A, 0x804B, 0x004E, 0x0044, 0x8041,
+    0x80C3, 0x00C6, 0x00CC, 0x80C9, 0x00D8, 0x80DD, 0x80D7, 0x00D2,
+    0x00F0, 0x80F5, 0x80FF, 0x00FA, 0x80EB, 0x00EE, 0x00E4, 0x80E1,
+    0x00A0, 0x80A5, 0x80AF, 0x00AA, 0x80BB, 0x00BE, 0x00B4, 0x80B1,
+    0x8093, 0x0096, 0x009C, 0x8099, 0x0088, 0x808D, 0x8087, 0x0082,
+    0x8183, 0x0186, 0x018C, 0x8189, 0x0198, 0x819D, 0x8197, 0x0192,
+    0x01B0, 0x81B5, 0x81BF, 0x01BA, 0x81AB, 0x01AE, 0x01A4, 0x81A1,
+    0x01E0, 0x81E5, 0x81EF, 0x01EA, 0x81FB, 0x01FE, 0x01F4, 0x81F1,
+    0x81D3, 0x01D6, 0x01DC, 0x81D9, 0x01C8, 0x81CD, 0x81C7, 0x01C2,
+    0x0140, 0x8145, 0x814F, 0x014A, 0x815B, 0x015E, 0x0154, 0x8151,
+    0x8173, 0x0176, 0x017C, 0x8179, 0x0168, 0x816D, 0x8167, 0x0162,
+    0x8123, 0x0126, 0x012C, 0x8129, 0x0138, 0x813D, 0x8137, 0x0132,
+    0x0110, 0x8115, 0x811F, 0x011A, 0x810B, 0x010E, 0x0104, 0x8101,
+    0x8303, 0x0306, 0x030C, 0x8309, 0x0318, 0x831D, 0x8317, 0x0312,
+    0x0330, 0x8335, 0x833F, 0x033A, 0x832B, 0x032E, 0x0324, 0x8321,
+    0x0360, 0x8365, 0x836F, 0x036A, 0x837B, 0x037E, 0x0374, 0x8371,
+    0x8353, 0x0356, 0x035C, 0x8359, 0x0348, 0x834D, 0x8347, 0x0342,
+    0x03C0, 0x83C5, 0x83CF, 0x03CA, 0x83DB, 0x03DE, 0x03D4, 0x83D1,
+    0x83F3, 0x03F6, 0x03FC, 0x83F9, 0x03E8, 0x83ED, 0x83E7, 0x03E2,
+    0x83A3, 0x03A6, 0x03AC, 0x83A9, 0x03B8, 0x83BD, 0x83B7, 0x03B2,
+    0x0390, 0x8395, 0x839F, 0x039A, 0x838B, 0x038E, 0x0384, 0x8381,
+    0x0280, 0x8285, 0x828F, 0x028A, 0x829B, 0x029E, 0x0294, 0x8291,
+    0x82B3, 0x02B6, 0x02BC, 0x82B9, 0x02A8, 0x82AD, 0x82A7, 0x02A2,
+    0x82E3, 0x02E6, 0x02EC, 0x82E9, 0x02F8, 0x82FD, 0x82F7, 0x02F2,
+    0x02D0, 0x82D5, 0x82DF, 0x02DA, 0x82CB, 0x02CE, 0x02C4, 0x82C1,
+    0x8243, 0x0246, 0x024C, 0x8249, 0x0258, 0x825D, 0x8257, 0x0252,
+    0x0270, 0x8275, 0x827F, 0x027A, 0x826B, 0x026E, 0x0264, 0x8261,
+    0x0220, 0x8225, 0x822F, 0x022A, 0x823B, 0x023E, 0x0234, 0x8231,
+    0x8213, 0x0216, 0x021C, 0x8219, 0x0208, 0x820D, 0x8207, 0x0202,
+]
+
+def crc16(data: bytes) -> int:
+    crc = 0
+    for b in data:
+        idx = ((crc >> 8) ^ b) & 0xFF
+        crc = ((crc << 8) ^ CRC_TABLE[idx]) & 0xFFFF
+    return crc
+
+def build_read(dxl_id: int, addr: int, length: int) -> bytes:
+    pkt = bytes([0xFF, 0xFF, 0xFD, 0x00, dxl_id])
+    body_len = 1 + 4 + 2
+    pkt += struct.pack("<H", body_len)
+    pkt += bytes([0x02])
+    pkt += struct.pack("<H", addr)
+    pkt += struct.pack("<H", length)
+    pkt += struct.pack("<H", crc16(pkt))
+    return pkt
+
+def parse_status(buf: bytes, expected_data_len: int):
+    if len(buf) < 11 + expected_data_len:
+        raise ValueError(f"short response ({len(buf)} bytes): {buf.hex()}")
+
+    if buf[:4] != b"\xFF\xFF\xFD\x00":
+        raise ValueError(f"bad header: {buf[:4].hex()}")
+
+    pkt_id = buf[4]
+    body_len = struct.unpack("<H", buf[5:7])[0]
+    instr = buf[7]
+
+    if instr != 0x55:
+        raise ValueError(f"not a status packet (instr=0x{instr:02X})")
+
+    expected_body_len = 4 + expected_data_len
+    if body_len != expected_body_len:
+        raise ValueError(f"unexpected body length: {body_len} (expected {expected_body_len})")
+
+    err = buf[8]
+    data = buf[9:9 + expected_data_len]
+    recv_crc = struct.unpack("<H", buf[9 + expected_data_len:11 + expected_data_len])[0]
+    calc_crc = crc16(buf[:-2])
+
+    if recv_crc != calc_crc:
+        raise ValueError(f"crc mismatch: recv=0x{recv_crc:04X}, calc=0x{calc_crc:04X}")
+
+    return pkt_id, err, data
+
+def read_register(ser, dxl_id, addr, length, timeout=0.05):
+    pkt = build_read(dxl_id, addr, length)
+
+    ser.reset_input_buffer()
+    ser.write(pkt)
+    ser.flush()
+    time.sleep(0.005)
+
+    expected = 11 + length
+    deadline = time.time() + timeout
+    buf = b""
+
+    while time.time() < deadline and len(buf) < expected:
+        chunk = ser.read(expected - len(buf))
+        if chunk:
+            buf += chunk
+        else:
+            time.sleep(0.001)
+
+    if len(buf) < expected:
+        raise TimeoutError(f"id={dxl_id} no/short reply ({len(buf)}B)")
+
+    pkt_id, err, data = parse_status(buf, length)
+
+    if pkt_id != dxl_id:
+        raise RuntimeError(f"response id mismatch: req={dxl_id}, resp={pkt_id}")
+
+    if err & 0x7F:
+        raise RuntimeError(f"id={dxl_id} hw err 0x{err:02X}")
+
+    return int.from_bytes(data, "little")
+
+def read_bus(bus_name: str, port: str, ids: list[int]):
+    print(f"\n=== {bus_name} ===")
+    print(f"Port: {port}")
+    print(f"Baud: {BAUD}")
+
+    ser = serial.Serial(port, BAUD, timeout=0.05)
+
+    try:
+        results = {}
+
+        for name, addr, length in REGISTERS:
+            results[name] = {}
+            for dxl_id in ids:
+                try:
+                    val = read_register(ser, dxl_id, addr, length)
+                    results[name][dxl_id] = val
+                except Exception as e:
+                    results[name][dxl_id] = f"ERROR ({e})"
+
+        for name, _, _ in REGISTERS:
+            print(f"\n{name}")
+            print("-" * 40)
+            for dxl_id in ids:
+                print(f"  ID {dxl_id:<2}: {results[name][dxl_id]}")
+
+    finally:
+        ser.close()
+
+
+def read_all():
+    print(f"\n=== DYNAMIXEL STATUS ===")
+    print(f"Baud: {BAUD}")
+
+    left_ser = serial.Serial(LEFT_PORT, BAUD, timeout=0.05)
+    right_ser = serial.Serial(RIGHT_PORT, BAUD, timeout=0.05)
+
+    try:
+        results = {}
+
+        for name, addr, length in REGISTERS:
+            results[name] = {
+                "left": {},
+                "right": {},
+            }
+
+            # LEFT 읽기
+            for dxl_id in LEFT_IDS:
+                try:
+                    val = read_register(left_ser, dxl_id, addr, length)
+                    results[name]["left"][dxl_id] = val
+                except Exception as e:
+                    results[name]["left"][dxl_id] = f"ERR"
+
+            # RIGHT 읽기
+            for dxl_id in RIGHT_IDS:
+                try:
+                    val = read_register(right_ser, dxl_id, addr, length)
+                    results[name]["right"][dxl_id] = val
+                except Exception as e:
+                    results[name]["right"][dxl_id] = f"ERR"
+
+        # 출력
+        for name, _, _ in REGISTERS:
+            print(f"\n{name}")
+            print("-" * 50)
+
+            max_len = max(len(LEFT_IDS), len(RIGHT_IDS))
+
+            for i in range(max_len):
+                left_str = ""
+                right_str = ""
+
+                if i < len(LEFT_IDS):
+                    lid = LEFT_IDS[i]
+                    left_val = results[name]["left"][lid]
+                    left_str = f"LEFT  ID {lid:<2}: {left_val:<6}"
+
+                if i < len(RIGHT_IDS):
+                    rid = RIGHT_IDS[i]
+                    right_val = results[name]["right"][rid]
+                    right_str = f"RIGHT ID {rid:<2}: {right_val:<6}"
+
+                print(f"  {left_str}   {right_str}")
+
+    finally:
+        left_ser.close()
+        right_ser.close()
+
+
+def main():
+    read_all()
+
+if __name__ == "__main__":
+    main()

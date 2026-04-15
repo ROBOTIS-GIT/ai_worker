@@ -15,9 +15,12 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   controller_interface
   generate_parameter_library
   pluginlib
+  rclcpp
   rclcpp_lifecycle
   rcutils
   realtime_tools
+  sensor_msgs
+  std_msgs
   std_srvs
   dynamixel_interfaces
   urdf
@@ -62,6 +65,18 @@ target_compile_definitions(joint_trajectory_command_broadcaster PRIVATE "JOINT_T
 pluginlib_export_plugin_description_file(controller_interface joint_trajectory_command_plugin.xml)
 
 ################################################################################
+# leader_feedback standalone node
+################################################################################
+add_executable(leader_feedback src/leader_feedback.cpp)
+target_compile_features(leader_feedback PUBLIC cxx_std_17)
+ament_target_dependencies(leader_feedback
+  rclcpp
+  sensor_msgs
+  std_msgs
+  dynamixel_interfaces
+)
+
+################################################################################
 # Install
 ################################################################################
 install(
@@ -77,6 +92,11 @@ install(
   RUNTIME DESTINATION bin
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
+)
+
+install(
+  TARGETS leader_feedback
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 ################################################################################

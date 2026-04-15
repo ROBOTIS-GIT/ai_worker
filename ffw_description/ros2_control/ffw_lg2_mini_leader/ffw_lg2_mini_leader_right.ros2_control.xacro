@@ -101,6 +101,7 @@
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">1</param>
         <param name="Position P Gain">150</param>
+        <param name="Position I Gain">0</param>
         <param name="Position D Gain">300</param>
         <param name="Current Limit">100</param>
         <param name="Homing Offset">-200</param>
@@ -116,6 +117,7 @@
         <param name="Torque Enable">0</param>
         <param name="Current Limit">100</param>
         <param name="Position P Gain">150</param>
+        <param name="Position I Gain">0</param>
         <param name="Position D Gain">300</param>
       </gpio>
       <gpio name="dxl2">
@@ -127,8 +129,9 @@
         <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
-        <param name="Current Limit">300</param>
+        <param name="Current Limit">100</param>
         <param name="Position P Gain">150</param>
+        <param name="Position I Gain">0</param>
         <param name="Position D Gain">300</param>
       </gpio>
       <gpio name="dxl3">
@@ -142,6 +145,7 @@
         <param name="Torque Enable">0</param>
         <param name="Current Limit">100</param>
         <param name="Position P Gain">150</param>
+        <param name="Position I Gain">0</param>
         <param name="Position D Gain">300</param>
       </gpio>
       <gpio name="dxl4">
@@ -153,8 +157,9 @@
         <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
-        <param name="Current Limit">300</param>
+        <param name="Current Limit">100</param>
         <param name="Position P Gain">150</param>
+        <param name="Position I Gain">0</param>
         <param name="Position D Gain">300</param>
       </gpio>
       <gpio name="dxl5">
@@ -168,6 +173,7 @@
         <param name="Torque Enable">0</param>
         <param name="Current Limit">100</param>
         <param name="Position P Gain">150</param>
+        <param name="Position I Gain">0</param>
         <param name="Position D Gain">300</param>
       </gpio>
       <gpio name="dxl6">
@@ -181,6 +187,7 @@
         <param name="Torque Enable">0</param>
         <param name="Current Limit">100</param>
         <param name="Position P Gain">150</param>
+        <param name="Position I Gain">0</param>
         <param name="Position D Gain">300</param>
       </gpio>
       <gpio name="dxl7">
@@ -194,6 +201,7 @@
         <param name="Torque Enable">0</param>
         <param name="Current Limit">100</param>
         <param name="Position P Gain">150</param>
+        <param name="Position I Gain">0</param>
         <param name="Position D Gain">300</param>
       </gpio>
 

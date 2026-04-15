@@ -66,23 +66,6 @@
         - /robot/arm_left_follower/joint_states
         - /robot/arm_right_follower/joint_states
       # /////////////////////////1063 change/////////////////////////
-      leader_position_command_topic: "/leader/leader_position_controller/commands"
-      # NOTE: keep this list in sync with leader_position_controller.joints below
-      leader_position_command_joints:
-        - arm_r_joint1
-        - arm_r_joint2
-        - arm_r_joint3
-        - arm_r_joint4
-        - arm_r_joint5
-        - arm_r_joint6
-        - arm_r_joint7
-        - arm_l_joint1
-        - arm_l_joint2
-        - arm_l_joint3
-        - arm_l_joint4
-        - arm_l_joint5
-        - arm_l_joint6
-        - arm_l_joint7
 
 /**:
   trigger_position_controller:

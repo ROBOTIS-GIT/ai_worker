@@ -29,13 +29,9 @@
 #include "realtime_tools/realtime_publisher.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "std_msgs/msg/bool.hpp"
-#include "std_msgs/msg/float64_multi_array.hpp"
-#include "std_srvs/srv/set_bool.hpp"
-#include "dynamixel_interfaces/srv/set_data_to_dxl.hpp"
 #include "urdf/model.h"
 #include "trajectory_msgs/msg/joint_trajectory.hpp"
 #include "rclcpp/subscription.hpp"
-#include "rclcpp/client.hpp"
 
 namespace joint_trajectory_command_broadcaster
 {
@@ -153,23 +149,6 @@ protected:
   bool right_enabled_ = false;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr left_enable_sub_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr right_enable_sub_;
-
-  // Edge-triggered torque service
-  // torque_flag_: 0 = not set yet, 1 = both enabled (torque off sent),
-  //               2 = both disabled (torque on sent)
-  rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr torque_client_;
-  rclcpp::Client<dynamixel_interfaces::srv::SetDataToDxl>::SharedPtr dxl_data_client_;
-  // Tracks whether leader torque is currently commanded to the "enabled" (torque=0) state.
-  // true  = last commanded torque=0 (enabled/teleop mode)
-  // false = last commanded torque=1 (disabled/hold mode)
-  bool already_right_t_set_ = false;
-  bool already_left_t_set_ = false;
-
-  // Continuous publisher to drive leader_position_controller toward follower poses
-  std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float64MultiArray>>
-    leader_position_command_publisher_;
-  std::shared_ptr<realtime_tools::RealtimePublisher<std_msgs::msg::Float64MultiArray>>
-    realtime_leader_position_command_publisher_;
 
   std::vector<double> left_position = {0.75, 0.0, 0.0, -2.3, 0.0, 0.0, 0.0, 0.0};
   std::vector<double> right_position = {0.75, 0.0, 0.0, -2.3, 0.0, 0.0, 0.0, 0.0};

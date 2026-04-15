@@ -18,10 +18,12 @@
   <depend>controller_interface</depend>
   <depend>generate_parameter_library</depend>
   <depend>pluginlib</depend>
+  <depend>rclcpp</depend>
   <depend>rclcpp_lifecycle</depend>
   <depend>rcutils</depend>
   <depend>realtime_tools</depend>
   <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
   <depend>std_srvs</depend>
   <depend>dynamixel_interfaces</depend>
   <depend>urdf</depend>

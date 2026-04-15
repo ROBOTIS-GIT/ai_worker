@@ -53,29 +53,30 @@ class FinishMonitor(Node):
     def joint_state_callback(self, msg):
         if self.triggered:
             return
-        idx = self.cached_idx
-        if idx < 0 or idx >= len(msg.name) or msg.name[idx] != JOINT_NAME:
-            try:
-                idx = msg.name.index(JOINT_NAME)
-            except ValueError:
-                return
-            self.cached_idx = idx
-        # if idx >= len(msg.position):
-        if idx >= len(msg.velocity):
+        if not msg.velocity:
             return
-        # value = msg.position[idx]
-        value = msg.velocity[idx]
+
+        max_abs_vel = 0.0
+        max_name = ''
+        for i, v in enumerate(msg.velocity):
+            av = abs(v)
+            if av > max_abs_vel:
+                max_abs_vel = av
+                max_name = msg.name[i] if i < len(msg.name) else f'idx{i}'
+
         if not self.armed:
-            if abs(value) > THRESHOLD:
+            if max_abs_vel > THRESHOLD:
                 self.armed = True
                 self.get_logger().info(
-                    f'{JOINT_NAME}={value:.4f} > {THRESHOLD}, armed'
+                    f'{max_name}={max_abs_vel:.4f} > {THRESHOLD}, armed'
                 )
             return
-        if value < THRESHOLD:
+
+        if max_abs_vel < THRESHOLD:
             self.triggered = True
             self.get_logger().info(
-                f'{JOINT_NAME}={value:.4f} < {THRESHOLD}, disabling follower torque'
+                f'all joints below {THRESHOLD} (max={max_abs_vel:.4f} @ {max_name}), '
+                f'disabling follower torque'
             )
             self.disable_torque()
 
