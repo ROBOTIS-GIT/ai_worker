@@ -375,11 +375,10 @@ void JoystickController::handle_tact_switches(
               tact_trigger_pub_->publish(trigger_msg);
               RCLCPP_INFO(get_node()->get_logger(), "Right tact switch triggered!");
             } else if (tact_mode_ == TactMode::ENABLE_PUBLISH) {
-              right_enable_state_ = !right_enable_state_;
-              std_msgs::msg::Bool enable_msg;
-              enable_msg.data = right_enable_state_;
+              std_msgs::msg::UInt8 enable_msg;
+              enable_msg.data = 2;
               right_enable_pub_->publish(enable_msg);
-              RCLCPP_INFO(get_node()->get_logger(), "Right enable toggled to: %s", right_enable_state_ ? "true" : "false");
+              RCLCPP_INFO(get_node()->get_logger(), "Right enable toggle requested");
             }
           }
           break;
@@ -392,11 +391,10 @@ void JoystickController::handle_tact_switches(
               tact_trigger_pub_->publish(trigger_msg);
               RCLCPP_INFO(get_node()->get_logger(), "Left tact switch triggered!");
             } else if (tact_mode_ == TactMode::ENABLE_PUBLISH) {
-              left_enable_state_ = !left_enable_state_;
-              std_msgs::msg::Bool enable_msg;
-              enable_msg.data = left_enable_state_;
+              std_msgs::msg::UInt8 enable_msg;
+              enable_msg.data = 2;
               left_enable_pub_->publish(enable_msg);
-              RCLCPP_INFO(get_node()->get_logger(), "Left enable toggled to: %s", left_enable_state_ ? "true" : "false");
+              RCLCPP_INFO(get_node()->get_logger(), "Left enable toggle requested");
             }
           }
           break;
@@ -732,11 +730,11 @@ controller_interface::CallbackReturn JoystickController::on_configure(
   tact_trigger_pub_ = get_node()->create_publisher<std_msgs::msg::String>(
     "/leader/joystick_controller/tact_trigger", 10);
 
-  // Create publishers for left/right enable
-  left_enable_pub_ = get_node()->create_publisher<std_msgs::msg::Bool>(
-    "/leader/left_enable", rclcpp::SystemDefaultsQoS().transient_local());
-  right_enable_pub_ = get_node()->create_publisher<std_msgs::msg::Bool>(
-    "/leader/right_enable", rclcpp::SystemDefaultsQoS().transient_local());
+  // Create publishers for left/right enable (0=disable, 1=enable, 2=toggle)
+  left_enable_pub_ = get_node()->create_publisher<std_msgs::msg::UInt8>(
+    "/leader/left_enable", 1);
+  right_enable_pub_ = get_node()->create_publisher<std_msgs::msg::UInt8>(
+    "/leader/right_enable", 1);
 
   prev_right_tact_switch_ = false;
   prev_left_tact_switch_ = false;

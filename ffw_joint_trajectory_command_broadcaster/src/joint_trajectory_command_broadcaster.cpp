@@ -135,6 +135,7 @@ controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_confi
         group_reverse_joints_[group_name] = std::vector<std::string>();
       }
 
+
       // Create topic name with group-specific namespace
       std::string topic_name;
       topic_name = "joint_trajectory_command_broadcaster_" + group_name + "/joint_trajectory";
@@ -191,18 +192,32 @@ controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_confi
       std::bind(&JointTrajectoryCommandBroadcaster::joint_states_callback, this,
         std::placeholders::_1));
 
-    // Enable topic subscriptions (used for trajectory gating only; torque/leader_position
-    // command logic has been moved to the separate leader_feedback node)
-    left_enable_sub_ = get_node()->create_subscription<std_msgs::msg::Bool>(
+    // Load initial enable state from parameters
+    left_enabled_ = params_.left_enabled_init;
+    right_enabled_ = params_.right_enabled_init;
+    RCLCPP_INFO(get_node()->get_logger(),
+      "Initial enable state: left=%s, right=%s",
+      left_enabled_ ? "true" : "false", right_enabled_ ? "true" : "false");
+
+    // Enable topic subscriptions (0=disable, 1=enable, 2=toggle)
+    left_enable_sub_ = get_node()->create_subscription<std_msgs::msg::UInt8>(
       "/leader/left_enable", rclcpp::SystemDefaultsQoS(),
-      [this](std_msgs::msg::Bool::SharedPtr msg) {
-        left_enabled_ = msg->data;
+      [this](std_msgs::msg::UInt8::SharedPtr msg) {
+        if (msg->data == 2) {
+          left_enabled_ = !left_enabled_;
+        } else {
+          left_enabled_ = (msg->data != 0);
+        }
       });
 
-    right_enable_sub_ = get_node()->create_subscription<std_msgs::msg::Bool>(
+    right_enable_sub_ = get_node()->create_subscription<std_msgs::msg::UInt8>(
       "/leader/right_enable", rclcpp::SystemDefaultsQoS(),
-      [this](const std_msgs::msg::Bool::SharedPtr msg) {
-        right_enabled_ = msg->data;
+      [this](const std_msgs::msg::UInt8::SharedPtr msg) {
+        if (msg->data == 2) {
+          right_enabled_ = !right_enabled_;
+        } else {
+          right_enabled_ = (msg->data != 0);
+        }
       });
 
     RCLCPP_INFO(
@@ -461,52 +476,6 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
     auto value = state_interface.get_optional();
     if (value) {
       name_if_value_mapping_[state_interface.get_prefix_name()][interface_name] = *value;
-    }
-  }
-
-  // gripper state check
-  for (const auto & group_name : trajectory_groups_) {
-    const auto & group_joints = group_joint_names_[group_name];
-
-    if (group_joints.empty()) {
-      continue;
-    }
-
-    const std::string & gripper_joint_name = group_joints.back();
-    double gripper_pos = get_value(name_if_value_mapping_, gripper_joint_name, HW_IF_POSITION);
-
-    if (!std::isnan(gripper_pos) && gripper_pos < -2.7) {
-      RCLCPP_WARN(
-        get_node()->get_logger(),
-        "[%s] Gripper joint '%s' below threshold (%.2f < -2.7)",
-        group_name.c_str(), gripper_joint_name.c_str(), gripper_pos);
-
-      if (group_name == "left") {
-        left_enabled_ = false;
-        trajectory_msgs::msg::JointTrajectory traj_msg;
-        traj_msg.header.stamp = rclcpp::Time(0, 0);
-        traj_msg.joint_names = group_joints;
-        traj_msg.points.resize(1);
-        traj_msg.points[0].positions = left_position;
-        traj_msg.points[0].time_from_start = rclcpp::Duration(2, 0);
-
-        auto & realtime_publisher = realtime_joint_trajectory_publishers_[group_name];
-        if (realtime_publisher) {
-          realtime_publisher->try_publish(traj_msg);
-        }
-      } else if (group_name == "right") {
-        right_enabled_ = false;
-        trajectory_msgs::msg::JointTrajectory traj_msg;
-        traj_msg.header.stamp = rclcpp::Time(0, 0);
-        traj_msg.joint_names = group_joints;
-        traj_msg.points.resize(1);
-        traj_msg.points[0].positions = right_position;
-        traj_msg.points[0].time_from_start = rclcpp::Duration(2, 0);
-        auto & realtime_publisher = realtime_joint_trajectory_publishers_[group_name];
-        if (realtime_publisher) {
-          realtime_publisher->try_publish(traj_msg);
-        }
-      }
     }
   }
 

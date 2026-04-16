@@ -60,12 +60,6 @@
         - 0.1
       left_joint_states_stamped_topic: "/robot/arm_left_leader/joint_states"
       right_joint_states_stamped_topic: "/robot/arm_right_leader/joint_states"
-      trigger_threshold: -0.5
-      # /////////////////////////1063 change/////////////////////////
-      follower_joint_states_topics:
-        - /robot/arm_left_follower/joint_states
-        - /robot/arm_right_follower/joint_states
-      # /////////////////////////1063 change/////////////////////////
 
 /**:
   trigger_position_controller:

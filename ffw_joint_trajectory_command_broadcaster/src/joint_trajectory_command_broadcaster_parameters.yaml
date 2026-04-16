@@ -82,18 +82,13 @@ joint_trajectory_command_broadcaster:
     default_value: "",
     description: "Topic to publish stamped joint states for the right group. If empty, derive from the group name."
   }
-  trigger_threshold: {
-    type: double,
-    default_value: -0.5,
-    description: "Threshold value for gripper trigger joints to activate auto mode. Both gripper triggers must exceed this value."
+  left_enabled_init: {
+    type: bool,
+    default_value: false,
+    description: "Initial enable state for left arm group."
   }
-  trigger_duration: {
-    type: double,
-    default_value: 2.0,
-    description: "Duration (in seconds) that triggers must be held above threshold to toggle auto mode."
-  }
-  trigger_sign: {
-    type: double,
-    default_value: -1.0,
-    description: "Sign of the trigger joints. 1.0 for positive sign, -1.0 for negative sign."
+  right_enabled_init: {
+    type: bool,
+    default_value: false,
+    description: "Initial enable state for right arm group."
   }

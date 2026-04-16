@@ -28,7 +28,7 @@
   <ffw_joint_trajectory_command_broadcaster/joint_trajectory_command_broadcaster_parameters.hpp>
 #include "realtime_tools/realtime_publisher.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
-#include "std_msgs/msg/bool.hpp"
+#include "std_msgs/msg/u_int8.hpp"
 #include "urdf/model.h"
 #include "trajectory_msgs/msg/joint_trajectory.hpp"
 #include "rclcpp/subscription.hpp"
@@ -147,11 +147,8 @@ protected:
   // Topic-based auto mode control
   bool left_enabled_ = false;
   bool right_enabled_ = false;
-  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr left_enable_sub_;
-  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr right_enable_sub_;
-
-  std::vector<double> left_position = {0.75, 0.0, 0.0, -2.3, 0.0, 0.0, 0.0, 0.0};
-  std::vector<double> right_position = {0.75, 0.0, 0.0, -2.3, 0.0, 0.0, 0.0, 0.0};
+  rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr left_enable_sub_;
+  rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr right_enable_sub_;
 
 };
 

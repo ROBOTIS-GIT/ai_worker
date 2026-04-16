@@ -32,7 +32,7 @@
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "trajectory_msgs/msg/joint_trajectory.hpp"
 #include "std_msgs/msg/string.hpp"
-#include "std_msgs/msg/bool.hpp"
+#include "std_msgs/msg/u_int8.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 namespace joystick_controller
 {
@@ -172,13 +172,11 @@ protected:
     ENABLE_PUBLISH
   };
   TactMode tact_mode_ = TactMode::DEFAULT;
-  bool left_enable_state_ = false;
-  bool right_enable_state_ = false;
 
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr tact_trigger_pub_;
-  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr left_enable_pub_;
-  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr right_enable_pub_;
+  rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr left_enable_pub_;
+  rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr right_enable_pub_;
 };
 
 }  // namespace joystick_controller

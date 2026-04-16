@@ -71,9 +71,23 @@ add_executable(leader_feedback src/leader_feedback.cpp)
 target_compile_features(leader_feedback PUBLIC cxx_std_17)
 ament_target_dependencies(leader_feedback
   rclcpp
+  rcl_interfaces
   sensor_msgs
   std_msgs
   dynamixel_interfaces
+)
+
+################################################################################
+# gripper_trigger standalone node
+################################################################################
+add_executable(gripper_trigger src/gripper_trigger.cpp)
+target_compile_features(gripper_trigger PUBLIC cxx_std_17)
+ament_target_dependencies(gripper_trigger
+  rclcpp
+  rcl_interfaces
+  sensor_msgs
+  std_msgs
+  trajectory_msgs
 )
 
 ################################################################################
@@ -95,7 +109,7 @@ install(
 )
 
 install(
-  TARGETS leader_feedback
+  TARGETS leader_feedback gripper_trigger
   DESTINATION lib/${PROJECT_NAME}
 )
 

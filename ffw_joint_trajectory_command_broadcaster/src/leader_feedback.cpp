@@ -16,8 +16,9 @@
 #include <vector>
 
 #include "rclcpp/rclcpp.hpp"
+#include "rcl_interfaces/srv/get_parameters.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
-#include "std_msgs/msg/bool.hpp"
+#include "std_msgs/msg/u_int8.hpp"
 #include "std_msgs/msg/float64_multi_array.hpp"
 #include "dynamixel_interfaces/srv/set_data_to_dxl.hpp"
 
@@ -30,11 +31,45 @@ public:
   LeaderFeedback()
   : rclcpp::Node("leader_feedback"),
     left_enabled_(false),
-    right_enabled_(false),
-    already_left_t_set_(false),
-    already_right_t_set_(false)
+    right_enabled_(false)
   {
-    // Parameters
+    // Fetch initial enable state from broadcaster's parameters
+    auto param_node_name = declare_parameter<std::string>(
+      "param_node_name", "/leader/joint_trajectory_command_broadcaster");
+
+    auto param_client = create_client<rcl_interfaces::srv::GetParameters>(
+      param_node_name + "/get_parameters");
+
+    RCLCPP_INFO(get_logger(),
+      "Waiting for parameter service '%s/get_parameters'...",
+      param_node_name.c_str());
+    while (rclcpp::ok() &&
+      !param_client->wait_for_service(std::chrono::seconds(2)))
+    {
+      RCLCPP_WARN(get_logger(), "Still waiting...");
+    }
+
+    if (rclcpp::ok()) {
+      auto request = std::make_shared<rcl_interfaces::srv::GetParameters::Request>();
+      request->names = {"left_enabled_init", "right_enabled_init"};
+      auto future = param_client->async_send_request(request);
+      if (rclcpp::spin_until_future_complete(
+          get_node_base_interface(), future, std::chrono::seconds(5)) ==
+        rclcpp::FutureReturnCode::SUCCESS)
+      {
+        auto result = future.get();
+        if (result->values.size() >= 2) {
+          left_enabled_ = result->values[0].bool_value;
+          right_enabled_ = result->values[1].bool_value;
+          RCLCPP_INFO(get_logger(),
+            "Loaded initial enable state: left=%s, right=%s",
+            left_enabled_ ? "true" : "false", right_enabled_ ? "true" : "false");
+        }
+      } else {
+        RCLCPP_WARN(get_logger(), "Failed to get enable params, using defaults (false)");
+      }
+    }
+
     command_topic_ = declare_parameter<std::string>(
       "command_topic", "/leader/leader_position_controller/commands");
     left_enable_topic_ = declare_parameter<std::string>(
@@ -52,7 +87,7 @@ public:
       "command_joints",
       std::vector<std::string>{
       "arm_r_joint1", "arm_r_joint2", "arm_r_joint3", "arm_r_joint4",
-      "arm_r_joint5", "arm_r_joint6", "arm_r_joint7",
+      "arm_r_joint5", "arm_r_joint6", "arm_r_joint7", 
       "arm_l_joint1", "arm_l_joint2", "arm_l_joint3", "arm_l_joint4",
       "arm_l_joint5", "arm_l_joint6", "arm_l_joint7"});
 
@@ -66,62 +101,76 @@ public:
     for (auto id : right_ids_param) {right_ids_.push_back(static_cast<uint8_t>(id));}
     for (auto id : left_ids_param) {left_ids_.push_back(static_cast<uint8_t>(id));}
 
-    update_rate_hz_ = declare_parameter<double>("update_rate_hz", 50.0);
+    // Torque service client: wait until available
+    dxl_data_client_ = create_client<dynamixel_interfaces::srv::SetDataToDxl>(
+      torque_service_name_);
 
-    // QoS: Best Effort for follower state streams (avoid backpressure)
+    RCLCPP_INFO(get_logger(),
+      "Waiting for torque service '%s' to become available...",
+      torque_service_name_.c_str());
+    while (rclcpp::ok() &&
+      !dxl_data_client_->wait_for_service(std::chrono::seconds(2)))
+    {
+      RCLCPP_WARN(get_logger(),
+        "Torque service '%s' not available yet, retrying...",
+        torque_service_name_.c_str());
+    }
+    if (!rclcpp::ok()) {
+      return;
+    }
+    RCLCPP_INFO(get_logger(), "Torque service available.");
+
+    // Send initial torque command based on initial enable state (both false)
+    send_torque_for_group(left_enabled_, left_ids_, "left");
+    send_torque_for_group(right_enabled_, right_ids_, "right");
+
+    // QoS
     auto be_qos = rclcpp::QoS(5).best_effort();
 
-    // Enable subscribers: small bool stream, reliable is fine
-    auto enable_qos = rclcpp::QoS(5);
-    left_enable_sub_ = create_subscription<std_msgs::msg::Bool>(
-      left_enable_topic_, enable_qos,
-      [this](std_msgs::msg::Bool::SharedPtr msg) {
-        if (msg->data != left_enabled_) {
-          already_left_t_set_ = false;
+    // Enable subscribers (0=disable, 1=enable, 2=toggle) — torque updated on state change
+    left_enable_sub_ = create_subscription<std_msgs::msg::UInt8>(
+      left_enable_topic_, rclcpp::SystemDefaultsQoS(),
+      [this](std_msgs::msg::UInt8::SharedPtr msg) {
+        bool new_state = (msg->data == 2) ? !left_enabled_ : (msg->data != 0);
+        if (new_state != left_enabled_) {
+          left_enabled_ = new_state;
+          send_torque_for_group(left_enabled_, left_ids_, "left");
         }
-        left_enabled_ = msg->data;
       });
 
-    right_enable_sub_ = create_subscription<std_msgs::msg::Bool>(
-      right_enable_topic_, enable_qos,
-      [this](std_msgs::msg::Bool::SharedPtr msg) {
-        if (msg->data != right_enabled_) {
-          already_right_t_set_ = false;
+    right_enable_sub_ = create_subscription<std_msgs::msg::UInt8>(
+      right_enable_topic_, rclcpp::SystemDefaultsQoS(),
+      [this](std_msgs::msg::UInt8::SharedPtr msg) {
+        bool new_state = (msg->data == 2) ? !right_enabled_ : (msg->data != 0);
+        if (new_state != right_enabled_) {
+          right_enabled_ = new_state;
+          send_torque_for_group(right_enabled_, right_ids_, "right");
         }
-        right_enabled_ = msg->data;
       });
 
-    // Follower joint state subscribers (best effort)
+    // Follower subscribers — publish leader command directly on message arrival
     left_follower_sub_ = create_subscription<sensor_msgs::msg::JointState>(
       left_follower_topic_, be_qos,
       [this](sensor_msgs::msg::JointState::SharedPtr msg) {
         update_positions_from_msg(msg);
+        publish_position_command();
       });
 
     right_follower_sub_ = create_subscription<sensor_msgs::msg::JointState>(
       right_follower_topic_, be_qos,
       [this](sensor_msgs::msg::JointState::SharedPtr msg) {
         update_positions_from_msg(msg);
+        publish_position_command();
       });
 
     // Position command publisher
     command_pub_ = create_publisher<std_msgs::msg::Float64MultiArray>(
       command_topic_, rclcpp::QoS(5).reliable());
 
-    // Torque service client
-    dxl_data_client_ = create_client<dynamixel_interfaces::srv::SetDataToDxl>(
-      torque_service_name_);
-
-    const auto period_s = 1.0 / std::max(1.0, update_rate_hz_);
-    const auto period =
-      std::chrono::duration_cast<std::chrono::nanoseconds>(
-      std::chrono::duration<double>(period_s));
-    timer_ = create_wall_timer(period, [this]() {on_timer();});
-
     RCLCPP_INFO(get_logger(),
-      "leader_feedback started: cmd=%s follower_l=%s follower_r=%s rate=%.1fHz",
+      "leader_feedback started: cmd=%s follower_l=%s follower_r=%s",
       command_topic_.c_str(), left_follower_topic_.c_str(),
-      right_follower_topic_.c_str(), update_rate_hz_);
+      right_follower_topic_.c_str());
   }
 
 private:
@@ -133,40 +182,27 @@ private:
     }
   }
 
-  void send_torque_enable(
-    const std::vector<uint8_t> & ids, uint32_t value, const char * tag)
+  void send_torque_for_group(
+    bool group_enabled, const std::vector<uint8_t> & ids, const char * tag)
   {
-    if (!dxl_data_client_ || !dxl_data_client_->service_is_ready()) {
-      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
-        "[%s] set_dxl_data service not ready", tag);
+    if (ids.empty()) {
       return;
     }
+    if (!dxl_data_client_ || !dxl_data_client_->service_is_ready()) {
+      RCLCPP_WARN(get_logger(),
+        "[%s] set_dxl_data service not ready; skipping torque update", tag);
+      return;
+    }
+    const uint32_t torque_value = group_enabled ? 0u : 1u;
     for (uint8_t id : ids) {
       auto req = std::make_shared<dynamixel_interfaces::srv::SetDataToDxl::Request>();
       req->id = id;
       req->item_name = "Torque Enable";
-      req->item_data = value;
+      req->item_data = torque_value;
       dxl_data_client_->async_send_request(req);
     }
     RCLCPP_INFO(get_logger(),
-      "[%s] Torque Enable -> %u for %zu IDs", tag, value, ids.size());
-  }
-
-  void handle_group_torque(
-    bool group_enabled, bool & already_set,
-    const std::vector<uint8_t> & ids, const char * tag)
-  {
-    if (already_set || ids.empty()) {
-      return;
-    }
-    const uint32_t torque_value = group_enabled ? 0u : 1u;
-    if (!dxl_data_client_ || !dxl_data_client_->service_is_ready()) {
-      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
-        "[%s] set_dxl_data service not ready", tag);
-      return;
-    }
-    send_torque_enable(ids, torque_value, tag);
-    already_set = true;
+      "[%s] Torque Enable %u (motor_num %zu)", tag, torque_value, ids.size());
   }
 
   void publish_position_command()
@@ -186,18 +222,9 @@ private:
     command_pub_->publish(msg);
   }
 
-  void on_timer()
-  {
-    handle_group_torque(left_enabled_, already_left_t_set_, left_ids_, "left");
-    handle_group_torque(right_enabled_, already_right_t_set_, right_ids_, "right");
-    publish_position_command();
-  }
-
   // State
   bool left_enabled_;
   bool right_enabled_;
-  bool already_left_t_set_;
-  bool already_right_t_set_;
   std::unordered_map<std::string, double> follower_positions_;
 
   // Params (cached)
@@ -210,16 +237,14 @@ private:
   std::vector<std::string> command_joints_;
   std::vector<uint8_t> right_ids_;
   std::vector<uint8_t> left_ids_;
-  double update_rate_hz_;
 
   // ROS interfaces
-  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr left_enable_sub_;
-  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr right_enable_sub_;
+  rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr left_enable_sub_;
+  rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr right_enable_sub_;
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr left_follower_sub_;
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr right_follower_sub_;
   rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr command_pub_;
   rclcpp::Client<dynamixel_interfaces::srv::SetDataToDxl>::SharedPtr dxl_data_client_;
-  rclcpp::TimerBase::SharedPtr timer_;
 };
 
 }  // namespace ffw_leader_feedback

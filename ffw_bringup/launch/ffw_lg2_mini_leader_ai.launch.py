@@ -100,6 +100,20 @@ def generate_launch_description():
         condition=IfCondition(launch_foot_switch),
     )
 
+    leader_feedback_node = Node(
+        package='ffw_joint_trajectory_command_broadcaster',
+        executable='leader_feedback',
+        name='leader_feedback',
+        output='both',
+    )
+
+    gripper_trigger_node = Node(
+        package='ffw_joint_trajectory_command_broadcaster',
+        executable='gripper_trigger',
+        name='gripper_trigger',
+        output='both',
+    )
+
     # Execute process to publish position command
     position_command_process = ExecuteProcess(
         name='trigger_position_command',
@@ -133,8 +147,11 @@ def generate_launch_description():
             robot_controller_spawner,
             robot_state_publisher_node,
             delay_position_command_after_controllers,
+            leader_feedback_node,
+            gripper_trigger_node,
         ]
     )
 
     # Return combined LaunchDescription
-    return LaunchDescription(declared_arguments + [leader_with_namespace, foot_switch_node])
+    return LaunchDescription(declared_arguments + [
+        leader_with_namespace, foot_switch_node])

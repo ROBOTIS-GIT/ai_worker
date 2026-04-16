@@ -8,10 +8,11 @@ import yaml
 
 import rclpy
 from rclpy.node import Node
+from ament_index_python.packages import get_package_share_directory
 from rcl_interfaces.srv import SetParameters
 from rcl_interfaces.msg import Parameter, ParameterValue, ParameterType
 from builtin_interfaces.msg import Duration
-from std_msgs.msg import Bool
+from std_msgs.msg import UInt8
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 DEVICE = "/dev/input/by-id/usb-PCsensor_FootSwitch-event-kbd"
@@ -47,9 +48,11 @@ class FootSwitchReader(Node):
             '/leader/joystick_controller/set_parameters'
         )
 
-        # enable publishers
-        self.left_enable_pub = self.create_publisher(Bool, "/leader/left_enable", 10)
-        self.right_enable_pub = self.create_publisher(Bool, "/leader/right_enable", 10)
+        # enable publishers (0=disable, 1=enable, 2=toggle)
+        self.left_enable_pub = self.create_publisher(
+            UInt8, "/leader/left_enable", 1)
+        self.right_enable_pub = self.create_publisher(
+            UInt8, "/leader/right_enable", 1)
 
         # trajectory publishers
         self.left_traj_pub = self.create_publisher(
@@ -70,8 +73,8 @@ class FootSwitchReader(Node):
         self._load_joint_names_from_yaml()
 
         # Saved postures
-        self.left_position = [0.75, 0.0, 0.0, -2.3, 0.0, 0.5, 0.0, 0.0]
-        self.right_position = [0.75, 0.0, 0.0, -2.3, 0.0, -0.5, 0.0, 0.0]
+        self.left_position = [0.5, 0.32, 0.0, -2.05, 0.25, -0.0, -1.0, 0.0]
+        self.right_position = [0.5, -0.32, -0.0, -2.05, -0.25, -0.0, 1.0, 0.0]
 
         self.traj_duration_sec = 3.0
 
@@ -118,6 +121,16 @@ class FootSwitchReader(Node):
 
     def _load_joint_names_from_yaml(self):
         yaml_path = self.get_parameter('controller_config_path').value
+        if not yaml_path or not os.path.isfile(yaml_path):
+            # Fallback: find config from package share directory
+            try:
+                pkg_path = get_package_share_directory('ffw_bringup')
+                yaml_path = os.path.join(
+                    pkg_path, 'config', 'ffw_lg2_mini_leader',
+                    'ffw_lg2_mini_leader_ai_hardware_controller.yaml')
+                print(f"controller_config_path not set, using default: {yaml_path}")
+            except Exception:
+                pass
         if not yaml_path or not os.path.isfile(yaml_path):
             raise RuntimeError(
                 f"controller_config_path is empty or file not found: '{yaml_path}'"
@@ -184,8 +197,8 @@ class FootSwitchReader(Node):
 
     def handle_left(self, event_value: int):
         if event_value == 1:
-            msg = Bool()
-            msg.data = False
+            msg = UInt8()
+            msg.data = 0
             self.left_enable_pub.publish(msg)
 
             # Give broadcaster time to process the disable before publishing trajectory
@@ -208,8 +221,8 @@ class FootSwitchReader(Node):
 
     def handle_right(self, event_value: int):
         if event_value == 1:
-            msg = Bool()
-            msg.data = False
+            msg = UInt8()
+            msg.data = 0
             self.right_enable_pub.publish(msg)
 
             # Give broadcaster time to process the disable before publishing trajectory
