@@ -49,8 +49,9 @@
       step_names: [zero, home]
       # home: [0.69369, 0.0]
       zero: [0.0, 0.0]
-      # home: [0.83, -0.20]
-      home: [0.83, -0.35]
+      # home: [0.83, -0.20] #초코파이 등
+      # home: [0.83, -0.35] #초코파이 등
+      home: [0.71, -0.34] #랜선
       duration: 5.0
       position_tolerance: 0.1
       velocity_tolerance: 0.01
@@ -64,7 +65,8 @@
         - lift_joint
       step_names: [step0, step1]
       step0: [0.0]
-      step1: [-0.20]
+      # step1: [-0.20] #초코파이 등
+      step1: [-0.145] #랜선
       # step1: [0.0]
       duration: 5.0
       position_tolerance: 0.001

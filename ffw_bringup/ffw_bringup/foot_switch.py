@@ -4,16 +4,11 @@ import os
 import struct
 import time
 
-import yaml
-
 import rclpy
 from rclpy.node import Node
-from ament_index_python.packages import get_package_share_directory
 from rcl_interfaces.srv import SetParameters
 from rcl_interfaces.msg import Parameter, ParameterValue, ParameterType
-from builtin_interfaces.msg import Duration
 from std_msgs.msg import UInt8
-from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 DEVICE = "/dev/input/by-id/usb-PCsensor_FootSwitch-event-kbd"
 
@@ -28,6 +23,10 @@ KEY_RIGHT = 46
 # 같은 버튼에서 너무 짧은 시간 안에 다시 들어온 이벤트는 무시
 DEBOUNCE_SEC = 0.5
 DEBOUNCE_ENABLED = True
+
+# enable 값: left/right 페달 누르면 이 값을 enable 토픽에 발행
+# broadcaster는 이 값에 맞는 save pose로 보간
+SAVE_POSE_ID = 4
 
 
 class FootSwitchReader(Node):
@@ -48,39 +47,14 @@ class FootSwitchReader(Node):
             '/leader/joystick_controller/set_parameters'
         )
 
-        # enable publishers (0=disable, 1=enable, 2=toggle)
+        # enable publishers (0=disable, 1=enable, 2=toggle, 3+=save pose N)
         self.left_enable_pub = self.create_publisher(
             UInt8, "/leader/left_enable", 1)
         self.right_enable_pub = self.create_publisher(
             UInt8, "/leader/right_enable", 1)
 
-        # trajectory publishers
-        self.left_traj_pub = self.create_publisher(
-            JointTrajectory,
-            "/leader/joint_trajectory_command_broadcaster_left/joint_trajectory",
-            10,
-        )
-        self.right_traj_pub = self.create_publisher(
-            JointTrajectory,
-            "/leader/joint_trajectory_command_broadcaster_right/joint_trajectory",
-            10,
-        )
-
-        # joint names — load from controller config yaml
-        self.declare_parameter('controller_config_path', '')
-        self.left_joint_names = []
-        self.right_joint_names = []
-        self._load_joint_names_from_yaml()
-
-        # Saved postures
-        self.left_position = [0.5, 0.32, 0.0, -2.05, 0.25, -0.0, -1.0, 0.0]
-        self.right_position = [0.5, -0.32, -0.0, -2.05, -0.25, -0.0, 1.0, 0.0]
-
-        self.traj_duration_sec = 3.0
-
     def open_device(self):
         try:
-            # self.fd = os.open(DEVICE, os.O_RDONLY | os.O_NONBLOCK)
             self.fd = os.open(self.device, os.O_RDONLY)
             print(f"Opened device: {self.device}")
         except PermissionError:
@@ -119,56 +93,6 @@ class FootSwitchReader(Node):
         self.last_event_time[key] = now
         return True
 
-    def _load_joint_names_from_yaml(self):
-        yaml_path = self.get_parameter('controller_config_path').value
-        if not yaml_path or not os.path.isfile(yaml_path):
-            # Fallback: find config from package share directory
-            try:
-                pkg_path = get_package_share_directory('ffw_bringup')
-                yaml_path = os.path.join(
-                    pkg_path, 'config', 'ffw_lg2_mini_leader',
-                    'ffw_lg2_mini_leader_ai_hardware_controller.yaml')
-                print(f"controller_config_path not set, using default: {yaml_path}")
-            except Exception:
-                pass
-        if not yaml_path or not os.path.isfile(yaml_path):
-            raise RuntimeError(
-                f"controller_config_path is empty or file not found: '{yaml_path}'"
-            )
-
-        with open(yaml_path, 'r') as f:
-            lines = f.readlines()
-
-        def extract_list(key: str):
-            result = []
-            in_block = False
-            indent = None
-            for line in lines:
-                stripped = line.rstrip('\n')
-                if not in_block:
-                    if stripped.lstrip().startswith(f'{key}:'):
-                        indent = len(stripped) - len(stripped.lstrip())
-                        in_block = True
-                    continue
-                cur_indent = len(stripped) - len(stripped.lstrip())
-                item = stripped.lstrip()
-                if item.startswith('- '):
-                    result.append(item[2:].strip())
-                elif stripped.strip() and cur_indent <= indent:
-                    break
-            return result
-
-        self.left_joint_names = extract_list('left_joints')
-        self.right_joint_names = extract_list('right_joints')
-
-        if not self.left_joint_names or not self.right_joint_names:
-            raise RuntimeError(
-                f"Failed to parse left_joints/right_joints from {yaml_path}"
-            )
-
-        print(f"Loaded left_joints: {self.left_joint_names}")
-        print(f"Loaded right_joints: {self.right_joint_names}")
-
     def _set_deadzone(self, value: float):
         req = SetParameters.Request()
         param = Parameter()
@@ -181,32 +105,12 @@ class FootSwitchReader(Node):
         self.deadzone_param_client.call_async(req)
         print(f"deadzone : {value}")
 
-    def _make_trajectory(self, joint_names, positions):
-        traj = JointTrajectory()
-        traj.joint_names = joint_names
-
-        point = JointTrajectoryPoint()
-        point.positions = positions
-
-        sec = int(self.traj_duration_sec)
-        nanosec = int((self.traj_duration_sec - sec) * 1e9)
-        point.time_from_start = Duration(sec=sec, nanosec=nanosec)
-
-        traj.points.append(point)
-        return traj
-
     def handle_left(self, event_value: int):
         if event_value == 1:
             msg = UInt8()
-            msg.data = 0
+            msg.data = SAVE_POSE_ID
             self.left_enable_pub.publish(msg)
-
-            # Give broadcaster time to process the disable before publishing trajectory
-            time.sleep(0.1)
-
-            traj = self._make_trajectory(self.left_joint_names, self.left_position)
-            self.left_traj_pub.publish(traj)
-            print("((Publish) left arm trajectory")
+            print(f"(Publish) left_enable = {SAVE_POSE_ID}")
 
     def handle_middle(self, event_value: int):
         # 2 (repeat) 동안만 deadzone을 0.05로, 0 (release) 시 1.0로 복귀
@@ -222,15 +126,9 @@ class FootSwitchReader(Node):
     def handle_right(self, event_value: int):
         if event_value == 1:
             msg = UInt8()
-            msg.data = 0
+            msg.data = SAVE_POSE_ID
             self.right_enable_pub.publish(msg)
-
-            # Give broadcaster time to process the disable before publishing trajectory
-            time.sleep(0.1)
-
-            traj = self._make_trajectory(self.right_joint_names, self.right_position)
-            self.right_traj_pub.publish(traj)
-            print("((Publish) right arm trajectory")
+            print(f"(Publish) right_enable = {SAVE_POSE_ID}")
 
     def process_key_event(self, event_code: int, event_value: int):
 

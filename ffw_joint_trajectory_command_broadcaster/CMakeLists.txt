@@ -84,10 +84,8 @@ add_executable(gripper_trigger src/gripper_trigger.cpp)
 target_compile_features(gripper_trigger PUBLIC cxx_std_17)
 ament_target_dependencies(gripper_trigger
   rclcpp
-  rcl_interfaces
   sensor_msgs
   std_msgs
-  trajectory_msgs
 )
 
 ################################################################################

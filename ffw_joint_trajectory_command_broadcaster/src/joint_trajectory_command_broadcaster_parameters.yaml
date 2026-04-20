@@ -92,3 +92,23 @@ joint_trajectory_command_broadcaster:
     default_value: false,
     description: "Initial enable state for right arm group."
   }
+  left_follower_joint_states_topic: {
+    type: string,
+    default_value: "/robot/arm_left_follower/joint_states",
+    description: "Follower joint states topic for left arm (used to init last_target once at startup)."
+  }
+  right_follower_joint_states_topic: {
+    type: string,
+    default_value: "/robot/arm_right_follower/joint_states",
+    description: "Follower joint states topic for right arm (used to init last_target once at startup)."
+  }
+  save_pose_duration: {
+    type: double,
+    default_value: 3.0,
+    description: "Cubic interpolation duration (seconds) when going to a save pose."
+  }
+  save_pose_ids: {
+    type: int_array,
+    default_value: [],
+    description: "List of save pose IDs to pre-declare (e.g., [3,4,5]). Actual poses loaded from left_save_pose_<id> / right_save_pose_<id>."
+  }

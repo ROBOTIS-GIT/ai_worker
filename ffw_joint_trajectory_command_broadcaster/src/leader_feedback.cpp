@@ -127,11 +127,12 @@ public:
     // QoS
     auto be_qos = rclcpp::QoS(5).best_effort();
 
-    // Enable subscribers (0=disable, 1=enable, 2=toggle) — torque updated on state change
+    // Enable subscribers:
+    //   1 = torque OFF (leader free), 2 = toggle, anything else = torque ON
     left_enable_sub_ = create_subscription<std_msgs::msg::UInt8>(
       left_enable_topic_, rclcpp::SystemDefaultsQoS(),
       [this](std_msgs::msg::UInt8::SharedPtr msg) {
-        bool new_state = (msg->data == 2) ? !left_enabled_ : (msg->data != 0);
+        bool new_state = (msg->data == 2) ? !left_enabled_ : (msg->data == 1);
         if (new_state != left_enabled_) {
           left_enabled_ = new_state;
           send_torque_for_group(left_enabled_, left_ids_, "left");
@@ -141,7 +142,7 @@ public:
     right_enable_sub_ = create_subscription<std_msgs::msg::UInt8>(
       right_enable_topic_, rclcpp::SystemDefaultsQoS(),
       [this](std_msgs::msg::UInt8::SharedPtr msg) {
-        bool new_state = (msg->data == 2) ? !right_enabled_ : (msg->data != 0);
+        bool new_state = (msg->data == 2) ? !right_enabled_ : (msg->data == 1);
         if (new_state != right_enabled_) {
           right_enabled_ = new_state;
           send_torque_for_group(right_enabled_, right_ids_, "right");

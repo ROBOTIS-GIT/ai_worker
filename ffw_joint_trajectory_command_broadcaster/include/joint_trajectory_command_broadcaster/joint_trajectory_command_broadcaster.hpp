@@ -92,9 +92,8 @@ public:
 
 protected:
   bool init_joint_data();
-  void joint_states_callback(const sensor_msgs::msg::JointState::SharedPtr msg);
-  bool check_joints_synced(const std::string & group_name) const;
-  double calculate_mean_error(const std::string & group_name) const;
+  void handle_enable_msg(const std::string & group_name, uint8_t data, uint8_t & state);
+  void start_interpolation(const std::string & group_name, const std::vector<double> & target);
 
 protected:
   // Optional parameters
@@ -135,20 +134,34 @@ protected:
   urdf::Model model_;
   bool is_model_loaded_ = false;
 
-  // Follower joint states tracking
-  std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::JointState>> joint_states_subscriber_;
-  std::unordered_map<std::string, double> follower_joint_positions_;
-  bool joints_synced_ = false; // DEPRECATED, kept for backward compatibility (in case) but will not be used
-  bool first_publish_ = true;
-
-  std::unordered_map<std::string, bool> group_joints_synced_;
-  std::unordered_map<std::string, bool> group_first_publish_;
-
   // Topic-based auto mode control
-  bool left_enabled_ = false;
-  bool right_enabled_ = false;
+  // state: 0=disabled, 1=leader tracking, 3+=save pose N (interpolating or held)
+  uint8_t left_state_ = 0;
+  uint8_t right_state_ = 0;
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr left_enable_sub_;
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr right_enable_sub_;
+
+  // Last published target per group (used as interpolation start)
+  std::unordered_map<std::string, std::vector<double>> group_last_target_;
+
+  // One-shot follower subscriptions to init last_target at startup
+  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr left_follower_js_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr right_follower_js_sub_;
+  std::unordered_map<std::string, bool> group_last_target_initialized_;
+
+  // Save poses per group: map<pose_id, positions>
+  std::unordered_map<std::string, std::unordered_map<uint8_t, std::vector<double>>>
+    group_save_poses_;
+
+  // Cubic interpolation state per group
+  struct InterpState {
+    rclcpp::Time start_time;
+    std::vector<double> start_pos;
+    std::vector<double> target_pos;
+    double duration_sec = 0.0;
+    bool active = false;
+  };
+  std::unordered_map<std::string, InterpState> group_interp_state_;
 
 };
 
