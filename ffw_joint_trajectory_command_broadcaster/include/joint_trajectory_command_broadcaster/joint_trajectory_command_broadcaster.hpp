@@ -94,6 +94,7 @@ protected:
   bool init_joint_data();
   void handle_enable_msg(const std::string & group_name, uint8_t data, uint8_t & state);
   void start_interpolation(const std::string & group_name, const std::vector<double> & target);
+  void start_leader_blend(const std::string & group_name);
 
 protected:
   // Optional parameters
@@ -162,6 +163,14 @@ protected:
     bool active = false;
   };
   std::unordered_map<std::string, InterpState> group_interp_state_;
+
+  // Blend state per group for smooth transition into leader tracking (state=1)
+  struct BlendState {
+    rclcpp::Time start_time;
+    std::vector<double> start_pos;
+    bool active = false;
+  };
+  std::unordered_map<std::string, BlendState> group_leader_blend_;
 
 };
 

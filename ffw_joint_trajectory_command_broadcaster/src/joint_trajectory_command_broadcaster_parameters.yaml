@@ -107,6 +107,11 @@ joint_trajectory_command_broadcaster:
     default_value: 3.0,
     description: "Cubic interpolation duration (seconds) when going to a save pose."
   }
+  leader_blend_duration: {
+    type: double,
+    default_value: 2.0,
+    description: "Seconds to blend from last_target to leader value when entering state=1."
+  }
   save_pose_ids: {
     type: int_array,
     default_value: [],

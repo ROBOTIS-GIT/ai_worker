@@ -351,6 +351,7 @@ controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_deact
   group_reverse_joints_.clear();
   group_last_target_.clear();
   group_interp_state_.clear();
+  group_leader_blend_.clear();
 
   return CallbackReturn::SUCCESS;
 }
@@ -493,8 +494,20 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
       }
     }
 
+    // Compute leader-blend factor (only when leader_tracking)
+    auto & blend = group_leader_blend_[group_name];
+    double blend_alpha = 1.0;  // 1.0 = full leader tracking
+    if (leader_tracking && blend.active) {
+      double elapsed = (get_node()->now() - blend.start_time).seconds();
+      double t = std::clamp(elapsed / params_.leader_blend_duration, 0.0, 1.0);
+      blend_alpha = 3.0 * t * t - 2.0 * t * t * t;  // cubic smoothstep
+      if (t >= 1.0) {
+        blend.active = false;
+      }
+    }
+
     // Update last_target:
-    //   leader_tracking (state==1) → leader value (cancels interp by priority)
+    //   leader_tracking (state==1) → leader value (blended during first N seconds)
     //   interp active                → interpolated value
     //   else                         → hold previous last_target
     if (leader_tracking || use_interp) {
@@ -505,14 +518,22 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
           pos_value = interp.start_pos[i] +
             interp_s * (interp.target_pos[i] - interp.start_pos[i]);
         } else {
-          pos_value = get_value(name_if_value_mapping_, group_joints[i], HW_IF_POSITION);
+          double leader_val =
+            get_value(name_if_value_mapping_, group_joints[i], HW_IF_POSITION);
           if (std::find(group_reverse_joints.begin(), group_reverse_joints.end(),
               group_joints[i]) != group_reverse_joints.end())
           {
-            pos_value = -pos_value;
+            leader_val = -leader_val;
           }
           if (i < group_offsets.size()) {
-            pos_value += group_offsets[i];
+            leader_val += group_offsets[i];
+          }
+
+          if (leader_tracking && blend.active && i < blend.start_pos.size()) {
+            pos_value = (1.0 - blend_alpha) * blend.start_pos[i] +
+              blend_alpha * leader_val;
+          } else {
+            pos_value = leader_val;
           }
         }
         last_target[i] = pos_value;
@@ -615,11 +636,18 @@ void JointTrajectoryCommandBroadcaster::handle_enable_msg(
 
   if (data == 2) {
     // toggle between 1 and 0 only
-    state = (state == 1) ? 0u : 1u;
+    uint8_t new_state = (state == 1) ? 0u : 1u;
+    if (new_state == 1 && state != 1) {
+      start_leader_blend(group_name);
+    }
+    state = new_state;
     return;
   }
 
   if (data == 0 || data == 1) {
+    if (data == 1 && state != 1) {
+      start_leader_blend(group_name);
+    }
     state = data;
     return;
   }
@@ -639,6 +667,22 @@ void JointTrajectoryCommandBroadcaster::handle_enable_msg(
   start_interpolation(group_name, pose_it->second);
   RCLCPP_INFO(get_node()->get_logger(),
     "[%s] Start interpolation to save pose %u", group_name.c_str(), data);
+}
+
+void JointTrajectoryCommandBroadcaster::start_leader_blend(
+  const std::string & group_name)
+{
+  auto last_it = group_last_target_.find(group_name);
+  if (last_it == group_last_target_.end() || last_it->second.empty()) {
+    return;
+  }
+  auto & bs = group_leader_blend_[group_name];
+  bs.start_pos = last_it->second;   // snapshot
+  bs.start_time = get_node()->now();
+  bs.active = true;
+  RCLCPP_INFO(get_node()->get_logger(),
+    "[%s] Start leader blend (%.1fs)",
+    group_name.c_str(), params_.leader_blend_duration);
 }
 
 void JointTrajectoryCommandBroadcaster::start_interpolation(
