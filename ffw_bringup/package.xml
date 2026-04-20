@@ -16,6 +16,7 @@
   <author email="ywh@robotis.com">Wonho Yun</author>
   <depend>rclpy</depend>
   <depend>dynamixel_hardware_interface</depend>
+  <depend>robotis_interfaces</depend>
   <depend>ros_gz_bridge</depend>
   <depend>ros_gz_sim</depend>
   <depend>ros_gz_image</depend>
@@ -27,6 +28,7 @@
   <exec_depend>ffw_description</exec_depend>
   <exec_depend>xacro</exec_depend>
   <exec_depend>image_transport_plugins</exec_depend>
+  <exec_depend>robotis_hand_pressure_broadcaster</exec_depend>
   <export>
     <build_type>ament_python</build_type>
   </export>

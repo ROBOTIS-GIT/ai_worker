@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<library path="robotis_hand_pressure_broadcaster">
+  <class
+    name="robotis_hand_pressure_broadcaster/PressureBroadcaster"
+    type="robotis_hand_pressure_broadcaster::PressureBroadcaster"
+    base_class_type="controller_interface::ControllerInterface">
+    <description>
+      Publishes configured hand pressure state interfaces as a HandPressures message.
+    </description>
+  </class>
+</library>

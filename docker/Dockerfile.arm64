@@ -132,7 +132,7 @@ RUN mkdir -p ${COLCON_WS}/src && \
     git clone -b jazzy https://github.com/ROBOTIS-GIT/dynamixel_hardware_interface.git && \
     git clone -b jazzy https://github.com/ROBOTIS-GIT/dynamixel_interfaces.git && \
     git clone -b jazzy https://github.com/ROBOTIS-GIT/DynamixelSDK.git && \
-    git clone -b jazzy https://github.com/ROBOTIS-GIT/ai_worker.git && \
+    git clone -b feature-hand-pressure https://github.com/ROBOTIS-GIT/ai_worker.git && \
     git clone -b jazzy https://github.com/ROBOTIS-GIT/Lakibeam_ROS2_Driver.git && \
     git clone -b jazzy https://github.com/ROBOTIS-GIT/cyclo_control.git && \
     git clone -b jazzy https://github.com/ROBOTIS-GIT/robotis_interfaces.git && \
