@@ -732,9 +732,9 @@ controller_interface::CallbackReturn JoystickController::on_configure(
 
   // Create publishers for left/right enable (0=disable, 1=enable, 2=toggle)
   left_enable_pub_ = get_node()->create_publisher<std_msgs::msg::UInt8>(
-    "/leader/left_enable", 1);
+    "/leader/left_command", 1);
   right_enable_pub_ = get_node()->create_publisher<std_msgs::msg::UInt8>(
-    "/leader/right_enable", 1);
+    "/leader/right_command", 1);
 
   prev_right_tact_switch_ = false;
   prev_left_tact_switch_ = false;

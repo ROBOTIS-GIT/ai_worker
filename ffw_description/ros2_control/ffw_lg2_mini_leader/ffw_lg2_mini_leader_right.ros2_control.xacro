@@ -125,10 +125,10 @@
         <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
-        <param name="Current Limit">100</param>
-        <param name="Position P Gain">150</param>
+        <param name="Current Limit">1500</param>
+        <param name="Position P Gain">1000</param>
         <param name="Position I Gain">0</param>
-        <param name="Position D Gain">300</param>
+        <param name="Position D Gain">0</param>
       </gpio>
       <gpio name="dxl2">
         <param name="type">dxl</param>
@@ -139,10 +139,10 @@
         <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
-        <param name="Current Limit">100</param>
-        <param name="Position P Gain">150</param>
+        <param name="Current Limit">1000</param>
+        <param name="Position P Gain">1000</param>
         <param name="Position I Gain">0</param>
-        <param name="Position D Gain">300</param>
+        <param name="Position D Gain">0</param>
       </gpio>
       <gpio name="dxl3">
         <param name="type">dxl</param>
@@ -153,10 +153,10 @@
         <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
-        <param name="Current Limit">100</param>
-        <param name="Position P Gain">150</param>
+        <param name="Current Limit">1000</param>
+        <param name="Position P Gain">1000</param>
         <param name="Position I Gain">0</param>
-        <param name="Position D Gain">300</param>
+        <param name="Position D Gain">0</param>
       </gpio>
       <gpio name="dxl4">
         <param name="type">dxl</param>
@@ -167,10 +167,10 @@
         <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
-        <param name="Current Limit">100</param>
-        <param name="Position P Gain">150</param>
+        <param name="Current Limit">1500</param>
+        <param name="Position P Gain">1000</param>
         <param name="Position I Gain">0</param>
-        <param name="Position D Gain">300</param>
+        <param name="Position D Gain">0</param>
       </gpio>
       <gpio name="dxl5">
         <param name="type">dxl</param>
@@ -181,10 +181,10 @@
         <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
-        <param name="Current Limit">100</param>
-        <param name="Position P Gain">150</param>
+        <param name="Current Limit">1000</param>
+        <param name="Position P Gain">1000</param>
         <param name="Position I Gain">0</param>
-        <param name="Position D Gain">300</param>
+        <param name="Position D Gain">0</param>
       </gpio>
       <gpio name="dxl6">
         <param name="type">dxl</param>
@@ -195,10 +195,10 @@
         <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
-        <param name="Current Limit">100</param>
-        <param name="Position P Gain">150</param>
+        <param name="Current Limit">1500</param>
+        <param name="Position P Gain">1000</param>
         <param name="Position I Gain">0</param>
-        <param name="Position D Gain">300</param>
+        <param name="Position D Gain">0</param>
       </gpio>
       <gpio name="dxl7">
         <param name="type">dxl</param>
@@ -209,10 +209,10 @@
         <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
-        <param name="Current Limit">100</param>
-        <param name="Position P Gain">150</param>
+        <param name="Current Limit">1000</param>
+        <param name="Position P Gain">1000</param>
         <param name="Position I Gain">0</param>
-        <param name="Position D Gain">300</param>
+        <param name="Position D Gain">0</param>
       </gpio>
 
     </ros2_control>

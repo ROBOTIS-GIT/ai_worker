@@ -49,9 +49,9 @@ class FootSwitchReader(Node):
 
         # enable publishers (0=disable, 1=enable, 2=toggle, 3+=save pose N)
         self.left_enable_pub = self.create_publisher(
-            UInt8, "/leader/left_enable", 1)
+            UInt8, "/leader/left_command", 1)
         self.right_enable_pub = self.create_publisher(
-            UInt8, "/leader/right_enable", 1)
+            UInt8, "/leader/right_command", 1)
 
     def open_device(self):
         try:

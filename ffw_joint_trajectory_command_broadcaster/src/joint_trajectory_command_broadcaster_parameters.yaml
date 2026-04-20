@@ -109,7 +109,7 @@ joint_trajectory_command_broadcaster:
   }
   leader_blend_duration: {
     type: double,
-    default_value: 2.0,
+    default_value: 1.2,
     description: "Seconds to blend from last_target to leader value when entering state=1."
   }
   save_pose_ids: {

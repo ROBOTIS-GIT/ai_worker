@@ -32,9 +32,9 @@ public:
       "leader_joint_states_topic", "/leader/joint_states");
 
     left_enable_topic_ = declare_parameter<std::string>(
-      "left_enable_topic", "/leader/left_enable");
+      "left_enable_topic", "/leader/left_command");
     right_enable_topic_ = declare_parameter<std::string>(
-      "right_enable_topic", "/leader/right_enable");
+      "right_enable_topic", "/leader/right_command");
 
     auto qos = rclcpp::SystemDefaultsQoS();
     left_enable_pub_ = create_publisher<std_msgs::msg::UInt8>(left_enable_topic_, qos);

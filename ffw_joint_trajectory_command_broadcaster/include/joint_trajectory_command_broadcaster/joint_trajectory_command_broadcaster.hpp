@@ -92,9 +92,9 @@ public:
 
 protected:
   bool init_joint_data();
-  void handle_enable_msg(const std::string & group_name, uint8_t data, uint8_t & state);
-  void start_interpolation(const std::string & group_name, const std::vector<double> & target);
-  void start_leader_blend(const std::string & group_name);
+  void handle_enable_msg(const std::string & group_name, uint8_t data);
+  void start_save_pose_interp(const std::string & group_name, const std::vector<double> & target);
+  void start_teleop_blend(const std::string & group_name);
 
 protected:
   // Optional parameters
@@ -135,14 +135,11 @@ protected:
   urdf::Model model_;
   bool is_model_loaded_ = false;
 
-  // Topic-based auto mode control
-  // state: 0=disabled, 1=leader tracking, 3+=save pose N (interpolating or held)
-  uint8_t left_state_ = 0;
-  uint8_t right_state_ = 0;
+  // Enable subscribers
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr left_enable_sub_;
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr right_enable_sub_;
 
-  // Last published target per group (used as interpolation start)
+  // Last published target per group (used as blend/interp start)
   std::unordered_map<std::string, std::vector<double>> group_last_target_;
 
   // One-shot follower subscriptions to init last_target at startup
@@ -154,7 +151,19 @@ protected:
   std::unordered_map<std::string, std::unordered_map<uint8_t, std::vector<double>>>
     group_save_poses_;
 
-  // Cubic interpolation state per group
+  // Operating mode per group
+  enum class Mode : uint8_t {
+    IDLE,       // no update to last_target (hold)
+    TELEOP,     // teleoperation: track leader (with blend on entry)
+    SAVE_POSE,  // cubic interpolate to save pose, then hold
+  };
+
+  struct BlendState {
+    rclcpp::Time start_time;
+    std::vector<double> start_pos;
+    bool active = false;
+  };
+
   struct InterpState {
     rclcpp::Time start_time;
     std::vector<double> start_pos;
@@ -162,15 +171,13 @@ protected:
     double duration_sec = 0.0;
     bool active = false;
   };
-  std::unordered_map<std::string, InterpState> group_interp_state_;
 
-  // Blend state per group for smooth transition into leader tracking (state=1)
-  struct BlendState {
-    rclcpp::Time start_time;
-    std::vector<double> start_pos;
-    bool active = false;
+  struct GroupRuntime {
+    Mode mode = Mode::IDLE;
+    BlendState blend;       // used when entering TELEOP
+    InterpState interp;     // used for SAVE_POSE
   };
-  std::unordered_map<std::string, BlendState> group_leader_blend_;
+  std::unordered_map<std::string, GroupRuntime> group_runtime_;
 
 };
 

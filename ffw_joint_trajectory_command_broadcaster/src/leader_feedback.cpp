@@ -73,9 +73,9 @@ public:
     command_topic_ = declare_parameter<std::string>(
       "command_topic", "/leader/leader_position_controller/commands");
     left_enable_topic_ = declare_parameter<std::string>(
-      "left_enable_topic", "/leader/left_enable");
+      "left_enable_topic", "/leader/left_command");
     right_enable_topic_ = declare_parameter<std::string>(
-      "right_enable_topic", "/leader/right_enable");
+      "right_enable_topic", "/leader/right_command");
     left_follower_topic_ = declare_parameter<std::string>(
       "left_follower_joint_states_topic", "/robot/arm_left_follower/joint_states");
     right_follower_topic_ = declare_parameter<std::string>(
