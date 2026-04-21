@@ -31,6 +31,7 @@
 #include "rclcpp/qos.hpp"
 #include "rclcpp/time.hpp"
 #include "std_msgs/msg/header.hpp"
+#include "std_msgs/msg/string.hpp"
 #include "trajectory_msgs/msg/joint_trajectory.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "urdf/model.h"
@@ -297,6 +298,60 @@ controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_confi
       "Failed to parse robot description. Will proceed without URDF-based filtering.");
   }
 
+  // Subscribe to follower's robot_description once to extract joint limits for TELEOP clamping
+  bool follower_urdf_loaded = false;
+  auto urdf_sub = get_node()->create_subscription<std_msgs::msg::String>(
+    params_.follower_robot_description_topic,
+    rclcpp::QoS(1).transient_local().reliable(),
+    [this, &follower_urdf_loaded](std_msgs::msg::String::SharedPtr msg) {
+      if (follower_urdf_loaded) {
+        return;
+      }
+      urdf::Model follower_model;
+      if (!follower_model.initString(msg->data)) {
+        RCLCPP_ERROR(get_node()->get_logger(),
+          "Failed to parse follower robot_description");
+        return;
+      }
+      for (const auto & group_name : trajectory_groups_) {
+        const auto & joints = group_joint_names_[group_name];
+        std::vector<double> lowers, uppers;
+        for (const auto & jn : joints) {
+          auto j = follower_model.getJoint(jn);
+          if (j && j->limits) {
+            lowers.push_back(j->limits->lower);
+            uppers.push_back(j->limits->upper);
+          } else {
+            lowers.push_back(-std::numeric_limits<double>::infinity());
+            uppers.push_back(std::numeric_limits<double>::infinity());
+            RCLCPP_WARN(get_node()->get_logger(),
+              "[%s] No limit for joint '%s' in follower URDF",
+              group_name.c_str(), jn.c_str());
+          }
+        }
+        group_lower_limits_[group_name] = lowers;
+        group_upper_limits_[group_name] = uppers;
+        RCLCPP_INFO(get_node()->get_logger(),
+          "[%s] Loaded follower joint limits (%zu joints)",
+          group_name.c_str(), lowers.size());
+      }
+      follower_urdf_loaded = true;
+    });
+
+  RCLCPP_INFO(get_node()->get_logger(),
+    "Waiting for follower robot_description on '%s'...",
+    params_.follower_robot_description_topic.c_str());
+  while (rclcpp::ok() && !follower_urdf_loaded) {
+    RCLCPP_WARN_THROTTLE(
+      get_node()->get_logger(), *get_node()->get_clock(), 2000,
+      "Still waiting for follower robot_description...");
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+  if (!rclcpp::ok()) {
+    return CallbackReturn::ERROR;
+  }
+  // urdf_sub goes out of scope here, effectively unsubscribing
+
   return CallbackReturn::SUCCESS;
 }
 
@@ -371,6 +426,8 @@ controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_deact
   group_joint_offsets_.clear();
   group_topic_names_.clear();
   group_reverse_joints_.clear();
+  group_lower_limits_.clear();
+  group_upper_limits_.clear();
   group_last_target_.clear();
   group_runtime_.clear();
 
@@ -494,6 +551,11 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
           }
         }
 
+        const auto & lowers = group_lower_limits_[group_name];
+        const auto & uppers = group_upper_limits_[group_name];
+        const bool clamp_enabled =
+          lowers.size() == num_joints && uppers.size() == num_joints;
+
         last_target.resize(num_joints);
         for (size_t i = 0; i < num_joints; ++i) {
           double leader_val =
@@ -508,11 +570,15 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
           }
 
           if (rt.blend.active && i < rt.blend.start_pos.size()) {
-            last_target[i] = (1.0 - blend_alpha) * rt.blend.start_pos[i] +
+            leader_val = (1.0 - blend_alpha) * rt.blend.start_pos[i] +
               blend_alpha * leader_val;
-          } else {
-            last_target[i] = leader_val;
           }
+
+          // Clamp to follower joint limits
+          if (clamp_enabled) {
+            leader_val = std::clamp(leader_val, lowers[i], uppers[i]);
+          }
+          last_target[i] = leader_val;
         }
         break;
       }

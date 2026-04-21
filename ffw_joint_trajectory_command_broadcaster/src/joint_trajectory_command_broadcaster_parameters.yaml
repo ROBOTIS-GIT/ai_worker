@@ -102,6 +102,11 @@ joint_trajectory_command_broadcaster:
     default_value: "/robot/arm_right_follower/joint_states",
     description: "Follower joint states topic for right arm (used to init last_target once at startup)."
   }
+  follower_robot_description_topic: {
+    type: string,
+    default_value: "/robot_description",
+    description: "Topic name providing follower's robot_description. Used to fetch joint limits once at startup for TELEOP clamping."
+  }
   save_pose_duration: {
     type: double,
     default_value: 3.0,

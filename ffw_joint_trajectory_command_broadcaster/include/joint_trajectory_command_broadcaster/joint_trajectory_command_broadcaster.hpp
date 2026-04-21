@@ -151,6 +151,10 @@ protected:
   std::unordered_map<std::string, std::unordered_map<uint8_t, std::vector<double>>>
     group_save_poses_;
 
+  // Follower joint limits per group (parallel to group_joint_names_)
+  std::unordered_map<std::string, std::vector<double>> group_lower_limits_;
+  std::unordered_map<std::string, std::vector<double>> group_upper_limits_;
+
   // Operating mode per group
   enum class Mode : uint8_t {
     IDLE,       // no update to last_target (hold)

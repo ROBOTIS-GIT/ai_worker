@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <thread>
 #include <cstdint>
 #include <limits>
 #include <memory>
@@ -83,13 +84,41 @@ public:
     torque_service_name_ = declare_parameter<std::string>(
       "torque_service", "/leader/dynamixel_hardware_interface/set_dxl_data");
 
-    command_joints_ = declare_parameter<std::vector<std::string>>(
-      "command_joints",
-      std::vector<std::string>{
-      "arm_r_joint1", "arm_r_joint2", "arm_r_joint3", "arm_r_joint4",
-      "arm_r_joint5", "arm_r_joint6", "arm_r_joint7", 
-      "arm_l_joint1", "arm_l_joint2", "arm_l_joint3", "arm_l_joint4",
-      "arm_l_joint5", "arm_l_joint6", "arm_l_joint7"});
+    // Fetch command_joints from leader_position_controller's parameters
+    auto leader_controller_name = declare_parameter<std::string>(
+      "leader_position_controller_name", "/leader/leader_position_controller");
+    auto joints_client = create_client<rcl_interfaces::srv::GetParameters>(
+      leader_controller_name + "/get_parameters");
+    RCLCPP_INFO(get_logger(),
+      "Waiting for parameter service '%s/get_parameters'...",
+      leader_controller_name.c_str());
+    while (rclcpp::ok() &&
+      !joints_client->wait_for_service(std::chrono::seconds(2)))
+    {
+      RCLCPP_WARN(get_logger(), "Still waiting...");
+    }
+    if (rclcpp::ok()) {
+      auto req = std::make_shared<rcl_interfaces::srv::GetParameters::Request>();
+      req->names = {"joints"};
+      auto fut = joints_client->async_send_request(req);
+      if (rclcpp::spin_until_future_complete(
+          get_node_base_interface(), fut, std::chrono::seconds(5)) ==
+        rclcpp::FutureReturnCode::SUCCESS)
+      {
+        auto res = fut.get();
+        if (!res->values.empty() &&
+          res->values[0].type == rcl_interfaces::msg::ParameterType::PARAMETER_STRING_ARRAY)
+        {
+          command_joints_ = res->values[0].string_array_value;
+          RCLCPP_INFO(get_logger(),
+            "Loaded command_joints from %s: %zu joints",
+            leader_controller_name.c_str(), command_joints_.size());
+        }
+      } else {
+        RCLCPP_ERROR(get_logger(), "Failed to get joints from %s",
+          leader_controller_name.c_str());
+      }
+    }
 
     const std::vector<int64_t> default_right = {1, 2, 3, 4, 5, 6, 7};
     // const std::vector<int64_t> default_left = {31, 32, 33, 34, 35, 36, 37};
@@ -128,40 +157,46 @@ public:
     auto be_qos = rclcpp::QoS(5).best_effort();
 
     // Enable subscribers:
-    //   1 = torque OFF (leader free), 2 = toggle, anything else = torque ON
+    //   1 = torque OFF, 2 = toggle, else = torque ON
+    //   (only call torque service when state actually changes)
+    auto make_cb = [this](bool & enabled, std::vector<uint8_t> & ids, const char * tag) {
+      return [this, &enabled, &ids, tag](std_msgs::msg::UInt8::SharedPtr msg) {
+        bool new_state;
+        switch (msg->data) {
+          case 1:  new_state = true; break;
+          case 2:  new_state = !enabled; break;
+          default: new_state = false; break;
+        }
+        if (new_state != enabled) {
+          enabled = new_state;
+          send_torque_for_group(enabled, ids, tag);
+        }
+      };
+    };
     left_enable_sub_ = create_subscription<std_msgs::msg::UInt8>(
       left_enable_topic_, rclcpp::SystemDefaultsQoS(),
-      [this](std_msgs::msg::UInt8::SharedPtr msg) {
-        bool new_state = (msg->data == 2) ? !left_enabled_ : (msg->data == 1);
-        if (new_state != left_enabled_) {
-          left_enabled_ = new_state;
-          send_torque_for_group(left_enabled_, left_ids_, "left");
-        }
-      });
-
+      make_cb(left_enabled_, left_ids_, "left"));
     right_enable_sub_ = create_subscription<std_msgs::msg::UInt8>(
       right_enable_topic_, rclcpp::SystemDefaultsQoS(),
-      [this](std_msgs::msg::UInt8::SharedPtr msg) {
-        bool new_state = (msg->data == 2) ? !right_enabled_ : (msg->data == 1);
-        if (new_state != right_enabled_) {
-          right_enabled_ = new_state;
-          send_torque_for_group(right_enabled_, right_ids_, "right");
-        }
-      });
+      make_cb(right_enabled_, right_ids_, "right"));
 
     // Follower subscribers — publish leader command directly on message arrival
     left_follower_sub_ = create_subscription<sensor_msgs::msg::JointState>(
       left_follower_topic_, be_qos,
       [this](sensor_msgs::msg::JointState::SharedPtr msg) {
         update_positions_from_msg(msg);
-        publish_position_command();
+        if (!left_enabled_ || !right_enabled_) {  // at least one side torque ON
+          publish_position_command();
+        }
       });
 
     right_follower_sub_ = create_subscription<sensor_msgs::msg::JointState>(
       right_follower_topic_, be_qos,
       [this](sensor_msgs::msg::JointState::SharedPtr msg) {
         update_positions_from_msg(msg);
-        publish_position_command();
+        if (!left_enabled_ || !right_enabled_) {  // at least one side torque ON
+          publish_position_command();
+        }
       });
 
     // Position command publisher
@@ -201,6 +236,8 @@ private:
       req->item_name = "Torque Enable";
       req->item_data = torque_value;
       dxl_data_client_->async_send_request(req);
+      // Throttle to avoid overflowing service queue
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     RCLCPP_INFO(get_logger(),
       "[%s] Torque Enable %u (motor_num %zu)", tag, torque_value, ids.size());
