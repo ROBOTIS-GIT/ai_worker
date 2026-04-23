@@ -1,0 +1,8 @@
+source;share/collision_avoidance/hook/cmake_prefix_path.ps1
+source;share/collision_avoidance/hook/cmake_prefix_path.dsv
+source;share/collision_avoidance/hook/cmake_prefix_path.sh
+source;share/collision_avoidance/local_setup.bash
+source;share/collision_avoidance/local_setup.dsv
+source;share/collision_avoidance/local_setup.ps1
+source;share/collision_avoidance/local_setup.sh
+source;share/collision_avoidance/local_setup.zsh

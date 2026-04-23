@@ -104,9 +104,7 @@ protected:
   void update_last_active_positions(const std::vector<std::string> & controlled_joints);
   std::vector<double> calculate_joint_positions(
     const std::vector<std::string> & controlled_joints,
-    const std::vector<double> & normalized_values,
     const std::string & sensor_name,
-    bool swerve_mode,
     const JoystickValues & joystick_values) const;
   void publish_joint_trajectory(
     const std::vector<std::string> & controlled_joints,
@@ -117,7 +115,7 @@ protected:
     const std::vector<double> & positions,
     const std::string & sensor_name,
     const rclcpp::Time & time);
-  void publish_cmd_vel(bool swerve_mode, const JoystickValues & joystick_values);
+  void publish_cmd_vel(const JoystickValues & joystick_values);
   void publish_joystick_values();
   void handle_tact_switches(
     bool left_tact_pressed, bool right_tact_pressed, const rclcpp::Time & current_time);
@@ -154,24 +152,14 @@ protected:
   std::shared_ptr<ParamListener> param_listener_;
   Params params_;
 
-  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr mode_pub_;
-  std::string current_mode_ = "arm_control";
-  bool prev_tact_switch_ = false;
   bool prev_right_tact_switch_ = false;
   bool prev_left_tact_switch_ = false;
-  bool both_pressed_flag_ = false;  // Flag to track if both buttons were pressed
 
   // Long press functionality
   rclcpp::Time left_tact_press_start_time_;
   rclcpp::Time right_tact_press_start_time_;
   bool left_tact_long_press_triggered_ = false;
   bool right_tact_long_press_triggered_ = false;
-
-  enum class TactMode {
-    DEFAULT,
-    ENABLE_PUBLISH
-  };
-  TactMode tact_mode_ = TactMode::DEFAULT;
 
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr tact_trigger_pub_;

@@ -44,9 +44,6 @@ constexpr double ANGULAR_Z_SCALE = 2.0;
 const char LEFT_JOYSTICK_NAME[] = "sensorxel_l_joy";
 const char RIGHT_JOYSTICK_NAME[] = "sensorxel_r_joy";
 
-  // Mode names
-const char SWERVE_MODE[] = "swerve";
-const char ARM_CONTROL_MODE[] = "arm_control";
 }  // namespace constants
 
 JoystickController::JoystickController()
@@ -177,9 +174,7 @@ void JoystickController::update_last_active_positions(
 
 std::vector<double> JoystickController::calculate_joint_positions(
   const std::vector<std::string> & controlled_joints,
-  const std::vector<double> & normalized_values,
   const std::string & sensor_name,
-  bool swerve_mode,
   const JoystickValues & joystick_values) const
 {
   std::vector<double> positions;
@@ -191,17 +186,10 @@ std::vector<double> JoystickController::calculate_joint_positions(
     if (it != current_joint_states_.name.end()) {
       size_t index = std::distance(current_joint_states_.name.begin(), it);
       double current_position = current_joint_states_.position[index];
-      double sensorxel_joy_value;
 
-      if (swerve_mode) {
-        // Use right joystick X-axis for lift control in swerve mode
-        sensorxel_joy_value = (sensor_name ==
-          constants::RIGHT_JOYSTICK_NAME) ? joystick_values.right_x : 0.0;
-      } else {
-        // Normal mode: use appropriate axis based on joint index
-        sensorxel_joy_value = (state_interface_types_.size() > 1 &&
-          i == 1) ? normalized_values[1] : normalized_values[0];
-      }
+      // Use right joystick X-axis for lift control; left joystick drives cmd_vel only.
+      double sensorxel_joy_value = (sensor_name ==
+        constants::RIGHT_JOYSTICK_NAME) ? joystick_values.right_x : 0.0;
 
       double new_position = current_position + sensorxel_joy_value *
         sensor_jog_scale_.at(sensor_name);
@@ -262,21 +250,12 @@ void JoystickController::publish_joint_state(
   }
 }
 
-void JoystickController::publish_cmd_vel(bool swerve_mode, const JoystickValues & joystick_values)
+void JoystickController::publish_cmd_vel(const JoystickValues & joystick_values)
 {
   geometry_msgs::msg::Twist twist_msg;
-
-  if (swerve_mode) {
-    twist_msg.linear.x = -joystick_values.left_x / constants::LINEAR_X_SCALE;
-    twist_msg.linear.y = joystick_values.left_y / constants::LINEAR_Y_SCALE;
-    twist_msg.angular.z = -joystick_values.right_y / constants::ANGULAR_Z_SCALE;
-  } else {
-    // Zero twist when not in swerve mode
-    twist_msg.linear.x = 0.0;
-    twist_msg.linear.y = 0.0;
-    twist_msg.angular.z = 0.0;
-  }
-
+  twist_msg.linear.x = -joystick_values.left_x / constants::LINEAR_X_SCALE;
+  twist_msg.linear.y = joystick_values.left_y / constants::LINEAR_Y_SCALE;
+  twist_msg.angular.z = -joystick_values.right_y / constants::ANGULAR_Z_SCALE;
   cmd_vel_pub_->publish(twist_msg);
 }
 
@@ -332,73 +311,44 @@ void JoystickController::handle_tact_switches(
   if (right_tact_pressed && !right_tact_long_press_triggered_) {
     auto press_duration = current_time - right_tact_press_start_time_;
     if (press_duration.seconds() >= params_.long_press_duration) {
-      tact_mode_ = (tact_mode_ == TactMode::DEFAULT) ? TactMode::ENABLE_PUBLISH : TactMode::DEFAULT;
-      RCLCPP_INFO(get_node()->get_logger(), "Right tact switch long press triggered! Tact Mode switched to: %s", 
-                  tact_mode_ == TactMode::DEFAULT ? "DEFAULT" : "ENABLE_PUBLISH");
-
       std_msgs::msg::String trigger_msg;
       trigger_msg.data = "right_long_time";
       tact_trigger_pub_->publish(trigger_msg);
+      RCLCPP_INFO(get_node()->get_logger(), "Right tact switch long press triggered!");
       right_tact_long_press_triggered_ = true;
     }
   }
 
-  // Set flag when both buttons are pressed
-  if (current_state == 3) {
-    both_pressed_flag_ = true;
-  }
-
   // Only trigger actions when reaching 00 state (no buttons pressed)
   if (current_state == 0 && prev_state != 0) {
-    if (both_pressed_flag_) {
-      // Mode change - both buttons were pressed at some point
-      std_msgs::msg::String mode_msg;
-      if (current_mode_ == constants::ARM_CONTROL_MODE) {
-        current_mode_ = constants::SWERVE_MODE;
-      } else {
-        current_mode_ = constants::ARM_CONTROL_MODE;
-      }
-      mode_msg.data = current_mode_;
-      mode_pub_->publish(mode_msg);
-      RCLCPP_INFO(get_node()->get_logger(), "Mode switched to: %s", current_mode_.c_str());
+    switch (prev_state) {
+      case 1:  // 01 -> 00 (right button only was pressed)
+        if (!right_tact_long_press_triggered_) {
+          std_msgs::msg::UInt8 enable_msg;
+          enable_msg.data = 2;
+          right_enable_pub_->publish(enable_msg);
+          RCLCPP_INFO(get_node()->get_logger(), "Right toggle pub");
+        }
+        break;
 
-      // Reset flag after mode change
-      both_pressed_flag_ = false;
-    } else {
-      // Individual button trigger - only if both were never pressed and not long press
-      switch (prev_state) {
-        case 1:  // 01 -> 00 (right button only was pressed)
-          if (!right_tact_long_press_triggered_) {
-            if (tact_mode_ == TactMode::DEFAULT) {
-              std_msgs::msg::String trigger_msg;
-              trigger_msg.data = "right";
-              tact_trigger_pub_->publish(trigger_msg);
-              RCLCPP_INFO(get_node()->get_logger(), "Right tact switch triggered!");
-            } else if (tact_mode_ == TactMode::ENABLE_PUBLISH) {
-              std_msgs::msg::UInt8 enable_msg;
-              enable_msg.data = 2;
-              right_enable_pub_->publish(enable_msg);
-              RCLCPP_INFO(get_node()->get_logger(), "Right enable toggle requested");
-            }
-          }
-          break;
+      case 2:  // 10 -> 00 (left button only was pressed)
+        if (!left_tact_long_press_triggered_) {
+          std_msgs::msg::UInt8 enable_msg;
+          enable_msg.data = 2;
+          left_enable_pub_->publish(enable_msg);
+          RCLCPP_INFO(get_node()->get_logger(), "Left toggle pub");
+        }
+        break;
 
-        case 2:  // 10 -> 00 (left button only was pressed)
-          if (!left_tact_long_press_triggered_) {
-            if (tact_mode_ == TactMode::DEFAULT) {
-              std_msgs::msg::String trigger_msg;
-              trigger_msg.data = "left";
-              tact_trigger_pub_->publish(trigger_msg);
-              RCLCPP_INFO(get_node()->get_logger(), "Left tact switch triggered!");
-            } else if (tact_mode_ == TactMode::ENABLE_PUBLISH) {
-              std_msgs::msg::UInt8 enable_msg;
-              enable_msg.data = 2;
-              left_enable_pub_->publish(enable_msg);
-              RCLCPP_INFO(get_node()->get_logger(), "Left enable toggle requested");
-            }
-          }
-          break;
-      }
+      case 3:  // 11 -> 00 (both buttons were pressed)
+        if ((!left_tact_long_press_triggered_) && (!right_tact_long_press_triggered_)) {
+          std_msgs::msg::UInt8 enable_msg;
+          enable_msg.data = 2;
+          left_enable_pub_->publish(enable_msg);
+          right_enable_pub_->publish(enable_msg);
+          RCLCPP_INFO(get_node()->get_logger(), "both toggle pub");
+        }
+        break;
     }
 
     // Reset long press flags when buttons are released
@@ -413,7 +363,6 @@ void JoystickController::handle_tact_switches(
   // Update previous state
   prev_left_tact_switch_ = left_tact_pressed;
   prev_right_tact_switch_ = right_tact_pressed;
-  prev_tact_switch_ = (current_state == 3);
 }
 
 controller_interface::InterfaceConfiguration
@@ -468,16 +417,15 @@ void JoystickController::joint_states_callback(const sensor_msgs::msg::JointStat
 controller_interface::return_type JoystickController::update(
   const rclcpp::Time & time, const rclcpp::Duration & /*period*/)
 {
-  // if (!has_joint_states_) {
-  //   return controller_interface::return_type::OK;
-  // }
+  if (!has_joint_states_) {
+    return controller_interface::return_type::OK;
+  }
 
   if (param_listener_->is_old(params_)) {
     params_ = param_listener_->get_params();
   }
 
   const bool joystick_update_enabled = params_.enable_joystick_update;
-  bool swerve_mode = (current_mode_ == constants::SWERVE_MODE);
   JoystickValues joystick_values;
   bool left_tact_switch_pressed = false;
   bool right_tact_switch_pressed = false;
@@ -537,19 +485,12 @@ controller_interface::return_type JoystickController::update(
     if (
       joystick_update_enabled && !current_joint_states_.name.empty() && !controlled_joints.empty())
     {
-      std::vector<double> positions;
-
-      if (swerve_mode || any_sensorxel_joy_active) {
-        positions = calculate_joint_positions(controlled_joints, normalized_values,
-                                           sensor_name, swerve_mode, joystick_values);
-        // Update last active positions with new positions
-        for (size_t i = 0; i < positions.size() && i < last_active_positions.size(); ++i) {
-          last_active_positions[i] = positions[i];
-        }
-      } else {
-        positions = last_active_positions;
+      std::vector<double> positions = calculate_joint_positions(
+        controlled_joints, sensor_name, joystick_values);
+      // Update last active positions with new positions
+      for (size_t i = 0; i < positions.size() && i < last_active_positions.size(); ++i) {
+        last_active_positions[i] = positions[i];
       }
-
       publish_joint_trajectory(controlled_joints, positions, sensor_name);
     }
 
@@ -563,12 +504,11 @@ controller_interface::return_type JoystickController::update(
   }
 
   // Publish cmd_vel
-  publish_cmd_vel(swerve_mode, joystick_values);
+  publish_cmd_vel(joystick_values);
 
   // Publish joystick values
   publish_joystick_values();
 
-  // Handle all tact switch functionality (mode switching and individual triggers)
   handle_tact_switches(left_tact_switch_pressed, right_tact_switch_pressed, time);
 
   RCLCPP_DEBUG(get_node()->get_logger(), "Joystick controller update completed");
@@ -721,11 +661,6 @@ controller_interface::CallbackReturn JoystickController::on_configure(
     params_.joint_states_topic, rclcpp::SystemDefaultsQoS(),
     std::bind(&JoystickController::joint_states_callback, this, std::placeholders::_1));
 
-  // Create publisher for mode
-  mode_pub_ = get_node()->create_publisher<std_msgs::msg::String>(
-    "/leader/joystick_controller_right/joystick_mode", 10);
-  prev_tact_switch_ = false;
-
   // Create publisher for right tact switch trigger
   tact_trigger_pub_ = get_node()->create_publisher<std_msgs::msg::String>(
     "/leader/joystick_controller/tact_trigger", 10);
@@ -738,7 +673,6 @@ controller_interface::CallbackReturn JoystickController::on_configure(
 
   prev_right_tact_switch_ = false;
   prev_left_tact_switch_ = false;
-  both_pressed_flag_ = false;
 
   // Initialize long press variables
   left_tact_long_press_triggered_ = false;
