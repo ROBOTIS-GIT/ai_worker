@@ -75,6 +75,12 @@ def generate_launch_description():
         package='controller_manager',
         executable='spawner',
         arguments=[
+            # '--controller-ros-args',
+            # '-r /leader/joint_trajectory_command_broadcaster_left/joint_trajectory:='
+            # '/leader/joint_trajectory_command_broadcaster_left/raw_joint_trajectory',
+            # '--controller-ros-args',
+            # '-r /leader/joint_trajectory_command_broadcaster_right/joint_trajectory:='
+            # '/leader/joint_trajectory_command_broadcaster_right/raw_joint_trajectory',
             'joint_state_broadcaster',
             'joint_trajectory_command_broadcaster',
             'trigger_position_controller',

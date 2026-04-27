@@ -22,6 +22,7 @@ from geometry_msgs.msg import Point
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
+from sensor_msgs.msg import JointState
 from std_msgs.msg import ColorRGBA, String
 import tf2_ros
 from tf2_ros import TransformException
@@ -48,6 +49,10 @@ class HeadEefTracker(Node):
             'joint_trajectory_topic',
             '/leader/joystick_controller_left/joint_trajectory'
         )
+        self.declare_parameter(
+            'joint_states_topic',
+            '/robot/head_leader/joint_states'
+        )
         self.declare_parameter('robot_description_topic', '/robot_description')
         self.declare_parameter('visualization_topic', '~/head_target_visualization')
         self.declare_parameter('enable_visualization', True)
@@ -61,6 +66,7 @@ class HeadEefTracker(Node):
         self.head_joint1_name = self.get_parameter('head_joint1_name').value
         self.head_joint2_name = self.get_parameter('head_joint2_name').value
         self.joint_trajectory_topic = self.get_parameter('joint_trajectory_topic').value
+        self.joint_states_topic = self.get_parameter('joint_states_topic').value
         self.robot_description_topic = self.get_parameter('robot_description_topic').value
         self.visualization_topic = self.get_parameter('visualization_topic').value
         self.enable_visualization = self.get_parameter('enable_visualization').value
@@ -104,6 +110,13 @@ class HeadEefTracker(Node):
         self.joint_trajectory_pub = self.create_publisher(
             JointTrajectory,
             self.joint_trajectory_topic,
+            10
+        )
+
+        # Publisher for joint states (mirrors trajectory positions)
+        self.joint_states_pub = self.create_publisher(
+            JointState,
+            self.joint_states_topic,
             10
         )
 
@@ -595,6 +608,13 @@ class HeadEefTracker(Node):
         trajectory_msg.points = [point]
 
         self.joint_trajectory_pub.publish(trajectory_msg)
+
+        # Publish the same values as JointState
+        joint_state_msg = JointState()
+        joint_state_msg.header.stamp = self.get_clock().now().to_msg()
+        joint_state_msg.name = self.joint_names
+        joint_state_msg.position = [head_joint1_angle, head_joint2_angle]
+        self.joint_states_pub.publish(joint_state_msg)
 
         # Publish visualization markers
         self.create_visualization_markers(

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
+import fcntl
 import os
 import struct
+import threading
 import time
 
 import rclpy
@@ -12,6 +14,8 @@ from std_msgs.msg import UInt8
 
 DEVICE = "/dev/input/by-id/usb-PCsensor_FootSwitch-event-kbd"
 
+EVIOCGRAB = 0x40044590
+
 EV_KEY = 0x01
 INPUT_EVENT_FORMAT = "llHHi"
 INPUT_EVENT_SIZE = struct.calcsize(INPUT_EVENT_FORMAT)
@@ -20,12 +24,9 @@ KEY_LEFT = 30
 KEY_MIDDLE = 48
 KEY_RIGHT = 46
 
-# 같은 버튼에서 너무 짧은 시간 안에 다시 들어온 이벤트는 무시
 DEBOUNCE_SEC = 0.5
 DEBOUNCE_ENABLED = True
 
-# enable 값: left/right 페달 누르면 이 값을 enable 토픽에 발행
-# broadcaster는 이 값에 맞는 save pose로 보간
 SAVE_POSE_ID = 4
 
 
@@ -35,10 +36,8 @@ class FootSwitchReader(Node):
         self.device = device
         self.fd = None
 
-        # (버튼, value)별 마지막 처리 시각
         self.last_event_time = {}
 
-        # Middle 페달이 눌려 있는 동안 deadzone set을 한 번만 발행하기 위한 플래그
         self.already_middle_pub = False
 
         # Parameter client for joystick_controller deadzone
@@ -56,7 +55,8 @@ class FootSwitchReader(Node):
     def open_device(self):
         try:
             self.fd = os.open(self.device, os.O_RDONLY)
-            print(f"Opened device: {self.device}")
+            fcntl.ioctl(self.fd, EVIOCGRAB, 1)
+            print(f"Opened device (grabbed): {self.device}")
         except PermissionError:
             print(f"Permission denied: {self.device}")
             raise
@@ -66,6 +66,10 @@ class FootSwitchReader(Node):
 
     def close_device(self):
         if self.fd is not None:
+            try:
+                fcntl.ioctl(self.fd, EVIOCGRAB, 0)
+            except OSError:
+                pass
             os.close(self.fd)
             self.fd = None
             print("Device closed")
@@ -113,10 +117,9 @@ class FootSwitchReader(Node):
             print(f"(Publish) left_enable = {SAVE_POSE_ID}")
 
     def handle_middle(self, event_value: int):
-        # 2 (repeat) 동안만 deadzone을 0.05로, 0 (release) 시 1.0로 복귀
         if event_value == 2:
             if not self.already_middle_pub:
-                self._set_deadzone(0.05)
+                self._set_deadzone(0.95)
                 self.already_middle_pub = True
         elif event_value == 0:
             if self.already_middle_pub:
@@ -131,8 +134,6 @@ class FootSwitchReader(Node):
             print(f"(Publish) right_enable = {SAVE_POSE_ID}")
 
     def process_key_event(self, event_code: int, event_value: int):
-
-        # left / middle / right 외 입력 무시
         if event_code not in (KEY_LEFT, KEY_MIDDLE, KEY_RIGHT):
             return
 
@@ -175,6 +176,10 @@ class FootSwitchReader(Node):
 def main(args=None):
     rclpy.init(args=args)
     reader = FootSwitchReader(DEVICE)
+
+    spin_thread = threading.Thread(
+        target=rclpy.spin, args=(reader,), daemon=True)
+    spin_thread.start()
 
     try:
         reader.open_device()

@@ -53,7 +53,7 @@ def generate_launch_description():
                               description='Whether to launch the init_position node.'),
         DeclareLaunchArgument('model', default_value='ffw_sg2_rev1_follower',
                               description='Robot model name.'),
-        DeclareLaunchArgument('use_head_eef_tracker', default_value='false',
+        DeclareLaunchArgument('use_head_eef_tracker', default_value='true',
                               description='Whether to launch the head EEF tracker node.'),
         DeclareLaunchArgument(
             'init_position_file',

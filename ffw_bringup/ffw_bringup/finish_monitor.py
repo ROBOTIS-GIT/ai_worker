@@ -20,7 +20,7 @@ TOPIC = '/robot/arm_right_follower/joint_states'
 JOINT_NAME = 'arm_r_joint6'
 # THRESHOLD = -0.7
 # THRESHOLD = 3.5
-THRESHOLD = 3.0
+THRESHOLD = 30.0
 TORQUE_SERVICE = '/dynamixel_hardware_interface/set_dxl_torque'
 WAITING_TIME = 10
 

@@ -64,10 +64,19 @@
       right_joint_states_stamped_topic: "/robot/arm_right_leader/joint_states"
       save_pose_duration: 2.0
       save_pose_ids: [3, 4]
-      left_save_pose_3:  [0.75, 0.0, 0.0, -2.3, 0.0, 0.0, 0.0, 0.0]
-      right_save_pose_3: [0.75, 0.0, 0.0, -2.3, 0.0, 0.0, 0.0, 0.0]
-      left_save_pose_4:  [-0.5553, 0.2270,-1.04004, -1.13053, 0.6427, -0.22154, -0.720968, 1.0]
-      right_save_pose_4: [0.5, -0.32, -0.0, -2.05, -0.25, -0.0, 1.0, 0.0]
+      # s r s s r s r s
+      left_save_pose_3:  [0.6227722314317596, 0.6074444077778085, 0.052143362563206445, -2.2258061232220654, 0.1902136176978195, 0.13343236009624007, -0.6396127502330864,0.0]
+      right_save_pose_3: [0.6227722314317596, -0.6074444077778085, 0.052143362563206445, -2.2258061232220654, -0.1902136176978195, 0.13343236009624007, 0.6396127502330864, 0.0]
+      left_save_pose_4:  [-0.3159880580795367, 0.11196861329074645, -0.3727573314562108, -0.964861931355163, 0.15797605270241033, -0.4264346748073029, -1.16581788418103, 1.0]
+      # right_save_pose_4: [0.3681314206427432, -0.3389977698978213, -0.15033011721279282, -2.046330371039445, -0.3727573314562108, 0.09508284039909903, 0.6519412389345811, 1.0]
+      right_save_pose_4: [0.5739005622677155, -0.21479326297870582, 0.09251821626935273, -2.3372234621671653, -0.13958026747268798, 0.20554144135177055, 0.8038029835688493, 1.0967962633382335]
+
+      ## test demo (plate)
+      # left_save_pose_3:  [0.6227722314317596, 0.6074444077778085, 0.052143362563206445, -2.2258061232220654, 0.1902136176978195, 0.13343236009624007, -0.6396127502330864, 0.11658253987930872]
+      # right_save_pose_3: [0.6227722314317596, -0.6074444077778085, 0.052143362563206445, -2.2258061232220654, -0.1902136176978195, 0.13343236009624007, 0.6396127502330864, 0.11658253987930872]
+      # left_save_pose_4:  [-0.4417744826861593, 0.400357001413247, -0.4111068511533518, -1.0384930091736737, 0.21933528421783596, -0.09816278619977568, -1.3000969324494442, 0.07209709703062514]
+      # right_save_pose_4: [-0.6181942575179133, -0.5951725614747234, 0.9817237357969997, -0.944932165337555, -0.981735720021905, -0.42184471666855133, 1.36370460760863, 1.0952622825503477]
+
 
 
 /**:
@@ -119,9 +128,9 @@
       sensorxel_r_joy_controlled_joints:
         - lift_joint
       joint_states_topic: "/joint_states"
-      sensorxel_l_joy_joint_trajectory_topic: "/leader/joystick_controller_left/joint_trajectory"
+      sensorxel_l_joy_joint_trajectory_topic: "/leader/joystick_controller_left/joint_trajectory_"
       sensorxel_r_joy_joint_trajectory_topic: "/leader/joystick_controller_right/joint_trajectory"
-      sensorxel_l_joy_joint_states_stamped_topic: "/robot/head_leader/joint_states"
+      sensorxel_l_joy_joint_states_stamped_topic: "/robot/head_leader/joint_states_"
       sensorxel_r_joy_joint_states_stamped_topic: "/robot/lift_leader/joint_states"
       sensorxel_l_joy_jog_scale: 0.06
       sensorxel_r_joy_jog_scale: 0.01

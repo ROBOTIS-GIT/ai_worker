@@ -60,6 +60,10 @@ local_parameters = [{'name': 'camera_name1', 'default': 'camera_left',
                      'description': 'camera1 unique name'},
                     {'name': 'camera_name2', 'default': 'camera_right',
                      'description': 'camera2 unique name'},
+# local_parameters = [{'name': 'camera_name1', 'default': 'camera_l',
+#                      'description': 'camera1 unique name'},
+#                     {'name': 'camera_name2', 'default': 'camera_r',
+#                      'description': 'camera2 unique name'},
                     {'name': 'camera_namespace1', 'default': 'camera_left',
                      'description': 'camera1 namespace'},
                     {'name': 'camera_namespace2', 'default': 'camera_right',
@@ -81,6 +85,11 @@ local_parameters = [{'name': 'camera_name1', 'default': 'camera_left',
                     {'name': 'colorizer.enable2', 'default': 'true',
                      'description': 'enable colorizer filter for camera2'},
                     ]
+                    # {'name': 'colorizer.enable1', 'default': 'false',
+                    #  'description': 'enable colorizer filter for camera1'},
+                    # {'name': 'colorizer.enable2', 'default': 'false',
+                    #  'description': 'enable colorizer filter for camera2'},
+                    # ]
 
 
 def set_configurable_parameters(local_params):

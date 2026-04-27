@@ -10,11 +10,11 @@
         - arm_l_joint6
         - arm_l_joint7
         - gripper_l_joint1
-      step_names: [home]
-      home: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-      # step_names: [step0, step1]
-      # step0: [1.57, 0.0, 0.0, -2.8, 0.0, 0.0, 0.0, 0.0]
-      # step1: [0.75, 0.0, 0.0, -2.3, 0.0, 0.0, 0.0, 0.0]
+      # step_names: [home]
+      # home: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      step_names: [step0, step1]
+      step0: [1.57, 0.0, 0.0, -2.8, 0.0, 0.0, 0.0, 0.0]
+      step1: [0.75, 0.0, 0.0, -2.3, 0.0, 0.0, 0.0, 0.0]
       duration: 5.0
       position_tolerance: 0.1
       velocity_tolerance: 0.01
@@ -33,11 +33,11 @@
         - arm_r_joint6
         - arm_r_joint7
         - gripper_r_joint1
-      step_names: [home]
-      home: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-      # step_names: [step0, step1]
-      # step0: [1.57, 0.0, 0.0, -2.8, 0.0, 0.0, 0.0, 0.0]
-      # step1: [0.75, 0.0, 0.0, -2.3, 0.0, 0.0, 0.0, 0.0]
+      # step_names: [home]
+      # home: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      step_names: [step0, step1]
+      step0: [1.57, 0.0, 0.0, -2.8, 0.0, 0.0, 0.0, 0.0]
+      step1: [0.75, 0.0, 0.0, -2.3, 0.0, 0.0, 0.0, 0.0]
       duration: 5.0
       position_tolerance: 0.1
       velocity_tolerance: 0.01
@@ -67,10 +67,10 @@
       joint_names:
         - lift_joint
       step_names: [home]
-      home: [0.0]
-      # step_names: [step0, step1]
-      # step0: [0.0]
-      # step1: [-0.15]
+      # home: [0.0]
+      step_names: [step0, step1]
+      step0: [0.0]
+      step1: [-0.10]
       duration: 5.0
       position_tolerance: 0.001
       velocity_tolerance: 0.001
