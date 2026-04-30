@@ -1,0 +1,35 @@
+#!/command/with-contenv bash
+# AI Worker Bringup - unified follower (SG2/BG2/SH5/BH5)
+
+set -e
+
+SERVICE_NAME="ai_worker_bringup"
+COMMON_SCRIPT="/usr/local/lib/s6-services/ros2_service_run.sh"
+ROBOT_TYPE_FILE="/run/robot_type"
+
+if [ ! -f "${ROBOT_TYPE_FILE}" ]; then
+  echo "[${SERVICE_NAME}] Error: ${ROBOT_TYPE_FILE} not found. Set robot type (sg2, bg2, sh5, or bh5) before starting." >&2
+  exit 1
+fi
+ROBOT_TYPE=$(cat "${ROBOT_TYPE_FILE}" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
+if [ "${ROBOT_TYPE}" = "sg2" ]; then
+  ROS2_COMMAND="ros2 launch ffw_bringup ffw_sg2_follower_ai.launch.py"
+elif [ "${ROBOT_TYPE}" = "bg2" ]; then
+  ROS2_COMMAND="ros2 launch ffw_bringup ffw_bg2_follower_ai.launch.py"
+elif [ "${ROBOT_TYPE}" = "sh5" ]; then
+  ROS2_COMMAND="ros2 launch ffw_bringup ffw_sh5_follower_ai.launch.py"
+elif [ "${ROBOT_TYPE}" = "bh5" ]; then
+  ROS2_COMMAND="ros2 launch ffw_bringup ffw_bh5_follower_ai.launch.py"
+else
+  echo "[${SERVICE_NAME}] Error: ${ROBOT_TYPE_FILE} must be 'sg2', 'bg2', 'sh5', or 'bh5', got: ${ROBOT_TYPE}" >&2
+  exit 1
+fi
+
+if [ -f "${COMMON_SCRIPT}" ]; then
+  export SERVICE_NAME="${SERVICE_NAME}"
+  export ROS2_COMMAND="${ROS2_COMMAND}"
+  exec /command/with-contenv env SERVICE_NAME="${SERVICE_NAME}" ROS2_COMMAND="${ROS2_COMMAND}" bash -i -c "${COMMON_SCRIPT}"
+else
+  echo "Error: Common script not found at ${COMMON_SCRIPT}" >&2
+  exit 1
+fi

@@ -2,6 +2,12 @@
 Changelog for package ffw
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.2.2 (2026-04-27)
+------------------
+* Unified s6-overlay ROS 2 longrun services into ai_worker_bringup and avatar_bringup
+* Simplified docker/container.sh and removed noVNC-oriented Docker Compose workflow
+* Contributors: Hyungyu Kim
+
 1.2.1 (2026-04-09)
 ------------------
 * Fixed palm joint name for HX5
