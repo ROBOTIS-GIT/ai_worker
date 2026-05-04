@@ -124,7 +124,7 @@
         <param name="Drive Mode">1</param>
         <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
-        <param name="Torque Enable">1</param>
+        <param name="Torque Enable">0</param>
         <param name="Current Limit">500</param>
         <param name="Position P Gain">500</param>
         <param name="Position I Gain">0</param>
@@ -138,7 +138,7 @@
         <param name="Drive Mode">0</param>
         <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
-        <param name="Torque Enable">1</param>
+        <param name="Torque Enable">0</param>
         <param name="Current Limit">500</param>
         <param name="Position P Gain">500</param>
         <param name="Position I Gain">0</param>
@@ -152,7 +152,7 @@
         <param name="Drive Mode">1</param>
         <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
-        <param name="Torque Enable">1</param>
+        <param name="Torque Enable">0</param>
         <param name="Current Limit">1000</param>
         <param name="Position P Gain">500</param>
         <param name="Position I Gain">0</param>
@@ -166,7 +166,7 @@
         <param name="Drive Mode">1</param>
         <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
-        <param name="Torque Enable">1</param>
+        <param name="Torque Enable">0</param>
         <param name="Current Limit">500</param>
         <param name="Position P Gain">100</param>
         <param name="Position I Gain">0</param>
@@ -180,7 +180,7 @@
         <param name="Drive Mode">1</param>
         <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
-        <param name="Torque Enable">1</param>
+        <param name="Torque Enable">0</param>
         <param name="Current Limit">1000</param>
         <param name="Position P Gain">500</param>
         <param name="Position I Gain">0</param>
@@ -194,7 +194,7 @@
         <param name="Drive Mode">1</param>
         <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
-        <param name="Torque Enable">1</param>
+        <param name="Torque Enable">0</param>
         <param name="Current Limit">1000</param>
         <param name="Position P Gain">500</param>
         <param name="Position I Gain">0</param>
@@ -208,7 +208,7 @@
         <param name="Drive Mode">0</param>
         <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
-        <param name="Torque Enable">1</param>
+        <param name="Torque Enable">0</param>
         <param name="Current Limit">1000</param>
         <param name="Position P Gain">500</param>
         <param name="Position I Gain">0</param>
