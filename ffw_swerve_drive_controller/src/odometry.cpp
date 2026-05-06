@@ -90,13 +90,13 @@ void Odometry::set_solver_method(OdomSolverMethod method)
   auto logger = rclcpp::get_logger("OdometryClass");   // 로거 사용
   switch (method) {
     case OdomSolverMethod::PSEUDO_INVERSE:
-      RCLCPP_INFO(logger, "Odometry solver set to: Normal Equation (Manual Pseudo-inverse)");
+      RCLCPP_DEBUG(logger, "Odometry solver set to: Normal Equation (Manual Pseudo-inverse)");
       break;
     case OdomSolverMethod::QR_DECOMPOSITION:
-      RCLCPP_INFO(logger, "Odometry solver set to: QR Decomposition (Eigen)");
+      RCLCPP_DEBUG(logger, "Odometry solver set to: QR Decomposition (Eigen)");
       break;
     case OdomSolverMethod::SVD:
-      RCLCPP_INFO(logger, "Odometry solver set to: SVD (Eigen)");
+      RCLCPP_DEBUG(logger, "Odometry solver set to: SVD (Eigen)");
       break;
     default:
       RCLCPP_WARN(logger, "Unknown odometry solver method specified. Defaulting to SVD.");
@@ -128,10 +128,6 @@ bool Odometry::update(
   }
   if (dt < 0.00001) { /* ... */ return false;}
 
-  RCLCPP_DEBUG(
-    logger, "Odometry Update ---- dt: %.4f ---- Solver: %d", dt,
-    static_cast<int>(solver_method_));
-
   size_t num_equations = 2 * num_modules_;
   Eigen::MatrixXd A_eigen(num_equations, 3);
   Eigen::VectorXd b_eigen(num_equations);
@@ -160,7 +156,6 @@ bool Odometry::update(
 
   // solver method selection
   if (solver_method_ == OdomSolverMethod::PSEUDO_INVERSE) {
-    RCLCPP_DEBUG_ONCE(logger, "Using Normal Equation solver for odometry.");
     // least squares solution using normal equations
     std::vector<std::vector<double>> A_manual(num_equations, std::vector<double>(3));
     std::vector<double> b_manual(num_equations);
@@ -220,12 +215,10 @@ bool Odometry::update(
       robot_twist_eigen(2) = invATA[2][0] * ATb[0] + invATA[2][1] * ATb[1] + invATA[2][2] * ATb[2];
     }
   } else if (solver_method_ == OdomSolverMethod::QR_DECOMPOSITION) {
-    RCLCPP_DEBUG_ONCE(logger, "Using QR Decomposition solver for odometry.");
     // Eigen ColPivHouseholderQR for rank deficient matrices
     robot_twist_eigen = A_eigen.colPivHouseholderQr().solve(b_eigen);
   } else {
     // OdomSolverMethod::SVD
-    RCLCPP_DEBUG_ONCE(logger, "Using SVD solver for odometry.");
     // Eigen SVD for rank deficient matrices
     robot_twist_eigen = A_eigen.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(b_eigen);
   }
@@ -326,11 +319,6 @@ void Odometry::resetAccumulators()
 
 void Odometry::setVelocityRollingWindowSize(size_t velocity_rolling_window_size)
 {
-  RCLCPP_INFO(
-    rclcpp::get_logger(
-      "OdometryClass"), "Setting velocity rolling window size to %zu",
-    velocity_rolling_window_size);
-
   velocity_rolling_window_size_ = velocity_rolling_window_size;
 
   resetAccumulators();
