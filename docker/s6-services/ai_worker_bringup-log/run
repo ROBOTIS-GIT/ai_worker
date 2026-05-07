@@ -1,0 +1,4 @@
+#!/command/with-contenv sh
+# Logging service for ai_worker_bringup
+
+exec logutil-service /var/log/ai_worker_bringup

@@ -6,47 +6,24 @@ CONTAINER_NAME="ai_worker"
 GITHUB_RELEASES_API="https://api.github.com/repos/ROBOTIS-GIT/ai_worker/releases/latest"
 META_PACKAGE_XML="${SCRIPT_DIR}/../ffw/package.xml"
 
-is_arm_host() {
-    [[ "$(uname -m)" == "aarch64" || "$(uname -m)" == "arm64" ]]
-}
-
-get_compose_files() {
-    local compose_files=(
-        -f "${SCRIPT_DIR}/docker-compose.yml"
-    )
-
-    if is_arm_host; then
-        compose_files+=(-f "${SCRIPT_DIR}/docker-compose.novnc.yml")
-    fi
-
-    echo "${compose_files[@]}"
-}
-
 # Function to display help
 show_help() {
     echo "Usage: $0 [command]"
     echo ""
     echo "Commands:"
     echo "  help                    Show this help message"
-    echo "  start                   Start the ai_worker container"
-    echo "  start-novnc             Run novnc-server in the foreground (ARM only; Ctrl+C to stop)"
+    echo "  start                   Start the container"
     echo "  enter                   Enter the running container"
-    echo "  stop-novnc              Stop the novnc-server container (ARM only)"
     echo "  stop                    Stop the container"
     echo ""
     echo "Examples:"
-    echo "  $0 start                Start ai_worker container"
-    echo "  $0 start-novnc          Run novnc-server in the foreground"
+    echo "  $0 start                Start container"
     echo "  $0 enter                Enter the running container"
-    echo "  $0 stop-novnc           Stop novnc-server container"
     echo "  $0 stop                 Stop the container"
 }
 
 # Function to start the container
 start_container() {
-    local compose_files
-    read -r -a compose_files <<< "$(get_compose_files)"
-
     # Set up X11 forwarding only if DISPLAY is set
     if [ -n "$DISPLAY" ]; then
         echo "Setting up X11 forwarding..."
@@ -56,7 +33,6 @@ start_container() {
     fi
 
     echo "Starting ai_worker container..."
-
     # Notify if an update is available (meta package version vs GitHub latest release)
     CURRENT_VER=$(get_current_version)
     LATEST_VER=$(get_latest_version)
@@ -75,49 +51,10 @@ start_container() {
     sudo udevadm trigger
 
     # Pull the latest images
-    docker compose "${compose_files[@]}" pull
+    docker compose -f "${SCRIPT_DIR}/docker-compose.yml" pull
 
-    if is_arm_host; then
-        echo "ARM host detected. novnc-server image will be pulled, but the container will stay stopped until you run '$0 start-novnc'."
-    else
-        echo "Non-ARM host detected. Skipping novnc-server."
-    fi
-
-    # Start only the ai_worker service. On ARM, novnc-server is managed separately.
-    docker compose "${compose_files[@]}" up -d ai_worker
-}
-
-# Function to start the novnc container
-start_novnc_container() {
-    local compose_files
-    read -r -a compose_files <<< "$(get_compose_files)"
-
-    if ! is_arm_host; then
-        echo "Error: novnc-server is only supported on ARM hosts."
-        exit 1
-    fi
-
-    echo "Running novnc-server in the foreground (not detached). Press Ctrl+C to stop."
-    docker compose "${compose_files[@]}" up novnc-server
-}
-
-# Function to stop the novnc container
-stop_novnc_container() {
-    local compose_files
-    read -r -a compose_files <<< "$(get_compose_files)"
-
-    if ! is_arm_host; then
-        echo "Error: novnc-server is only supported on ARM hosts."
-        exit 1
-    fi
-
-    if ! docker ps --format '{{.Names}}' | grep -qx "novnc-server"; then
-        echo "novnc-server is not running."
-        exit 0
-    fi
-
-    echo "Stopping novnc-server container..."
-    docker compose "${compose_files[@]}" stop novnc-server
+    # Run docker-compose
+    docker compose -f "${SCRIPT_DIR}/docker-compose.yml" up -d
 }
 
 # Function to enter the container
@@ -147,9 +84,6 @@ enter_container() {
 
 # Function to stop the container
 stop_container() {
-    local compose_files
-    read -r -a compose_files <<< "$(get_compose_files)"
-
     if ! docker ps | grep -q "$CONTAINER_NAME"; then
         echo "Error: Container is not running"
         exit 1
@@ -159,7 +93,7 @@ stop_container() {
     read -p "Are you sure you want to continue? [y/N] " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        docker compose "${compose_files[@]}" down
+        docker compose -f "${SCRIPT_DIR}/docker-compose.yml" down
     else
         echo "Operation cancelled."
         exit 0
@@ -185,7 +119,6 @@ print_update_notice() {
     echo "  +${BAR}+"
     echo ""
 }
-
 
 get_current_version() {
     local ver
@@ -231,14 +164,8 @@ case "$1" in
     "start")
         start_container
         ;;
-    "start-novnc")
-        start_novnc_container
-        ;;
     "enter")
         enter_container
-        ;;
-    "stop-novnc")
-        stop_novnc_container
         ;;
     "stop")
         stop_container

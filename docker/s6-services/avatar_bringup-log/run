@@ -1,0 +1,4 @@
+#!/command/with-contenv sh
+# Logging service for avatar_bringup
+
+exec logutil-service /var/log/avatar_bringup

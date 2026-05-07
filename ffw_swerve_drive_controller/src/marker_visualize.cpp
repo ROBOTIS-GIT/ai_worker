@@ -45,7 +45,7 @@ void MarkerVisualize::init(
   if (auto node = node_interface_.lock()) {
     marker_publisher_ = node->create_publisher<visualization_msgs::msg::MarkerArray>(
       marker_topic_name, rclcpp::SystemDefaultsQoS());
-    RCLCPP_INFO(
+    RCLCPP_DEBUG(
       node->get_logger(), "MarkerVisualize initialized, publishing to: %s. Marker lifetime: %.2f s",
       marker_topic_name.c_str(), marker_lifetime_.seconds());
   } else {

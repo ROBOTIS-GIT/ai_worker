@@ -10,5 +10,4 @@ chmod 777 /var/run/agent
 
 # Start uvicorn with Unix Domain Socket
 # The agent is part of talos package
-exec uvicorn talos.agent.s6_agent:app --uds /var/run/agent/s6_agent.sock --log-level info
-
+exec uvicorn cyclo_manager.agent.s6_agent:app --uds /var/run/agent/s6_agent.sock --log-level info

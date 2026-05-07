@@ -2,6 +2,15 @@
 Changelog for package ffw_swerve_drive_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.0 (2026-05-04)
+------------------
+* Improved 3-wheel swerve steering limit using flip logic
+* Contributors: Sungho Woo
+
+1.2.2 (2026-04-27)
+------------------
+* None
+
 1.2.1 (2026-04-09)
 ------------------
 * None

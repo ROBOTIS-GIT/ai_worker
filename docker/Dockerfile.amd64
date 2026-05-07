@@ -20,7 +20,7 @@ COPY --from=librealsense /opt/librealsense /usr/local/
 COPY --from=librealsense /usr/local/lib/python3.12/dist-packages/pyrealsense2 /usr/local/lib/python3.12/dist-packages/pyrealsense2
 COPY --from=librealsense /usr/src/librealsense/config/99-realsense-libusb.rules /etc/udev/rules.d/
 COPY --from=librealsense /usr/src/librealsense/config/99-realsense-d4xx-mipi-dfu.rules /etc/udev/rules.d/
-ENV PYTHONPATH=$PYTHONPATH:/usr/local/lib
+ENV PYTHONPATH=/usr/local/lib
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
@@ -78,14 +78,14 @@ RUN echo "export C_INCLUDE_PATH=$C_INCLUDE_PATH:/opt/venv/lib/python3.12/site-pa
 RUN mkdir -p /var/run/agent && \
     chmod 777 /var/run/agent
 
-RUN git clone https://github.com/ROBOTIS-GIT/talos_system_manager.git /opt/talos_system_manager
 
-ENV PYTHONPATH=/opt/talos_system_manager:${PYTHONPATH}
+RUN git clone https://github.com/ROBOTIS-GIT/cyclo_manager.git /opt/cyclo_manager
+
+ENV PYTHONPATH=/opt/cyclo_manager:${PYTHONPATH}
 
 RUN pip config set global.break-system-packages true
 
-# Install requirements.txt. tqdm (transitive dep e.g. from zenoh-ros2-sdk) is already installed by ros-jazzy-rmw-zenoh-cpp; pip reuses it.
-RUN pip install --no-cache-dir --ignore-installed -r /opt/talos_system_manager/requirements.txt
+RUN pip install --no-cache-dir --ignore-installed -r /opt/cyclo_manager/requirements.txt
 
 # New-style s6-rc services (recommended in s6-overlay v3 docs)
 # Define services under /etc/s6-overlay/s6-rc.d and add them to the user bundle.
@@ -94,7 +94,7 @@ RUN pip install --no-cache-dir --ignore-installed -r /opt/talos_system_manager/r
 COPY docker/s6-agent /etc/s6-overlay/s6-rc.d/s6-agent
 
 # Define ROS2 services
-ARG ROS2_SERVICES="ffw_bg2_follower_ai ffw_lg2_leader_ai ffw_sg2_follower_ai"
+ARG ROS2_SERVICES="ai_worker_bringup avatar_bringup"
 
 # Copy all ROS2 service directories directly to s6-rc.d
 COPY docker/s6-services/ /etc/s6-overlay/s6-rc.d/
