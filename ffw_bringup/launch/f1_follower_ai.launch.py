@@ -51,17 +51,17 @@ def generate_launch_description():
                                           'zed for sg2/bg2/sh5/bh5.'),
         DeclareLaunchArgument('init_position', default_value='true',
                               description='Whether to launch the init_position node.'),
-        DeclareLaunchArgument('model', default_value='ffw_bg2_rev4_follower',
+        DeclareLaunchArgument('model', default_value='ffw_f1_follower',
                               description='Robot model name.'),
         DeclareLaunchArgument('use_head_eef_tracker', default_value='false',
                               description='Whether to launch the head EEF tracker node.'),
         DeclareLaunchArgument(
             'init_position_file',
-            default_value='ffw_bg2_follower_initial_positions.yaml',
+            default_value='ffw_f1_follower_initial_positions.yaml',
             description='Initial position file.'),
         DeclareLaunchArgument(
             'ros2_control_type',
-            default_value='ffw_bg2_follower',
+            default_value='ffw_f1_follower',
             description='Type of ros2_control',
         ),
     ]
@@ -85,7 +85,7 @@ def generate_launch_description():
         PathJoinSubstitution([FindPackageShare('ffw_description'),
                               'urdf',
                               model,
-                              'ffw_bg2_follower.urdf.xacro']),
+                              'ffw_f1_follower.urdf.xacro']),
         ' ',
         'use_sim:=', use_sim,
         ' ',
@@ -104,10 +104,10 @@ def generate_launch_description():
 
     controller_manager_config = PathJoinSubstitution([
         FindPackageShare('ffw_bringup'), 'config', model,
-        'ffw_bg2_follower_ai_hardware_controller.yaml'
+        'ffw_f1_follower_ai_hardware_controller.yaml'
     ])
     rviz_config_file = PathJoinSubstitution([
-        FindPackageShare('ffw_description'), 'rviz', 'ffw_bg2.rviz'
+        FindPackageShare('ffw_description'), 'rviz', 'ffw_f1.rviz'
     ])
 
     robot_description = {'robot_description': robot_description_content}
