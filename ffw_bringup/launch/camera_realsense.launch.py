@@ -32,7 +32,8 @@ import sys
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import OpaqueFunction
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 import yaml
 
@@ -53,9 +54,9 @@ def yaml_to_dict(path_to_yaml):
 serials_path = os.path.join(get_package_share_directory('ffw_bringup'), 'config', 'common',
                             'rs_serial.yaml')
 serials = yaml_to_dict(serials_path)
-serial1 = serials.get('camera1_serial')
-serial2 = serials.get('camera2_serial')
-serial3 = serials.get('camera3_serial')  # d455
+serial1 = serials.get('camera1_serial', '')
+serial2 = serials.get('camera2_serial', '')
+serial3 = serials.get('camera3_serial', '')  # d455 head, only used when enable_head_camera=true
 
 local_parameters = [
                     {'name': 'camera_name1', 'default': 'camera_left',
@@ -164,6 +165,16 @@ def generate_launch_description():
     params2 = duplicate_params(rs_launch.configurable_parameters, '2')
     params3 = duplicate_params(rs_launch.configurable_parameters, '3')
     return LaunchDescription(
+        [
+            DeclareLaunchArgument(
+                'enable_head_camera',
+                default_value='false',
+                choices=['true', 'false'],
+                description='Launch the d455 head camera in addition to the two d405 wrist '
+                            'cameras. Set to true on f2 (3-camera setup), false on '
+                            'sg2/bg2/sh5/bh5 (2-camera setup with zed head).'
+            ),
+        ] +
         rs_launch.declare_configurable_parameters(local_parameters) +
         rs_launch.declare_configurable_parameters(params1) +
         rs_launch.declare_configurable_parameters(params2) +
@@ -188,7 +199,8 @@ def generate_launch_description():
                 kwargs={
                     'params': set_configurable_parameters(params3),
                     'param_name_suffix': '3'
-                }
+                },
+                condition=IfCondition(LaunchConfiguration('enable_head_camera'))
             ),
         ]
     )

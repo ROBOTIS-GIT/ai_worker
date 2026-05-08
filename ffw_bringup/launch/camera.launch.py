@@ -20,95 +20,42 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, TimerAction
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch_ros.actions import Node
+from launch.substitutions import LaunchConfiguration, PythonExpression
 
 
 def generate_launch_description():
     bringup_launch_dir = os.path.join(get_package_share_directory('ffw_bringup'), 'launch')
 
-    # RealSense cameras launch (D455 head, D405 left/right wrist)
+    head_camera_type = LaunchConfiguration('head_camera_type')
+
+    is_zed_head = PythonExpression(["'", head_camera_type, "' == 'zed'"])
+    enable_realsense_head = PythonExpression(
+        ["'true' if '", head_camera_type, "' == 'realsense' else 'false'"]
+    )
+
+    camera_zed = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(os.path.join(bringup_launch_dir, 'camera_zed.launch.py')),
+        launch_arguments={'camera_model': 'zedm'}.items(),
+        condition=IfCondition(is_zed_head),
+    )
+
     camera_realsense = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(bringup_launch_dir, 'camera_realsense.launch.py')),
-    )
-
-    # RealSense compressed image relay nodes
-    relay_head = Node(
-        package='topic_tools',
-        executable='relay',
-        name='relay_cam_head',
-        arguments=[
-            '/camera_head/camera_head/color/image_raw/compressed',
-            '/robot/camera/cam_head/image_raw/compressed'
-        ],
-        output='screen'
-    )
-
-    relay_left_wrist = Node(
-        package='topic_tools',
-        executable='relay',
-        name='relay_cam_left_wrist',
-        arguments=[
-            '/camera_left/camera_left/color/image_rect_raw/compressed',
-            '/robot/camera/cam_left_wrist/image_raw/compressed'
-        ],
-        output='screen'
-    )
-
-    relay_right_wrist = Node(
-        package='topic_tools',
-        executable='relay',
-        name='relay_cam_right_wrist',
-        arguments=[
-            '/camera_right/camera_right/color/image_rect_raw/compressed',
-            '/robot/camera/cam_right_wrist/image_raw/compressed'
-        ],
-        output='screen'
-    )
-
-    # RealSense camera_info relay nodes
-    relay_head_info = Node(
-        package='topic_tools',
-        executable='relay',
-        name='relay_cam_head_info',
-        arguments=[
-            '/camera_head/camera_head/color/camera_info',
-            '/robot/camera/cam_head/image_raw/compressed/camera_info'
-        ],
-        output='screen'
-    )
-
-    relay_left_wrist_info = Node(
-        package='topic_tools',
-        executable='relay',
-        name='relay_cam_left_wrist_info',
-        arguments=[
-            '/camera_left/camera_left/color/camera_info',
-            '/robot/camera/cam_left_wrist/image_raw/compressed/camera_info'
-        ],
-        output='screen'
-    )
-
-    relay_right_wrist_info = Node(
-        package='topic_tools',
-        executable='relay',
-        name='relay_cam_right_wrist_info',
-        arguments=[
-            '/camera_right/camera_right/color/camera_info',
-            '/robot/camera/cam_right_wrist/image_raw/compressed/camera_info'
-        ],
-        output='screen'
-    )
-
-    realsense_relay_nodes = TimerAction(
-        period=15.0,
-        actions=[relay_head, relay_left_wrist, relay_right_wrist,
-                 relay_head_info, relay_left_wrist_info, relay_right_wrist_info]
+        launch_arguments={'enable_head_camera': enable_realsense_head}.items(),
     )
 
     return LaunchDescription([
+        DeclareLaunchArgument(
+            'head_camera_type',
+            default_value='zed',
+            choices=['zed', 'realsense'],
+            description='Head camera type. zed for sg2/bg2/sh5/bh5 (zed mini head + 2 d405 '
+                        'wrists). realsense for f2 (d455 head + 2 d405 wrists).'
+        ),
+        camera_zed,
         TimerAction(period=10.0, actions=[camera_realsense]),
-        realsense_relay_nodes,
     ])
