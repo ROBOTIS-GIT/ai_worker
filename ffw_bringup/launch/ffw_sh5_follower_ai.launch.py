@@ -48,6 +48,10 @@ def generate_launch_description():
                               description='Port name for hardware connection.'),
         DeclareLaunchArgument('launch_cameras', default_value='true',
                               description='Whether to launch cameras.'),
+        DeclareLaunchArgument('head_camera_type', default_value='zed',
+                              choices=['zed', 'realsense'],
+                              description='Head camera type. zed for sg2/bg2/sh5/bh5, '
+                                          'realsense for f2.'),
         DeclareLaunchArgument('init_position', default_value='true',
                               description='Whether to launch the init_position node.'),
         DeclareLaunchArgument('model', default_value='ffw_sh5_rev1_follower',
@@ -66,6 +70,7 @@ def generate_launch_description():
     mock_sensor_commands = LaunchConfiguration('mock_sensor_commands')
     port_name = LaunchConfiguration('port_name')
     launch_cameras = LaunchConfiguration('launch_cameras')
+    head_camera_type = LaunchConfiguration('head_camera_type')
     init_position = LaunchConfiguration('init_position')
     model = LaunchConfiguration('model')
     use_head_eef_tracker = LaunchConfiguration('use_head_eef_tracker')
@@ -365,6 +370,7 @@ def generate_launch_description():
     camera_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(PathJoinSubstitution([bringup_launch_dir,
                                                             'camera.launch.py'])),
+        launch_arguments={'head_camera_type': head_camera_type}.items(),
         condition=IfCondition(launch_cameras)
     )
 

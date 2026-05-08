@@ -14,7 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Authors: Sungho Woo, Woojin Wie, Wonho Yun
+# Authors: Dongyun Kim
+#
+# F1 follower bringup. Hardware is identical to bg2 (no mobile base, arms + lift +
+# head only) and reuses bg2 model/URDF/controller configs. The only difference is
+# the head camera: f1 uses RealSense D455 instead of the ZED Mini used by bg2.
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, RegisterEventHandler
@@ -41,10 +45,10 @@ def generate_launch_description():
                               description='Port name for hardware connection.'),
         DeclareLaunchArgument('launch_cameras', default_value='true',
                               description='Whether to launch cameras.'),
-        DeclareLaunchArgument('head_camera_type', default_value='zed',
+        DeclareLaunchArgument('head_camera_type', default_value='realsense',
                               choices=['zed', 'realsense'],
-                              description='Head camera type. zed for sg2/bg2/sh5/bh5, '
-                                          'realsense for f2.'),
+                              description='Head camera type. realsense for f1 (D455 head), '
+                                          'zed for sg2/bg2/sh5/bh5.'),
         DeclareLaunchArgument('init_position', default_value='true',
                               description='Whether to launch the init_position node.'),
         DeclareLaunchArgument('model', default_value='ffw_bg2_rev4_follower',
@@ -218,7 +222,7 @@ def generate_launch_description():
         condition=IfCondition(init_position)
     )
 
-    # Camera launch include
+    # Camera launch include — f1 default is realsense head camera
     bringup_launch_dir = PathJoinSubstitution([FindPackageShare('ffw_bringup'), 'launch'])
     camera_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(PathJoinSubstitution([bringup_launch_dir,
