@@ -316,7 +316,6 @@
         <state_interface name="Present Velocity"/>
         <state_interface name="Present Current"/>
         <state_interface name="Hardware Error Status"/>
-        <!-- <param name="Drive Mode">4</param> -->
         <param name="Drive Mode">5</param>
         <param name="Operating Mode">3</param>
         <param name="Return Delay Time">0</param>
@@ -494,7 +493,6 @@
         <state_interface name="Present Velocity"/>
         <state_interface name="Present Current"/>
         <state_interface name="Hardware Error Status"/>
-        <!-- <param name="Drive Mode">4</param> -->
         <param name="Drive Mode">5</param>
         <param name="Operating Mode">3</param>
         <param name="Return Delay Time">0</param>
