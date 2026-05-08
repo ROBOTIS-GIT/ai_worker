@@ -101,6 +101,7 @@ def duplicate_params(general_params, posix):
 def generate_launch_description():
     params1 = duplicate_params(rs_launch.configurable_parameters, '1')
     params2 = duplicate_params(rs_launch.configurable_parameters, '2')
+    params3 = duplicate_params(rs_launch.configurable_parameters, '3')
     return LaunchDescription(
         [
             DeclareLaunchArgument(
@@ -115,6 +116,7 @@ def generate_launch_description():
         rs_launch.declare_configurable_parameters(local_parameters) +
         rs_launch.declare_configurable_parameters(params1) +
         rs_launch.declare_configurable_parameters(params2) +
+        rs_launch.declare_configurable_parameters(params3) +
         [
             OpaqueFunction(
                 function=rs_launch.launch_setup,
