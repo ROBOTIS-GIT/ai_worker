@@ -30,7 +30,11 @@ def generate_launch_description():
     follower = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(bringup_launch_dir,
                                                    'ffw_sg2_follower_ai.launch.py')),
-        launch_arguments={'launch_cameras': 'true', 'init_position': 'true'}.items()
+        launch_arguments={
+            'launch_cameras': 'true',
+            'init_position': 'true',
+            'head_camera_type': 'zed',
+        }.items()
     )
     leader = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(bringup_launch_dir,

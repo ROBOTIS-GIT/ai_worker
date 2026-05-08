@@ -14,7 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Authors: Sungho Woo, Woojin Wie, Wonho Yun
+# Authors: Dongyun Kim
+#
+# F2 leader+follower bringup. Same hardware as sg2 except the head camera is a
+# RealSense D455 instead of a ZED Mini. Reuses the lg2 leader.
 
 import os
 
@@ -29,11 +32,11 @@ def generate_launch_description():
 
     follower = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(bringup_launch_dir,
-                                                   'ffw_bg2_follower_ai.launch.py')),
+                                                   'f2_follower_ai.launch.py')),
         launch_arguments={
             'launch_cameras': 'true',
             'init_position': 'true',
-            'head_camera_type': 'zed',
+            'head_camera_type': 'realsense',
         }.items()
     )
     leader = IncludeLaunchDescription(
