@@ -28,6 +28,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp"
 #include "rclcpp_lifecycle/state.hpp"
+#include "std_msgs/msg/bool.hpp"
 #include "std_msgs/msg/float64_multi_array.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "trajectory_msgs/msg/joint_trajectory.hpp"
@@ -165,6 +166,9 @@ protected:
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr tact_trigger_pub_;
   rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr left_enable_pub_;
   rclcpp::Publisher<std_msgs::msg::UInt8>::SharedPtr right_enable_pub_;
+
+  bool middle_pedal_held_ = false;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr middle_pedal_sub_;
 };
 
 }  // namespace joystick_controller

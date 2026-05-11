@@ -18,6 +18,7 @@
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, GroupAction
+from launch.conditions import IfCondition
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node, PushRosNamespace
 from launch_ros.substitutions import FindPackageShare
@@ -35,10 +36,16 @@ def generate_launch_description():
             default_value='false',
             description='Use mock hardware mirroring command.',
         ),
+        DeclareLaunchArgument(
+            'launch_foot_switch',
+            default_value='true',
+            description='Whether to launch the foot switch node.',
+        ),
     ]
 
     description_file = LaunchConfiguration('description_file')
     use_mock_hardware = LaunchConfiguration('use_mock_hardware')
+    launch_foot_switch = LaunchConfiguration('launch_foot_switch')
 
     # Robot controllers config file path
     robot_controllers = PathJoinSubstitution(
@@ -90,6 +97,23 @@ def generate_launch_description():
         parameters=[robot_description, {'frame_prefix': 'leader_'}],
     )
 
+    foot_switch_node = Node(
+        package='ffw_bringup',
+        executable='foot_switch_node',
+        name='foot_switch_node',
+        output='both',
+        parameters=[{'controller_config_path': robot_controllers}],
+        condition=IfCondition(launch_foot_switch),
+    )
+
+    gripper_trigger_node = Node(
+        package='ffw_joint_trajectory_command_broadcaster',
+        executable='gripper_trigger',
+        name='gripper_trigger',
+        output='both',
+        parameters=[{'gripper_threshold': -0.5}],
+    )
+
     # Wrap everything in a namespace 'leader'
     leader_with_namespace = GroupAction(
         actions=[
@@ -97,8 +121,9 @@ def generate_launch_description():
             control_node,
             robot_controller_spawner,
             robot_state_publisher_node,
+            gripper_trigger_node,
         ]
     )
 
     # Return combined LaunchDescription
-    return LaunchDescription(declared_arguments + [leader_with_namespace])
+    return LaunchDescription(declared_arguments + [leader_with_namespace, foot_switch_node])

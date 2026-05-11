@@ -312,9 +312,11 @@ void JoystickController::handle_tact_switches(
     auto press_duration = current_time - right_tact_press_start_time_;
     if (press_duration.seconds() >= params_.long_press_duration) {
       std_msgs::msg::String trigger_msg;
-      trigger_msg.data = "right_long_time";
+      trigger_msg.data = middle_pedal_held_ ? "right_long_time_middle" : "right_long_time";
       tact_trigger_pub_->publish(trigger_msg);
-      RCLCPP_INFO(get_node()->get_logger(), "Right tact switch long press triggered!");
+      RCLCPP_INFO(
+        get_node()->get_logger(), "Right tact switch long press triggered! (middle: %s)",
+        middle_pedal_held_ ? "held" : "not held");
       right_tact_long_press_triggered_ = true;
     }
   }
@@ -324,19 +326,33 @@ void JoystickController::handle_tact_switches(
     switch (prev_state) {
       case 1:  // 01 -> 00 (right button only was pressed)
         if (!right_tact_long_press_triggered_) {
-          std_msgs::msg::UInt8 enable_msg;
-          enable_msg.data = 2;
-          right_enable_pub_->publish(enable_msg);
-          RCLCPP_INFO(get_node()->get_logger(), "Right toggle pub");
+          if (middle_pedal_held_) {
+            std_msgs::msg::String trigger_msg;
+            trigger_msg.data = "right";
+            tact_trigger_pub_->publish(trigger_msg);
+            RCLCPP_INFO(get_node()->get_logger(), "Right tact trigger (middle pedal held)");
+          } else {
+            std_msgs::msg::UInt8 enable_msg;
+            enable_msg.data = 2;
+            right_enable_pub_->publish(enable_msg);
+            RCLCPP_INFO(get_node()->get_logger(), "Right toggle pub");
+          }
         }
         break;
 
       case 2:  // 10 -> 00 (left button only was pressed)
         if (!left_tact_long_press_triggered_) {
-          std_msgs::msg::UInt8 enable_msg;
-          enable_msg.data = 2;
-          left_enable_pub_->publish(enable_msg);
-          RCLCPP_INFO(get_node()->get_logger(), "Left toggle pub");
+          if (middle_pedal_held_) {
+            std_msgs::msg::String trigger_msg;
+            trigger_msg.data = "left";
+            tact_trigger_pub_->publish(trigger_msg);
+            RCLCPP_INFO(get_node()->get_logger(), "Left tact trigger (middle pedal held)");
+          } else {
+            std_msgs::msg::UInt8 enable_msg;
+            enable_msg.data = 2;
+            left_enable_pub_->publish(enable_msg);
+            RCLCPP_INFO(get_node()->get_logger(), "Left toggle pub");
+          }
         }
         break;
 
@@ -682,6 +698,13 @@ controller_interface::CallbackReturn JoystickController::on_configure(
 
   // Create publisher for cmd_vel
   cmd_vel_pub_ = get_node()->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
+
+  // Subscribe to foot switch middle pedal state
+  middle_pedal_sub_ = get_node()->create_subscription<std_msgs::msg::Bool>(
+    "/leader/foot_switch/middle_pedal", 10,
+    [this](const std_msgs::msg::Bool::SharedPtr msg) {
+      middle_pedal_held_ = msg->data;
+    });
 
   RCLCPP_INFO(get_node()->get_logger(), "JoystickController configured successfully.");
   return CallbackReturn::SUCCESS;

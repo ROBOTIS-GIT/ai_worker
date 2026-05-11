@@ -10,7 +10,7 @@ import rclpy
 from rclpy.node import Node
 from rcl_interfaces.srv import SetParameters
 from rcl_interfaces.msg import Parameter, ParameterValue, ParameterType
-from std_msgs.msg import UInt8
+from std_msgs.msg import Bool, UInt8
 
 DEVICE = "/dev/input/by-id/usb-PCsensor_FootSwitch-event-kbd"
 
@@ -51,6 +51,9 @@ class FootSwitchReader(Node):
             UInt8, "/leader/left_command", 1)
         self.right_enable_pub = self.create_publisher(
             UInt8, "/leader/right_command", 1)
+
+        self.middle_pedal_pub = self.create_publisher(
+            Bool, "/leader/foot_switch/middle_pedal", 1)
 
     def open_device(self):
         try:
@@ -117,14 +120,22 @@ class FootSwitchReader(Node):
             print(f"(Publish) left_enable = {SAVE_POSE_ID}")
 
     def handle_middle(self, event_value: int):
-        if event_value == 2:
+        if event_value == 1:
             if not self.already_middle_pub:
                 self._set_deadzone(0.95)
                 self.already_middle_pub = True
+                msg = Bool()
+                msg.data = True
+                self.middle_pedal_pub.publish(msg)
+                print("middle pedal: pressed")
         elif event_value == 0:
             if self.already_middle_pub:
                 self._set_deadzone(1.0)
                 self.already_middle_pub = False
+                msg = Bool()
+                msg.data = False
+                self.middle_pedal_pub.publish(msg)
+                print("middle pedal: released")
 
     def handle_right(self, event_value: int):
         if event_value == 1:
