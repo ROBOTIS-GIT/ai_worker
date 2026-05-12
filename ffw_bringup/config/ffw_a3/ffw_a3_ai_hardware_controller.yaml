@@ -36,7 +36,7 @@
         - 0.0
         - 0.0
         - 0.0
-        - 0.0
+        - 0.1
       right_joints:
         - arm_r_joint1
         - arm_r_joint2
@@ -54,7 +54,7 @@
         - 0.0
         - 0.0
         - 0.0
-        - 0.0
+        - 0.1
       left_joint_states_stamped_topic: "/robot/arm_left_leader/joint_states"
       right_joint_states_stamped_topic: "/robot/arm_right_leader/joint_states"
       trigger_threshold: -0.5
