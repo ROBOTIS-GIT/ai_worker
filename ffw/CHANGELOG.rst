@@ -2,6 +2,14 @@
 Changelog for package ffw
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.1 (2026-05-14)
+------------------
+* Added dual_laser_merger for SH5
+* Added unified ffw_pack.launch file
+* Removed bg2 pack launch file
+* Add pack position yaml files in each robot type config folder
+* Contributors: Howon Kim, Hyungyu Kim
+
 1.3.0 (2026-05-04)
 ------------------
 * Improved 3-wheel swerve steering limit using flip logic

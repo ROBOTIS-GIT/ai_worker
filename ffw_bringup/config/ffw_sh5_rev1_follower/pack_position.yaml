@@ -9,9 +9,8 @@
         - arm_l_joint5
         - arm_l_joint6
         - arm_l_joint7
-        - gripper_l_joint1
       step_names: [step0]
-      step0: [0.0, 0.0, -1.57, 0.0, 0.0, 0.0, 0.0, 0.0]
+      step0: [0.0, 0.0, -1.57, 0.0, 0.0, 0.0, 0.0]
       duration: 5.0
       position_tolerance: 0.1
       velocity_tolerance: 0.01
@@ -29,9 +28,8 @@
         - arm_r_joint5
         - arm_r_joint6
         - arm_r_joint7
-        - gripper_r_joint1
       step_names: [step0]
-      step0: [0.0, 0.0, 1.57, 0.0, 0.0, 0.0, 0.0, 0.0]
+      step0: [0.0, 0.0, 1.57, 0.0, 0.0, 0.0, 0.0]
       duration: 5.0
       position_tolerance: 0.1
       velocity_tolerance: 0.01
@@ -63,4 +61,19 @@
       position_tolerance: 0.1
       velocity_tolerance: 0.01
       action_topic: '/lift_controller/follow_joint_trajectory'
+      joint_states_topic: '/joint_states'
+
+/**:
+  swerve_steering_joint_trajectory_executor:
+    ros__parameters:
+      joint_names:
+        - left_wheel_steer
+        - right_wheel_steer
+        - rear_wheel_steer
+      step_names: [home]
+      home: [0.0, 0.0, 0.0]
+      duration: 10.0
+      position_tolerance: 0.1
+      velocity_tolerance: 0.01
+      action_topic: '/swerve_steering_initial_position_controller/follow_joint_trajectory'
       joint_states_topic: '/joint_states'

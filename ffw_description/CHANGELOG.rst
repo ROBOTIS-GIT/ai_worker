@@ -2,6 +2,10 @@
 Changelog for package ffw_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.1 (2026-05-14)
+------------------
+* None
+
 1.3.0 (2026-05-04)
 ------------------
 * Extended neck downward angle by 10 degrees

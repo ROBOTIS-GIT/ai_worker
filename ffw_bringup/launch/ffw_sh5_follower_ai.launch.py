@@ -48,6 +48,8 @@ def generate_launch_description():
                               description='Port name for hardware connection.'),
         DeclareLaunchArgument('launch_cameras', default_value='true',
                               description='Whether to launch cameras.'),
+        DeclareLaunchArgument('launch_lidar', default_value='true',
+                              description='Whether to launch lidar.'),
         DeclareLaunchArgument('init_position', default_value='true',
                               description='Whether to launch the init_position node.'),
         DeclareLaunchArgument('model', default_value='ffw_sh5_rev1_follower',
@@ -66,6 +68,7 @@ def generate_launch_description():
     mock_sensor_commands = LaunchConfiguration('mock_sensor_commands')
     port_name = LaunchConfiguration('port_name')
     launch_cameras = LaunchConfiguration('launch_cameras')
+    launch_lidar = LaunchConfiguration('launch_lidar')
     init_position = LaunchConfiguration('init_position')
     model = LaunchConfiguration('model')
     use_head_eef_tracker = LaunchConfiguration('use_head_eef_tracker')
@@ -374,6 +377,45 @@ def generate_launch_description():
     camera_timer_10s = TimerAction(period=10.0, actions=[camera_launch],
                                    condition=UnlessCondition(init_position))
 
+    # Lidar launch include
+    lidar_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(PathJoinSubstitution([bringup_launch_dir,
+                                                            'lidar_dual.launch.py'])),
+        condition=IfCondition(launch_lidar)
+    )
+
+    # Lidar timers with conditional delay based on init_position
+    lidar_timer_20s = TimerAction(period=20.0, actions=[lidar_launch],
+                                  condition=IfCondition(init_position))
+    lidar_timer_10s = TimerAction(period=10.0, actions=[lidar_launch],
+                                  condition=UnlessCondition(init_position))
+
+    dual_laser_merger_node = Node(
+        package='dual_laser_merger',
+        executable='dual_laser_merger_node',
+        output='screen',
+        parameters=[{
+            'laser_1_topic': '/scan_left',
+            'laser_2_topic': '/scan_right',
+            'merged_scan_topic': '/scan',
+            'merged_cloud_topic': '/scan_cloud',
+            'target_frame': 'base_link',
+            'angle_min': -3.141592654,
+            'angle_max': 3.141592654,
+            'angle_increment': 0.006544985,
+            'scan_time': 0.1,
+            'range_min': 0.05,
+            'range_max': 20.0,
+            'use_inf': True,
+            'tolerance': 0.05,
+            'queue_size': 10,
+            'enable_shadow_filter': True,
+            'enable_average_filter': True,
+        }, {
+            'use_sim_time': use_sim,
+        }],
+    )
+
     return LaunchDescription(
         declared_arguments + [
             control_node,
@@ -390,5 +432,8 @@ def generate_launch_description():
             head_eef_tracker_node,
             camera_timer_20s,
             camera_timer_10s,
+            lidar_timer_20s,
+            lidar_timer_10s,
+            dual_laser_merger_node,
         ]
     )
