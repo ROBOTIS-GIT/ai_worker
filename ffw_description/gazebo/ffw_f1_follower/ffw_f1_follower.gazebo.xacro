@@ -47,6 +47,7 @@
   <xacro:Link reference="arm_l_link6"/>
   <xacro:Link reference="arm_l_link7"/>
 
+  <!-- TODO: Change gripper to hx2_d1 -->
   <xacro:Link reference="r_rh_p12_rn_base"/>
   <xacro:Link reference="r_rh_p12_rn_r1"/>
   <xacro:Link reference="r_rh_p12_rn_r2"/>
