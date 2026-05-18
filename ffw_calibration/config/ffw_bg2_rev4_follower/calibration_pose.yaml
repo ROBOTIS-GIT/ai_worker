@@ -1,0 +1,17 @@
+targets:  # radian values, per arm (joint2, 3, 5, 7 are mirrored)
+  right:
+    joint1: 0
+    joint2: -3.425
+    joint3: 0
+    joint4: 1.19
+    joint5: 0
+    joint6: 1.90
+    joint7: -1.65
+  left:
+    joint1: 0
+    joint2: 3.425
+    joint3: 0
+    joint4: 1.19
+    joint5: 0
+    joint6: 1.90
+    joint7: 1.65
