@@ -9,8 +9,9 @@
   <xacro:arg name="model" default="ffw_f1_follower" />
   <xacro:arg name="ros2_control_type" default="ffw_f1_follower" />
 
-  <xacro:include filename="$(find ffw_description)/urdf/common/follower/ffw_follower_body.xacro" />
+  <xacro:include filename="$(find ffw_description)/urdf/common/follower/ffw_f_follower_body.xacro" />
 
+  <!-- TODO: Change gripper to hx2_d1 -->
   <xacro:include filename="$(find ffw_description)/urdf/common/rh_p12_rn_a/rh_p12_rn_a.urdf.xacro" />
 
   <xacro:include filename="$(find ffw_description)/ros2_control/$(arg model)/$(arg ros2_control_type).ros2_control.xacro" />
@@ -50,10 +51,11 @@
     </inertial>
   </link>
 
-  <xacro:ffw_follower_body parent="$(arg prefix)base_link" prefix="$(arg prefix)">
+  <xacro:ffw_f_follower_body parent="$(arg prefix)base_link" prefix="$(arg prefix)">
     <origin xyz="0.0055 0 1.4316" rpy="0 0 0" />
-  </xacro:ffw_follower_body>
+  </xacro:ffw_f_follower_body>
 
+  <!-- TODO: Change gripper to hx2_d1 -->
   <xacro:rh_p12_rn_a parent="$(arg prefix)arm_l_link7" prefix="$(arg prefix)gripper_l_">
     <origin xyz="0 0 -0.078" rpy="0 3.14159265359 3.14159265359"/>
   </xacro:rh_p12_rn_a>
@@ -76,6 +78,7 @@
     </visual>
   </link>
 
+  <!-- TODO: Change gripper to hx2_d1 -->
   <xacro:rh_p12_rn_a parent="$(arg prefix)arm_r_link7" prefix="$(arg prefix)gripper_r_">
     <origin xyz="0 0 -0.078" rpy="0 3.14159265359 3.14159265359"/>
   </xacro:rh_p12_rn_a>
