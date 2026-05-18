@@ -25,6 +25,10 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   dynamixel_interfaces
   urdf
   trajectory_msgs
+  geometry_msgs
+  tf2
+  tf2_ros
+  visualization_msgs
 )
 
 ################################################################################
@@ -89,6 +93,23 @@ ament_target_dependencies(gripper_trigger
 )
 
 ################################################################################
+# head_eef_tracker standalone node
+################################################################################
+add_executable(head_eef_tracker src/head_eef_tracker.cpp)
+target_compile_features(head_eef_tracker PUBLIC cxx_std_17)
+ament_target_dependencies(head_eef_tracker
+  rclcpp
+  geometry_msgs
+  sensor_msgs
+  std_msgs
+  tf2
+  tf2_ros
+  trajectory_msgs
+  urdf
+  visualization_msgs
+)
+
+################################################################################
 # Install
 ################################################################################
 install(
@@ -107,7 +128,7 @@ install(
 )
 
 install(
-  TARGETS leader_feedback gripper_trigger
+  TARGETS leader_feedback gripper_trigger head_eef_tracker
   DESTINATION lib/${PROJECT_NAME}
 )
 

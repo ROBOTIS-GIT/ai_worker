@@ -28,6 +28,10 @@
   <depend>dynamixel_interfaces</depend>
   <depend>urdf</depend>
   <depend>trajectory_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>visualization_msgs</depend>
   <test_depend>ament_cmake_gmock</test_depend>
   <test_depend>controller_manager</test_depend>
   <test_depend>hardware_interface_testing</test_depend>

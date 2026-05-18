@@ -17,7 +17,7 @@
 # Authors: Sungho Woo, Woojin Wie, Wonho Yun
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, EmitEvent, RegisterEventHandler
+from launch.actions import DeclareLaunchArgument, EmitEvent, ExecuteProcess, RegisterEventHandler
 from launch.actions import IncludeLaunchDescription, TimerAction
 from launch.conditions import IfCondition, UnlessCondition
 from launch.event_handlers import OnProcessExit
@@ -161,6 +161,8 @@ def generate_launch_description():
             'arm_r_controller',
             'head_controller',
             'lift_controller',
+            'arm_r_effort_controller',
+            'arm_l_effort_controller',
         ],
         parameters=[robot_description],
     )
@@ -244,19 +246,48 @@ def generate_launch_description():
         condition=IfCondition(use_head_eef_tracker),
     )
 
-    # Finish monitor: disables follower torque when arm_r_joint6 drops below threshold
-    finish_monitor_node = Node(
-        package='ffw_bringup',
-        executable='finish_monitor',
-        name='finish_monitor',
-        output='screen',
+    # # Finish monitor: disables follower torque when arm_r_joint6 drops below threshold
+    # finish_monitor_node = Node(
+    #     package='ffw_bringup',
+    #     executable='finish_monitor',
+    #     name='finish_monitor',
+    #     output='screen',
+    # )
+
+    # shutdown_on_finish = RegisterEventHandler(
+    #     event_handler=OnProcessExit(
+    #         target_action=finish_monitor_node,
+    #         on_exit=[EmitEvent(event=Shutdown(reason='finish_monitor exited'))],
+    #     )
+    # )
+    # 'data: [455.0, 455.0, 455.0, 500.0, 500.0, 500.0, 1500.0]',
+    current_command_process = ExecuteProcess(
+        name='current_command_process',
+        cmd=[
+            'ros2', 'topic', 'pub',
+            '-r', '50',
+            '-t', '50',
+            '-p', '50',
+            '/arm_r_effort_controller/commands',
+            'std_msgs/msg/Float64MultiArray',
+            # 'data: [35.0, 20.0, 20.0, 20.0, 20.0, 20.0, 500.0]',
+            'data: [30.0, 22.0, 22.0, 20.0, 20.0, 20.0, 1000.0]',
+            # 'data: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',
+        ],
     )
 
-    shutdown_on_finish = RegisterEventHandler(
-        event_handler=OnProcessExit(
-            target_action=finish_monitor_node,
-            on_exit=[EmitEvent(event=Shutdown(reason='finish_monitor exited'))],
-        )
+    current_command_process2 = ExecuteProcess(
+        name='current_command_process',
+        cmd=[
+            'ros2', 'topic', 'pub',
+            '-r', '50',
+            '-t', '50',
+            '-p', '50',
+            '/arm_l_effort_controller/commands',
+            'std_msgs/msg/Float64MultiArray',
+            'data: [30.0, 22.0, 22.0, 20.0, 20.0, 20.0, 1000.0]',
+            # 'data: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',
+        ],
     )
 
     return LaunchDescription(
@@ -271,7 +302,9 @@ def generate_launch_description():
             camera_timer_20s,
             camera_timer_10s,
             head_eef_tracker_node,
-            finish_monitor_node,
-            shutdown_on_finish,
+            # finish_monitor_node,
+            # shutdown_on_finish,
+            current_command_process,
+            current_command_process2,
         ]
     )

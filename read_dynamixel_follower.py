@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read Current Limit (address 38, 2 bytes, EEPROM) from X-series Dynamixels
+"""Read Current Limit and Homing Offset from X-series Dynamixels
 on /dev/follower at 4Mbps using raw Protocol 2.0 packets via pyserial.
 
 No dynamixel-sdk required.
@@ -9,10 +9,20 @@ import struct
 import sys
 import time
 
-PORT = "/dev/leader"
+PORT = "/dev/follower"
 BAUD = 4_000_000
+
 ADDR_CURRENT_LIMIT = 38
 LEN_CURRENT_LIMIT = 2
+
+ADDR_HOMING_OFFSET = 52
+LEN_HOMING_OFFSET = 4
+
+ADDR_GEAR_RATIO_NUM = 96
+LEN_GEAR_RATIO_NUM = 4
+
+ADDR_GEAR_RATIO_DEN = 100
+LEN_GEAR_RATIO_DEN = 4
 
 # Robotis CRC-16/IBM table (poly 0x8005)
 CRC_TABLE = [
@@ -106,19 +116,64 @@ def read_register(ser, dxl_id, addr, length, timeout=0.05):
         raise RuntimeError(f"id={dxl_id} hw err 0x{err:02X}")
     return int.from_bytes(data, "little")
 
+def to_signed(value: int, byte_length: int) -> int:
+    """Convert unsigned int to signed (two's complement)."""
+    bits = byte_length * 8
+    if value >= (1 << (bits - 1)):
+        value -= (1 << bits)
+    return value
+
 def main():
     ids = [1, 2, 3, 4, 5, 6, 7, 8, 31, 32, 33, 34, 35, 36, 37, 38, 61, 62, 81]
     ser = serial.Serial(PORT, BAUD, timeout=0.05)
     print(f"Port: {PORT}  Baud: {BAUD}")
-    print(f"Reading Current Limit (addr {ADDR_CURRENT_LIMIT}, {LEN_CURRENT_LIMIT}B) from {len(ids)} IDs\n")
-    print(f"{'ID':>4}  {'Current Limit':>14}")
-    print("-" * 22)
+    print(f"Reading Current Limit (addr {ADDR_CURRENT_LIMIT}, {LEN_CURRENT_LIMIT}B), "
+          f"Homing Offset (addr {ADDR_HOMING_OFFSET}, {LEN_HOMING_OFFSET}B), "
+          f"Gear Ratio Num (addr {ADDR_GEAR_RATIO_NUM}, {LEN_GEAR_RATIO_NUM}B), "
+          f"Gear Ratio Den (addr {ADDR_GEAR_RATIO_DEN}, {LEN_GEAR_RATIO_DEN}B) "
+          f"from {len(ids)} IDs\n")
+    print(f"{'ID':>4}  {'Current Limit':>14}  {'Homing Offset':>15}  "
+          f"{'Gear Num':>12}  {'Gear Den':>12}  {'Ratio':>10}")
+    print("-" * 80)
     for did in ids:
+        # Current Limit
         try:
-            val = read_register(ser, did, ADDR_CURRENT_LIMIT, LEN_CURRENT_LIMIT)
-            print(f"{did:>4}  {val:>14}")
+            cl = read_register(ser, did, ADDR_CURRENT_LIMIT, LEN_CURRENT_LIMIT)
+            cl_str = f"{cl}"
         except Exception as e:
-            print(f"{did:>4}  {'-- ' + str(e):>14}")
+            cl_str = f"-- {e}"
+
+        # Homing Offset (signed 4 bytes)
+        try:
+            ho_raw = read_register(ser, did, ADDR_HOMING_OFFSET, LEN_HOMING_OFFSET)
+            ho = to_signed(ho_raw, LEN_HOMING_OFFSET)
+            ho_str = f"{ho}"
+        except Exception as e:
+            ho_str = f"-- {e}"
+
+        # Electronic Gear Ratio Numerator (unsigned 4 bytes)
+        gn = None
+        try:
+            gn = read_register(ser, did, ADDR_GEAR_RATIO_NUM, LEN_GEAR_RATIO_NUM)
+            gn_str = f"{gn}"
+        except Exception as e:
+            gn_str = f"-- {e}"
+
+        # Electronic Gear Ratio Denominator (unsigned 4 bytes)
+        gd = None
+        try:
+            gd = read_register(ser, did, ADDR_GEAR_RATIO_DEN, LEN_GEAR_RATIO_DEN)
+            gd_str = f"{gd}"
+        except Exception as e:
+            gd_str = f"-- {e}"
+
+        if gn is not None and gd is not None and gd != 0:
+            ratio_str = f"{gn / gd:.4f}"
+        else:
+            ratio_str = "--"
+
+        print(f"{did:>4}  {cl_str:>14}  {ho_str:>15}  "
+              f"{gn_str:>12}  {gd_str:>12}  {ratio_str:>10}")
     ser.close()
 
 if __name__ == "__main__":
