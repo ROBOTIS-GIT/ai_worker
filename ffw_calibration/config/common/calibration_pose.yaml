@@ -1,0 +1,18 @@
+# 캘리브레이션 목표 각도 (rad). ET Pose는 동일 targets 사용 (/calibration/get_config).
+targets:
+  right:
+    joint1: 0.40
+    joint2: -3.42
+    joint3: -3.87
+    joint4: 1.1915
+    joint5: 0
+    joint6: 1.92
+    joint7: -1.65
+  left:
+    joint1: 0.40
+    joint2: 3.42
+    joint3: 3.87
+    joint4: 1.1915
+    joint5: 0
+    joint6: 1.92
+    joint7: 1.65

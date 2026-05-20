@@ -1,0 +1,8 @@
+float64 duration_sec
+float64[] right_positions
+float64[] left_positions
+bool[] enable
+string label
+---
+bool success
+string message

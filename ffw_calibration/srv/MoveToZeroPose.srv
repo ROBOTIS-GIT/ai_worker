@@ -1,0 +1,8 @@
+string arm
+float64 duration_sec
+# (호환용) 길이 7이면 검증만 하고, zero pose 는 궤적만 발행한다. effort 는
+# /calibration/zero_effort 또는 /calibration/apply_effort 로 별도 제어.
+bool[] enable
+---
+bool success
+string message

@@ -1,0 +1,14 @@
+string arm
+float64[] target
+float64 duration_sec
+# 기본 false: 기존과 동일 (target 비어 있으면 전 관절 kJointEffortOn).
+# true 이면 target 은 무시하고 joint 2·4·6·7 만 kJointEffortOn, 나머지 0.
+bool effort_joint_2467_preset
+# true 이면 ramp 전에 해당 팔 궤적을 time=0·전부 0 으로 한 번 발행.
+bool instant_zero_trajectory_first
+# effort_joint_2467_preset 과 함께 true 일 때만 의미 있음. 관절 2·4·6·7 및 그 외 축은
+# ramp 시작 시점 effort 유지, 관절 1 만 kJointEffortOn[0] 까지 선형 램프.
+bool effort_hold_2467_ramp_joint1
+---
+bool success
+string message
