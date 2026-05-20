@@ -17,10 +17,11 @@
 # Authors: Sungho Woo, Woojin Wie, Wonho Yun
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, RegisterEventHandler
+from launch.actions import DeclareLaunchArgument, EmitEvent, ExecuteProcess, RegisterEventHandler
 from launch.actions import IncludeLaunchDescription, TimerAction
 from launch.conditions import IfCondition, UnlessCondition
 from launch.event_handlers import OnProcessExit
+from launch.events import Shutdown
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
@@ -133,6 +134,13 @@ def generate_launch_description():
         output='screen'
     )
 
+    ffw_joint_state_broadcaster_spawner = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=['ffw_joint_state_broadcaster'],
+        output='screen'
+    )
+
     robot_controller_spawner = Node(
         package='controller_manager',
         executable='spawner',
@@ -153,6 +161,8 @@ def generate_launch_description():
             'arm_r_controller',
             'head_controller',
             'lift_controller',
+            'arm_r_effort_controller',
+            'arm_l_effort_controller',
         ],
         parameters=[robot_description],
     )
@@ -236,16 +246,48 @@ def generate_launch_description():
         condition=IfCondition(use_head_eef_tracker),
     )
 
+    current_command_process = ExecuteProcess(
+        name='current_command_process',
+        cmd=[
+            'ros2', 'topic', 'pub',
+            '-r', '50',
+            '-t', '50',
+            '-p', '50',
+            '/arm_r_effort_controller/commands',
+            'std_msgs/msg/Float64MultiArray',
+            # 'data: [35.0, 20.0, 20.0, 20.0, 20.0, 20.0, 500.0]',
+            'data: [30.0, 22.0, 22.0, 20.0, 20.0, 20.0, 1000.0]',
+            # 'data: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',
+        ],
+    )
+
+    current_command_process2 = ExecuteProcess(
+        name='current_command_process',
+        cmd=[
+            'ros2', 'topic', 'pub',
+            '-r', '50',
+            '-t', '50',
+            '-p', '50',
+            '/arm_l_effort_controller/commands',
+            'std_msgs/msg/Float64MultiArray',
+            'data: [30.0, 22.0, 22.0, 20.0, 20.0, 20.0, 1000.0]',
+            # 'data: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',
+        ],
+    )
+
     return LaunchDescription(
         declared_arguments + [
             control_node,
             robot_state_pub_node,
             joint_state_broadcaster_spawner,
+            ffw_joint_state_broadcaster_spawner,
             delay_rviz_after_joint_state_broadcaster_spawner,
             robot_controller_spawner,
             init_position_event_handler,
             camera_timer_20s,
             camera_timer_10s,
             head_eef_tracker_node,
+            current_command_process,
+            current_command_process2,
         ]
     )
