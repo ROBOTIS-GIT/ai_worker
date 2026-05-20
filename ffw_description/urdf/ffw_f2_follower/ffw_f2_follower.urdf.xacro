@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ffw_f2_follower">
   <xacro:property name="meshes_file_direction" value="package://ffw_description/meshes/$(arg model)" />
-  <xacro:property name="swerve_meshes_dir" value="package://ffw_description/meshes/common/follower/swerve" />
+  <xacro:property name="swerve_meshes_dir" value="package://ffw_description/meshes/common/follower/ffw_f_swerve" />
   <xacro:arg name="use_sim" default="false" />
   <xacro:arg name="use_mock_hardware" default="false" />
   <xacro:arg name="mock_sensor_commands" default="false" />
@@ -49,7 +49,7 @@
   <joint name="$(arg prefix)lidar_l_joint" type="fixed">
     <parent link="$(arg prefix)base_link"/>
     <child link="$(arg prefix)lidar_l_link"/>
-    <origin xyz="-0.111881 0.240 0.34432" rpy="0 0 1.57079632679"/>
+    <origin xyz="-0.111881 0.240 0.35015" rpy="0 0 1.57079632679"/>
   </joint>
 
   <link name="$(arg prefix)lidar_l_link">
@@ -66,7 +66,7 @@
   <joint name="$(arg prefix)lidar_r_joint" type="fixed">
     <parent link="$(arg prefix)base_link"/>
     <child link="$(arg prefix)lidar_r_link"/>
-    <origin xyz="-0.111881 -0.240 0.34432" rpy="0 0 -1.57079632679"/>
+    <origin xyz="-0.111881 -0.240 0.35015" rpy="0 0 -1.57079632679"/>
   </joint>
   <!-- <link name="$(arg prefix)lidar_r_link">
   </link> -->
@@ -74,7 +74,7 @@
   <joint name="$(arg prefix)imu_joint" type="fixed">
     <parent link="$(arg prefix)base_link"/>
     <child link="$(arg prefix)imu_link"/>
-    <origin xyz="-0.1464 0.0 0.26" rpy="0 0 0"/>
+    <origin xyz="-0.189181 0.0 0.247" rpy="0 0 0"/>
   </joint>
   <link name="$(arg prefix)imu_link">
   </link>
@@ -125,7 +125,7 @@
   <xacro:ffw_f2_follower_gazebo prefix="$(arg prefix)" />
 
   <xacro:ffw_f_follower_body parent="$(arg prefix)base_link" prefix="$(arg prefix)">
-    <origin xyz="-0.0199 0 1.4316" rpy="0 0 0" />
+    <origin xyz="-0.0753807 0 1.407" rpy="0 0 0" />
   </xacro:ffw_f_follower_body>
 
   <!-- TODO: Change gripper to hx2_d1 -->
@@ -177,7 +177,7 @@
   <joint name="$(arg prefix)left_wheel_steer" type="revolute">
       <parent link="$(arg prefix)base_link"/>
       <child link="$(arg prefix)left_wheel_steer_link"/>
-      <origin xyz="0.1371 0.2554 0.27555" rpy="0 0 0"/>
+      <origin xyz="0.137119 0.2554 0.2613" rpy="0 0 0"/>
       <axis xyz="0 0 1" />
       <limit velocity="9999.0" effort="9999.0" lower="${-pi*6.0}" upper="${pi*6.0}" />
   </joint>
@@ -208,7 +208,7 @@
   <joint name="$(arg prefix)left_wheel_drive" type="continuous">
       <parent link="$(arg prefix)left_wheel_steer_link"/>
       <child link="$(arg prefix)left_wheel_drive_link"/>
-      <origin xyz="0 0 -0.18905" rpy="0 0 0"/>
+      <origin xyz="0 0 -0.1748" rpy="0 0 0"/>
       <axis xyz="0 1 0" />
       <limit velocity="9999.0" effort="9999.0"/>
   </joint>
@@ -246,7 +246,7 @@
   <joint name="$(arg prefix)right_wheel_steer" type="revolute">
       <parent link="$(arg prefix)base_link"/>
       <child link="$(arg prefix)right_wheel_steer_link"/>
-      <origin xyz="0.1371 -0.2554 0.27555" rpy="0 0 0"/>
+      <origin xyz="0.137119 -0.2554 0.2613" rpy="0 0 0"/>
       <axis xyz="0 0 1" />
       <limit velocity="9999.0" effort="9999.0" lower="${-pi*6.0}" upper="${pi*6.0}" />
   </joint>
@@ -277,7 +277,7 @@
   <joint name="$(arg prefix)right_wheel_drive" type="continuous">
       <parent link="$(arg prefix)right_wheel_steer_link"/>
       <child link="$(arg prefix)right_wheel_drive_link"/>
-      <origin xyz="0 0 -0.18905" rpy="0 0 0"/>
+      <origin xyz="0 0 -0.1748" rpy="0 0 0"/>
       <axis xyz="0 1 0" />
       <limit velocity="9999.0" effort="9999.0"/>
   </joint>
@@ -315,7 +315,7 @@
   <joint name="$(arg prefix)rear_wheel_steer" type="revolute">
       <parent link="$(arg prefix)base_link"/>
       <child link="$(arg prefix)rear_wheel_steer_link"/>
-      <origin xyz="-0.2899 0 0.27555" rpy="0 0 0"/>
+      <origin xyz="-0.288133 0 0.2613" rpy="0 0 0"/>
       <axis xyz="0 0 1" />
       <limit velocity="9999.0" effort="9999.0" lower="${-pi*6.0}" upper="${pi*6.0}" />
   </joint>
@@ -346,7 +346,7 @@
   <joint name="$(arg prefix)rear_wheel_drive" type="continuous">
       <parent link="$(arg prefix)rear_wheel_steer_link"/>
       <child link="$(arg prefix)rear_wheel_drive_link"/>
-      <origin xyz="0 0 -0.18905" rpy="0 0 0"/>
+      <origin xyz="0 0 -0.1748" rpy="0 0 0"/>
       <axis xyz="0 1 0" />
       <limit velocity="9999.0" effort="9999.0"/>
   </joint>
