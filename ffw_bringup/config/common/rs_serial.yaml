@@ -6,3 +6,11 @@
 # camera2_serial: "'335122270745'"
 camera1_serial: "'335122270624'"
 camera2_serial: "'335122272052'"
+
+
+# # intel
+# # Serial numbers for RealSense cameras
+# # Prefix with underscore (_) to force string type in ROS 2 parameter system
+# camera1_serial: _128422270387
+# camera2_serial: _128422270627
+# camera3_serial: _049522250475

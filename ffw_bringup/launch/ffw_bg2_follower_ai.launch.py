@@ -161,8 +161,6 @@ def generate_launch_description():
             'arm_r_controller',
             'head_controller',
             'lift_controller',
-            'arm_r_effort_controller',
-            'arm_l_effort_controller',
         ],
         parameters=[robot_description],
     )
@@ -261,34 +259,6 @@ def generate_launch_description():
     #     )
     # )
     # 'data: [455.0, 455.0, 455.0, 500.0, 500.0, 500.0, 1500.0]',
-    current_command_process = ExecuteProcess(
-        name='current_command_process',
-        cmd=[
-            'ros2', 'topic', 'pub',
-            '-r', '50',
-            '-t', '50',
-            '-p', '50',
-            '/arm_r_effort_controller/commands',
-            'std_msgs/msg/Float64MultiArray',
-            # 'data: [35.0, 20.0, 20.0, 20.0, 20.0, 20.0, 500.0]',
-            'data: [30.0, 22.0, 22.0, 20.0, 20.0, 20.0, 1000.0]',
-            # 'data: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',
-        ],
-    )
-
-    current_command_process2 = ExecuteProcess(
-        name='current_command_process',
-        cmd=[
-            'ros2', 'topic', 'pub',
-            '-r', '50',
-            '-t', '50',
-            '-p', '50',
-            '/arm_l_effort_controller/commands',
-            'std_msgs/msg/Float64MultiArray',
-            'data: [30.0, 22.0, 22.0, 20.0, 20.0, 20.0, 1000.0]',
-            # 'data: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',
-        ],
-    )
 
     return LaunchDescription(
         declared_arguments + [
@@ -304,7 +274,5 @@ def generate_launch_description():
             head_eef_tracker_node,
             # finish_monitor_node,
             # shutdown_on_finish,
-            current_command_process,
-            current_command_process2,
         ]
     )
