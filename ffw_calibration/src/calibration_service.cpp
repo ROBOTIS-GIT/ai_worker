@@ -1281,7 +1281,6 @@ private:
     }
 
     const auto duration = clamp_duration(request->duration_sec, default_effort_duration_sec_);
-    const bool instant_zero_traj = request->instant_zero_trajectory_first;
     const bool preset_2467 = request->effort_joint_2467_preset;
     const bool hold_2467_ramp_j1 = request->effort_hold_2467_ramp_joint1;
     const bool hold_all_ramp_j3 = request->effort_hold_all_ramp_joint3;
@@ -1297,20 +1296,12 @@ private:
     publish_status(phase, arm, "", 0.0, "task started");
 
     std::thread(
-      [this, phase, arm, duration, safety_prep, instant_zero_traj, preset_2467,
+      [this, phase, arm, duration, safety_prep, preset_2467,
        hold_2467_ramp_j1, hold_all_ramp_j3, target_effort]() {
         stop_requested_.store(false);
         std::string fail_message;
 
-        if (instant_zero_traj) {
-          const std::size_t n_traj =
-            arm == "right" ? kRightTrajectoryJoints.size() : kLeftTrajectoryJoints.size();
-          const std::vector<double> zeros(n_traj, 0.0);
-          publish_arm_trajectory(arm, zeros, nullptr, 0.0);
-          publish_status(phase, arm, "", 0.05, "instant zero trajectory");
-        }
-
-        const double ramp_prog_start = instant_zero_traj ? 0.1 : 0.0;
+        constexpr double ramp_prog_start = 0.0;
         if (safety_prep != 0) {
           ramp_effort_safety_prep_prev_joints(
             arm, safety_prep, duration, phase, ramp_prog_start, 0.99);
