@@ -1,0 +1,251 @@
+/**:
+  controller_manager:
+    ros__parameters:
+      use_sim_time: False
+      update_rate: 100  # Hz
+
+      arm_l_controller:
+        type: joint_trajectory_controller/JointTrajectoryController
+
+      arm_r_controller:
+        type: joint_trajectory_controller/JointTrajectoryController
+
+      head_controller:
+        type: joint_trajectory_controller/JointTrajectoryController
+
+      lift_controller:
+        type: joint_trajectory_controller/JointTrajectoryController
+
+      joint_state_broadcaster:
+        type: joint_state_broadcaster/JointStateBroadcaster
+
+      ffw_joint_state_broadcaster:
+        type: ffw_joint_state_broadcaster/FFWJointStateBroadcaster
+
+      swerve_drive_controller:
+        type: ffw_swerve_drive_controller/SwerveDriveController
+
+      ffw_robot_manager:
+        type: ffw_robot_manager/FfwRobotManager
+
+      swerve_steering_initial_position_controller:
+        type: joint_trajectory_controller/JointTrajectoryController
+
+/**:
+  arm_l_controller:
+    ros__parameters:
+      joints:
+        - arm_l_joint1
+        - arm_l_joint2
+        - arm_l_joint3
+        - arm_l_joint4
+        - arm_l_joint5
+        - arm_l_joint6
+        - arm_l_joint7
+        - gripper_l_joint1
+      command_interfaces:
+        - position
+      state_interfaces:
+        - position
+        - velocity
+      allow_nonzero_velocity_at_trajectory_end: true
+      allow_partial_joints_goal: true
+
+/**:
+  arm_r_controller:
+    ros__parameters:
+      joints:
+        - arm_r_joint1
+        - arm_r_joint2
+        - arm_r_joint3
+        - arm_r_joint4
+        - arm_r_joint5
+        - arm_r_joint6
+        - arm_r_joint7
+        - gripper_r_joint1
+      command_interfaces:
+        - position
+      state_interfaces:
+        - position
+        - velocity
+      allow_nonzero_velocity_at_trajectory_end: true
+      allow_partial_joints_goal: true
+
+/**:
+  head_controller:
+    ros__parameters:
+      joints:
+        - head_joint1
+        - head_joint2
+      command_interfaces:
+        - position
+      state_interfaces:
+        - position
+        - velocity
+      allow_nonzero_velocity_at_trajectory_end: true
+      allow_partial_joints_goal: true
+
+/**:
+  lift_controller:
+    ros__parameters:
+      joints:
+        - lift_joint
+      command_interfaces:
+        - position
+      state_interfaces:
+        - position
+        - velocity
+      allow_nonzero_velocity_at_trajectory_end: true
+
+/**:
+  swerve_steering_initial_position_controller:
+    ros__parameters:
+      joints:
+        - left_wheel_steer
+        - right_wheel_steer
+        - rear_wheel_steer
+      command_interfaces:
+        - position
+      state_interfaces:
+        - position
+        - velocity
+      allow_nonzero_velocity_at_trajectory_end: true
+      allow_partial_joints_goal: true
+
+/**:
+  swerve_drive_controller:
+    ros__parameters:
+      steering_joint_names: ["left_wheel_steer", "right_wheel_steer", "rear_wheel_steer"]
+
+      wheel_joint_names: ["left_wheel_drive", "right_wheel_drive", "rear_wheel_drive"]
+
+      wheel_radius: 0.0825 # [m]
+      cmd_vel_timeout: 1.0  # [sec]
+
+      module_x_offsets: [ 0.1371,  0.1371, -0.2899] # x-distance between base_link and steering angle joint [m]  =>
+      module_y_offsets: [ 0.2554, -0.2554,  0.0] # y-distance between base_link and steering angle joint [m]
+      module_angle_offsets: [ 0.0, 0.0, 0.0] # initial angle difference between base_link and steering angle joint [rad]
+      module_steering_limit_lower: [ -6.28, -6.28, -6.28] # minimum steering angle [rad]
+      module_steering_limit_upper: [  6.28,  6.28,  6.28] # maximum steering angle [rad]
+      steering_to_wheel_y_offsets: [ 0.0, -0.0, 0.0 ] # offset between steering angle joint and wheel joint (Y-axis) [m]
+
+      module_wheel_speed_limit_lower: [ -50.0, -50.0, -50.0 ] # wheel speed [rad/s] => x * wheel_radius [m/s]
+      module_wheel_speed_limit_upper: [ 50.0, 50.0, 50.0 ] # wheel speed  [rad/s]
+
+      # Steering control parameters
+      enabled_steering_flip: true # select the shortest steering direciton or not, true or false
+      enabled_steering_angular_velocity_limit: true # select the shortest steering direciton or not, true or false
+      steering_angular_velocity_limit: 100.0 # steering angular velocity [rad/s]
+
+      steering_alignment_angle_error_threshold: 1.0 # wheel stop when the difference b/w current steering angle and target steering angle is below it # [rad] => x * 57.2958 [deg]
+      steering_alignment_start_angle_error_threshold: 0.01
+      steering_alignment_start_speed_error_threshold: 0.1
+      enabled_open_loop: false # use open-loop control or not, true or false
+
+      # Wheel control parameters
+      enabled_wheel_saturation_scaling: true # adjust wheel scaling factor when wheel speed reaches maximum speed # true or false
+
+      # odometry
+      odom_solver_method: "svd"
+      odom_integration_method: "euler"
+      odom_source: "feedback"
+      base_frame_id: "base_link"
+      odom_frame_id: "odom"
+      enable_odom_tf: true
+      pose_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
+      twist_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
+      velocity_rolling_window_size: 10
+
+      # visualization
+      enable_visualization: true
+      visualization_marker_topic: "swerve_visualization_markers"
+      visualization_update_time: 0.10 # [sec]
+
+      # Diagnostics
+      enable_direct_joint_commands: false
+      direct_joint_command_timeout_sec: 1.0  # [sec]
+      direct_joint_command_topic: "~/direct_joint_commands"
+
+      enabled_steering_angular_limit: false
+
+      # Velocity and acceleration limits
+      # Whenever a min_* is unspecified, default to -max_*
+      enabled_speed_limits: false
+      publish_limited_velocity: true
+      linear:
+        x:
+          has_velocity_limits    : true
+          max_velocity           : 1.50  # m/s
+          min_velocity           : -1.50 # m/s
+          has_acceleration_limits: true
+          max_acceleration       : 0.50  # m/s^2
+          min_acceleration       : -0.50 # m/s^2
+          has_jerk_limits        : true
+          max_jerk               : 1.0  # m/s^3
+          min_jerk               : -1.0  # m/s^3
+        y:
+          has_velocity_limits    : true
+          max_velocity           : 1.50  # m/s
+          min_velocity           : -1.50 # m/s
+          has_acceleration_limits: true
+          max_acceleration       : 0.50  # m/s^2
+          min_acceleration       : -0.50 # m/s^2
+          has_jerk_limits        : true
+          max_jerk               : 1.0  # m/s^3
+          min_jerk               : -1.0  # m/s^3
+      angular:
+        z:
+          has_velocity_limits    : false
+          max_velocity           : 1.7  # rad/s
+          has_acceleration_limits: true
+          max_acceleration       : 1.5  # rad/s^2
+          has_jerk_limits        : true
+          max_jerk               : 3.0  # rad/s^3
+
+/**:
+  ffw_joint_state_broadcaster:
+    ros__parameters:
+      joint_group_names:
+        - arm_left_follower
+        - arm_right_follower
+        - head_follower
+        - lift_follower
+      joint_groups:
+        arm_left_follower:
+          topic_name: "/robot/arm_left_follower/joint_states"
+          joints:
+            - arm_l_joint1
+            - arm_l_joint2
+            - arm_l_joint3
+            - arm_l_joint4
+            - arm_l_joint5
+            - arm_l_joint6
+            - arm_l_joint7
+            - gripper_l_joint1
+        arm_right_follower:
+          topic_name: "/robot/arm_right_follower/joint_states"
+          joints:
+            - arm_r_joint1
+            - arm_r_joint2
+            - arm_r_joint3
+            - arm_r_joint4
+            - arm_r_joint5
+            - arm_r_joint6
+            - arm_r_joint7
+            - gripper_r_joint1
+        head_follower:
+          topic_name: "/robot/head_follower/joint_states"
+          joints:
+            - head_joint1
+            - head_joint2
+        lift_follower:
+          topic_name: "/robot/lift_follower/joint_states"
+          joints:
+            - lift_joint
+
+/**:
+  ffw_robot_manager:
+    ros__parameters:
+      disable_torque_on_error: false
+      set_led_error_on_error: true
+      ffw_type: ffw_sg2_rev1

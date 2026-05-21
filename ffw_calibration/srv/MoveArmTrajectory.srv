@@ -1,0 +1,10 @@
+string arm
+float64 duration_sec
+# true: 한 팔 preset 궤적(4번 −90°, 나머지 0). arm 은 right 또는 left 만.
+# false: 아래 배열로 궤적(해당 팔만 검증).
+bool use_mid_zero_target
+float64[] right_targets
+float64[] left_targets
+---
+bool success
+string message

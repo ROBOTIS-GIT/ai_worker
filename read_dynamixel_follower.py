@@ -16,7 +16,9 @@ ADDR_CURRENT_LIMIT = 38
 LEN_CURRENT_LIMIT = 2
 
 ADDR_HOMING_OFFSET = 52
+ADDR_HOMING_OFFSET_JOINT7 = 20
 LEN_HOMING_OFFSET = 4
+JOINT7_DXL_IDS = frozenset({7, 37})
 
 ADDR_GEAR_RATIO_NUM = 96
 LEN_GEAR_RATIO_NUM = 4
@@ -116,6 +118,11 @@ def read_register(ser, dxl_id, addr, length, timeout=0.05):
         raise RuntimeError(f"id={dxl_id} hw err 0x{err:02X}")
     return int.from_bytes(data, "little")
 
+def homing_offset_addr(dxl_id: int) -> int:
+    """Joint 7 (dxl7 / dxl37) uses control-table addr 20; others use 52."""
+    return ADDR_HOMING_OFFSET_JOINT7 if dxl_id in JOINT7_DXL_IDS else ADDR_HOMING_OFFSET
+
+
 def to_signed(value: int, byte_length: int) -> int:
     """Convert unsigned int to signed (two's complement)."""
     bits = byte_length * 8
@@ -128,7 +135,8 @@ def main():
     ser = serial.Serial(PORT, BAUD, timeout=0.05)
     print(f"Port: {PORT}  Baud: {BAUD}")
     print(f"Reading Current Limit (addr {ADDR_CURRENT_LIMIT}, {LEN_CURRENT_LIMIT}B), "
-          f"Homing Offset (addr {ADDR_HOMING_OFFSET}, {LEN_HOMING_OFFSET}B), "
+          f"Homing Offset (addr {ADDR_HOMING_OFFSET} or {ADDR_HOMING_OFFSET_JOINT7} "
+          f"for joint7 IDs {sorted(JOINT7_DXL_IDS)}, {LEN_HOMING_OFFSET}B), "
           f"Gear Ratio Num (addr {ADDR_GEAR_RATIO_NUM}, {LEN_GEAR_RATIO_NUM}B), "
           f"Gear Ratio Den (addr {ADDR_GEAR_RATIO_DEN}, {LEN_GEAR_RATIO_DEN}B) "
           f"from {len(ids)} IDs\n")
@@ -145,7 +153,8 @@ def main():
 
         # Homing Offset (signed 4 bytes)
         try:
-            ho_raw = read_register(ser, did, ADDR_HOMING_OFFSET, LEN_HOMING_OFFSET)
+            ho_addr = homing_offset_addr(did)
+            ho_raw = read_register(ser, did, ho_addr, LEN_HOMING_OFFSET)
             ho = to_signed(ho_raw, LEN_HOMING_OFFSET)
             ho_str = f"{ho}"
         except Exception as e:

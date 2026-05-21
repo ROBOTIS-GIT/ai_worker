@@ -1,0 +1,6 @@
+---
+bool success
+string message
+string[] joint_names
+string[] gpio_keys
+float64[] target_rads

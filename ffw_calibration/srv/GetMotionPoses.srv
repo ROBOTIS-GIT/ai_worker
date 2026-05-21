@@ -1,0 +1,15 @@
+---
+bool success
+string message
+float64 zero_pose_duration_sec
+float64 et_pose_duration_sec
+float64[8] zero_pose_right
+float64[8] zero_pose_left
+bool lift_up_defined
+float64 lift_up_duration_sec
+float64[8] lift_up_right
+float64[8] lift_up_left
+bool lift_down_defined
+float64 lift_down_duration_sec
+float64[8] lift_down_right
+float64[8] lift_down_left

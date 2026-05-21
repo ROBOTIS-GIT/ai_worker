@@ -1,0 +1,8 @@
+---
+bool success
+string message
+float64 default_duration_sec
+float64[28] pose_duration_sec
+bool[28] defined
+float64[224] right_targets
+float64[224] left_targets

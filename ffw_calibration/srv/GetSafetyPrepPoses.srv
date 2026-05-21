@@ -1,0 +1,12 @@
+---
+bool success
+string message
+float64 before_joint1_duration_sec
+float64[8] before_joint1_right
+float64[8] before_joint1_left
+float64 before_joint3_duration_sec
+float64[8] before_joint3_right
+float64[8] before_joint3_left
+float64 before_joint5_duration_sec
+float64[8] before_joint5_right
+float64[8] before_joint5_left
