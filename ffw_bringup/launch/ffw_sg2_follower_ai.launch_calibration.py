@@ -31,7 +31,7 @@ from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-
+from launch.actions import ExecuteProcess
 
 def generate_launch_description():
     declared_arguments = [
@@ -176,9 +176,9 @@ def generate_launch_description():
             'arm_r_controller',
             'head_controller',
             'lift_controller',
-            'ffw_robot_manager'
+            'ffw_robot_manager',
             'arm_r_effort_controller',
-            'arm_l_effort_controller',
+            'arm_l_effort_controller'
         ],
         parameters=[robot_description],
     )
