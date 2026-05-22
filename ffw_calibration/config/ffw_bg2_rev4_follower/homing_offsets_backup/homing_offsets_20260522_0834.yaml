@@ -5,22 +5,21 @@ metadata:
 
 offsets:  # bit values
   # RIGHT ARM
-  dxl1: 32768                # arm_r_joint1
+  dxl1: 0                # arm_r_joint1
   dxl2: 0                # arm_r_joint2
-  dxl3: 32768                # arm_r_joint3
+  dxl3: 0                # arm_r_joint3
   dxl4: 0                # arm_r_joint4
   dxl5: 0                # arm_r_joint5
   dxl6: 0                # arm_r_joint6
-  dxl7: -151875                # arm_r_joint7
+  dxl7: 0                # arm_r_joint7
 
   # LEFT ARM
-  dxl31: 32768               # arm_l_joint1
+  dxl31: 0               # arm_l_joint1
   dxl32: 0              # arm_l_joint2
-  dxl33: 32768               # arm_l_joint3
+  dxl33: 0               # arm_l_joint3
   dxl34: 0               # arm_l_joint4
   dxl35: 0               # arm_l_joint5
   dxl36: 0               # arm_l_joint6
-  dxl37: -151875               # arm_l_joint7
+  dxl37: 0               # arm_l_joint7
 
-  #32768, -151875
-  #right 1, left 2, 7은 부호 반대로 넣어야 하나
+  #32768

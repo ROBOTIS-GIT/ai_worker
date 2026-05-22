@@ -375,9 +375,9 @@ def generate_launch_description():
             '-p', '50',
             '/arm_r_effort_controller/commands',
             'std_msgs/msg/Float64MultiArray',
-            'data: [22.4, 22.4, 22.4, 20.80, 20.80, 20.80, 0]',
+            # 'data: [30, 25, 25, 20, 20, 20, 1000]',
             # 'data: [2240, 2240, 2240, 2080, 2080, 2080, 1500]',
-            # 'data: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',
+            'data: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',
         ],
     )
 
@@ -390,8 +390,8 @@ def generate_launch_description():
             '-p', '50',
             '/arm_l_effort_controller/commands',
             'std_msgs/msg/Float64MultiArray',
-            'data: [100, 120, 120, 100, 100, 10, 0]',
-            # 'data: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',
+            # 'data: [30, 25, 25, 20, 20, 20, 1000]',
+            'data: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',
         ],
     )
 

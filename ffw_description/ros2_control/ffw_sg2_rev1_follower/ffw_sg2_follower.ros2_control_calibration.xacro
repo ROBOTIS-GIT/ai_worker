@@ -22,10 +22,14 @@
             <param name="number_of_joints">22</param>
             <param name="number_of_transmissions">22</param>
             <param name="disable_torque_at_init">true</param>
-            <param name="dynamixel_state_pub_msg_name">ffw_follower/dxl_state</param>
+            <!-- <param name="dynamixel_state_pub_msg_name">ffw_follower/dxl_state</param>
             <param name="get_dynamixel_data_srv_name">ffw_follower/get_dxl_data</param>
             <param name="set_dynamixel_data_srv_name">ffw_follower/set_dxl_data</param>
-            <param name="reboot_dxl_srv_name">ffw_follower/reboot_dxl</param>
+            <param name="reboot_dxl_srv_name">ffw_follower/reboot_dxl</param> -->
+            <param name="dynamixel_state_pub_msg_name">dynamixel_hardware_interface/dxl_state</param>
+            <param name="get_dynamixel_data_srv_name">dynamixel_hardware_interface/get_dxl_data</param>
+            <param name="set_dynamixel_data_srv_name">dynamixel_hardware_interface/set_dxl_data</param>
+            <param name="reboot_dxl_srv_name">dynamixel_hardware_interface/reboot_dxl</param>
             <param name="set_dxl_torque_srv_name">dynamixel_hardware_interface/set_dxl_torque</param>
           </xacro:unless>
         </hardware>
