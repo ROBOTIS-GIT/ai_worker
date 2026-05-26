@@ -4,11 +4,17 @@ camera1_serial: "'335122270624'"
 camera2_serial: "'335122272052'"
 
 
+# # 1022
+# camera1_serial: "'230422272973'"
+# camera2_serial: "'230322270437'"
+
 # # 1107
 # camera1_serial: "'335122273183'"
 # camera2_serial: "'315122271771'"
 
-
+# # 1110
+# camera1_serial: "'335122272376'"
+# camera2_serial: "'335122271144'"
 
 # # intel
 # # Serial numbers for RealSense cameras

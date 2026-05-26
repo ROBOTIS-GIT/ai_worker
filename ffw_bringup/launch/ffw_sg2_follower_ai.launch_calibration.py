@@ -53,7 +53,7 @@ def generate_launch_description():
                               description='Whether to launch the init_position node.'),
         DeclareLaunchArgument('model', default_value='ffw_sg2_rev1_follower',
                               description='Robot model name.'),
-        DeclareLaunchArgument('use_head_eef_tracker', default_value='true',
+        DeclareLaunchArgument('use_head_eef_tracker', default_value='false',
                               description='Whether to launch the head EEF tracker node.'),
         DeclareLaunchArgument(
             'init_position_file',
@@ -375,9 +375,9 @@ def generate_launch_description():
             '-p', '50',
             '/arm_r_effort_controller/commands',
             'std_msgs/msg/Float64MultiArray',
-            # 'data: [30, 25, 25, 20, 20, 20, 1000]',
+            'data: [30, 25, 25, 20, 20, 20, 1000]',
             # 'data: [2240, 2240, 2240, 2080, 2080, 2080, 1500]',
-            'data: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',
+            # 'data: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',
         ],
     )
 
@@ -390,8 +390,8 @@ def generate_launch_description():
             '-p', '50',
             '/arm_l_effort_controller/commands',
             'std_msgs/msg/Float64MultiArray',
-            # 'data: [30, 25, 25, 20, 20, 20, 1000]',
-            'data: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',
+            'data: [30, 25, 25, 20, 20, 20, 1000]',
+            # 'data: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',
         ],
     )
 
