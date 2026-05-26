@@ -5,21 +5,21 @@ metadata:
 
 offsets:  # bit values
   # RIGHT ARM
-  dxl1: 34809                # arm_r_joint1
-  dxl2: 476                # arm_r_joint2
-  dxl3: 32919                # arm_r_joint3
-  dxl4: 124                # arm_r_joint4
+  dxl1: 34321                # arm_r_joint1
+  dxl2: 714                # arm_r_joint2
+  dxl3: 32134                # arm_r_joint3
+  dxl4: 684                # arm_r_joint4
   dxl5: 0                # arm_r_joint5
-  dxl6: -321                # arm_r_joint6
-  dxl7: 207                # arm_r_joint7
+  dxl6: 214                # arm_r_joint6
+  dxl7: -2066                # arm_r_joint7
 
   # LEFT ARM
-  dxl31: 31029               # arm_l_joint1
-  dxl32: -170              # arm_l_joint2
-  dxl33: 33620               # arm_l_joint3
-  dxl34: 581               # arm_l_joint4
+  dxl31: 30413               # arm_l_joint1
+  dxl32: -423              # arm_l_joint2
+  dxl33: 32993               # arm_l_joint3
+  dxl34: 112               # arm_l_joint4
   dxl35: 0               # arm_l_joint5
-  dxl36: -38               # arm_l_joint6
-  dxl37: -256               # arm_l_joint7
+  dxl36: 586               # arm_l_joint6
+  dxl37: -182               # arm_l_joint7
 
   #32768
