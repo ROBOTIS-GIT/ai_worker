@@ -75,7 +75,7 @@ double JoystickController::normalize_joystick_value(double raw_adc, bool is_tact
     return 0.0;
   }
 
-  // Normalize after deadzone
+  // Normalize after deadzone, normalized_value = [-1,1]
   if (normalized_value > 0) {
     normalized_value = (normalized_value - deadzone) / (1.0 - deadzone);
   } else {
@@ -501,12 +501,18 @@ controller_interface::return_type JoystickController::update(
     if (
       joystick_update_enabled && !current_joint_states_.name.empty() && !controlled_joints.empty())
     {
-      std::vector<double> positions = calculate_joint_positions(
-        controlled_joints, sensor_name, joystick_values);
-      // Update last active positions with new positions
-      for (size_t i = 0; i < positions.size() && i < last_active_positions.size(); ++i) {
-        last_active_positions[i] = positions[i];
+      std::vector<double> positions;
+
+      if (any_sensorxel_joy_active) {
+        positions = calculate_joint_positions(
+          controlled_joints, sensor_name, joystick_values);
+        for (size_t i = 0; i < positions.size() && i < last_active_positions.size(); ++i) {
+          last_active_positions[i] = positions[i];
+        }
+      } else {
+        positions = last_active_positions;
       }
+
       publish_joint_trajectory(controlled_joints, positions, sensor_name);
     }
 
