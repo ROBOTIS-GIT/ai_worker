@@ -21,7 +21,7 @@
           </xacro:if>
           <xacro:unless value="${use_mock_hardware}">
             <plugin>dynamixel_hardware_interface/DynamixelHardware</plugin>
-            <param name="port_name">/dev/serial/by-id/usb-ROBOTIS_OpenRB-150_00000001-if00</param>
+            <param name="port_name">/dev/right_leader</param>
             <param name="baud_rate">1000000</param>
             <param name="dynamixel_model_folder">/param/dxl_model</param>
             <param name="number_of_joints">8</param>
@@ -40,7 +40,7 @@
               0, 0, 0, 0, 1, 0, 0, 0,
               0, 0, 0, 0, 0, 1, 0, 0,
               0, 0, 0, 0, 0, 0, 2.0, 0,
-              0, 0, 0, 0, 0, 0, 0, 1
+              0, 0, 0, 0, 0, 0, 0, 2.0
             </param>
           </xacro:unless>
         </hardware>
