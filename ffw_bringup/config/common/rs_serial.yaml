@@ -1,21 +1,27 @@
-# Serial numbers for RealSense cameras
-# You can add or modify serial numbers as needed
-camera1_serial: "'335122270624'"
-camera2_serial: "'335122272052'"
+# RealSense camera serials per machine.
+# Key must match: hostname -s  (see camera_realsense.launch.py)
 
-#test git
+# Used when hostname is not listed under hosts (optional fallback)
+default:
+  camera1_serial: "'335122270624'"
+  camera2_serial: "'335122272052'"
 
-# # 1022
-# camera1_serial: "'230422272973'"
-# camera2_serial: "'230322270437'"
+# To find your hostname, enter "hostname" in the CLI. And add it to the list below.
+hosts:
+  ffw-SNPR48A1022:
+    camera1_serial: "'230422272973'"
+    camera2_serial: "'230322270437'"
 
-# # 1107
-# camera1_serial: "'335122273183'"
-# camera2_serial: "'315122271771'"
+  ffw-SNPR48A1107:
+    camera1_serial: "'335122273183'"
+    camera2_serial: "'315122271771'"
 
-# # 1110
-# camera1_serial: "'335122272376'"
-# camera2_serial: "'335122271144'"
+  ffw-SNPR48A1110:
+    camera1_serial: "'335122272376'"
+    camera2_serial: "'335122271144'"
+
+
+
 
 # # intel
 # # Serial numbers for RealSense cameras

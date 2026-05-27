@@ -53,8 +53,10 @@ def yaml_to_dict(path_to_yaml):
 serials_path = os.path.join(get_package_share_directory('ffw_bringup'), 'config', 'common',
                             'rs_serial.yaml')
 serials = yaml_to_dict(serials_path)
-serial1 = serials.get('camera1_serial')
-serial2 = serials.get('camera2_serial')
+host = socket.gethostname().split('.')[0]
+host_serials = serials.get('hosts', {}).get(host) or serials.get('default', serials)
+serial1 = host_serials.get('camera1_serial')
+serial2 = host_serials.get('camera2_serial')
 
 local_parameters = [{'name': 'camera_name1', 'default': 'camera_left',
                      'description': 'camera1 unique name'},
