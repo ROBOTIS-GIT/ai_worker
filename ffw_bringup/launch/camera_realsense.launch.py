@@ -42,6 +42,7 @@ realsense2_camera_launch_dir = os.path.join(get_package_share_directory('realsen
 sys.path.append(realsense2_camera_launch_dir)
 import rs_launch  # noqa: E402, I100
 
+import socket
 
 # Utility function to load YAML as dict
 def yaml_to_dict(path_to_yaml):
