@@ -13,8 +13,8 @@
       trigger_position_controller:
         type: position_controllers/JointGroupPositionController
 
-      leader_position_controller:
-        type: position_controllers/JointGroupPositionController
+      # leader_position_controller:
+      #   type: position_controllers/JointGroupPositionController
 
       joystick_controller:
         type: joystick_controller/JoystickController
@@ -78,25 +78,25 @@
         - gripper_r_joint1
         - gripper_l_joint1
 
-/**:
-  leader_position_controller:
-    ros__parameters:
-      # NOTE: keep this list in sync with leader_position_command_joints above
-      joints:
-        - arm_r_joint1
-        - arm_r_joint2
-        - arm_r_joint3
-        - arm_r_joint4
-        - arm_r_joint5
-        - arm_r_joint6
-        - arm_r_joint7
-        - arm_l_joint1
-        - arm_l_joint2
-        - arm_l_joint3
-        - arm_l_joint4
-        - arm_l_joint5
-        - arm_l_joint6
-        - arm_l_joint7
+# /**:
+#   leader_position_controller:
+#     ros__parameters:
+#       # NOTE: keep this list in sync with leader_position_command_joints above
+#       joints:
+#         - arm_r_joint1
+#         - arm_r_joint2
+#         - arm_r_joint3
+#         - arm_r_joint4
+#         - arm_r_joint5
+#         - arm_r_joint6
+#         - arm_r_joint7
+#         - arm_l_joint1
+#         - arm_l_joint2
+#         - arm_l_joint3
+#         - arm_l_joint4
+#         - arm_l_joint5
+#         - arm_l_joint6
+#         - arm_l_joint7
 
 /**:
   joystick_controller:
