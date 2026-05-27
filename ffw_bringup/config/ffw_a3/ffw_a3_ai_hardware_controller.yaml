@@ -106,7 +106,7 @@
       sensorxel_r_joy_controlled_joints:
         - lift_joint
       joint_states_topic: "/joint_states"
-      sensorxel_l_joy_joint_trajectory_topic: "/leader/joystick_controller_left/joint_trajectory"
+      sensorxel_l_joy_joint_trajectory_topic: "/leader/joystick_controller_left/joint_trajectory_"
       sensorxel_r_joy_joint_trajectory_topic: "/leader/joystick_controller_right/joint_trajectory"
       sensorxel_l_joy_joint_states_stamped_topic: "/robot/head_leader/joint_states"
       sensorxel_r_joy_joint_states_stamped_topic: "/robot/lift_leader/joint_states"
