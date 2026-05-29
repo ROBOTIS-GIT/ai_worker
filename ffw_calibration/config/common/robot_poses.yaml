@@ -10,14 +10,15 @@ common:
   et_pose:
     duration_sec: 10
 
-  # lift_up:
-  #   duration_sec: 3
-  #   right: [0, 0, 0, 0, 0, 0, 0, 0]
-  #   left: [0, 0, 0, 0, 0, 0, 0, 0]
-  # lift_down:
-  #   duration_sec: 3
-  #   right: [0, 0, 0, 0, 0, 0, 0, 0]
-  #   left: [0, 0, 0, 0, 0, 0, 0, 0]
+  lift_up:
+    duration_sec: 3
+    right: [0, 0, 0, 0, 0, 0, 0, 0]
+    left: [0, 0, 0, 0, 0, 0, 0, 0]
+
+  lift_down:
+    duration_sec: 3
+    right: [0, 0, 0, 0, 0, 0, 0, 0]
+    left: [0, 0, 0, 0, 0, 0, 0, 0]
 
 safety:
   before_joint1:
@@ -41,15 +42,125 @@ test:
   joint1:
     pose1:
       duration_sec: 6
-      right: [-0.3926990817, 0, -0.3926990817, 0, 0, 0, 0, 0]
-      left: [0.3926990817, 0, -0.3926990817, 0, 0, 0, 0, 0]
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
     pose2:
       duration_sec: 6
-      right: [0.62277, -0.60744, 0.05214, -2.22581, -0.19021, 0.13343, 0.63961, 0.0]
-      left: [0.62277, 0.60744, 0.05214, -2.22581, 0.19021, 0.13343, -0.63961, 0.0]
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+    pose3:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+    pose4:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
 
-  # joint2:
-  #   pose1:
-  #     duration_sec: 6
-  #     right: [0, 0, 0, 0, 0, 0, 0, 0]
-  #     left: [0, 0, 0, 0, 0, 0, 0, 0]
+  joint2:
+    pose1:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+    pose2:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+    pose3:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+    pose4:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+
+  joint3:
+    pose1:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+    pose2:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+    pose3:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+    pose4:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+
+  joint4:
+    pose1:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+    pose2:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+    pose3:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+    pose4:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+
+  joint5:
+    pose1:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+    pose2:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+    pose3:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+    pose4:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+
+  joint6:
+    pose1:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+    pose2:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+    pose3:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+    pose4:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+
+  joint7:
+    pose1:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+    pose2:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+    pose3:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]
+    pose4:
+      duration_sec: 6
+      right: [0, 0, 0, 0, 0, 0, 0, 0]
+      left: [0, 0, 0, 0, 0, 0, 0, 0]

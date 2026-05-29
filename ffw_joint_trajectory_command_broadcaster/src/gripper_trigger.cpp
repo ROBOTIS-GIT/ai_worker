@@ -24,7 +24,7 @@ public:
   GripperTrigger()
   : rclcpp::Node("gripper_trigger")
   {
-    gripper_threshold_ = declare_parameter<double>("gripper_threshold", -2.7);
+    gripper_threshold_ = declare_parameter<double>("gripper_threshold", -0.7);
     save_pose_id_ = static_cast<uint8_t>(
       declare_parameter<int>("save_pose_id", 3));
 

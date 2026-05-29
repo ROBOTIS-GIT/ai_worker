@@ -6,6 +6,7 @@
   echo "# alias zenoh='ros2 run rmw_zenoh_cpp rmw_zenohd'"
   echo ''
   echo "alias ws='cd ~/ros2_ws && cb && source install/setup.bash'"
+  echo "alias calibration='ros2 launch ffw_calibration ffw_calibration.launch.py'"
   echo ''
   echo "alias ffw_mini_leader='ros2 launch ffw_bringup ffw_lg2_mini_leader_ai.launch.py'"
   echo "alias ffw_a3_leader='ros2 launch ffw_bringup ffw_a3_ai.launch.py'"

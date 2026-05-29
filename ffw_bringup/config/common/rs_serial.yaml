@@ -13,12 +13,20 @@ hosts:
     camera2_serial: "'230322270437'"
 
   ffw-SNPR48A1050:
-  camera1_serial: "'335122270624'"
-  camera2_serial: "'335122272052'"
+    camera1_serial: "'335122270624'"
+    camera2_serial: "'335122272052'"
+
+  ffw-SNPR48A1085:
+    camera1_serial: "'335122270562'"
+    camera2_serial: "'335122272198'"
 
   ffw-SNPR48A1107:
     camera1_serial: "'335122273183'"
     camera2_serial: "'315122271771'"
+
+  ffw-SNPR48A1109:
+    camera1_serial: "'335122271364'"
+    camera2_serial: "'335122273200'"
 
   ffw-SNPR48A1110:
     camera1_serial: "'335122272376'"

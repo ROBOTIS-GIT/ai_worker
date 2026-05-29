@@ -22,6 +22,9 @@ const JOINT_ORDER = [
   'arm_l_joint5',
 ] as const
 
+/** Head joints (UI only; calibration flow not wired yet) */
+const HEAD_JOINT_ORDER = ['head_joint1', 'head_joint2'] as const
+
 type SafetyStage = 'before_joint1' | 'before_joint3' | 'before_joint5'
 
 type PendingSafety = {
@@ -1685,8 +1688,9 @@ function App() {
           display: 'flex',
           alignItems: 'center',
           gap: '14px',
+          width: '100%',
+          boxSizing: 'border-box',
           padding: '8px 14px',
-          margin: '2px 0',
           borderRadius: '8px',
           backgroundColor: isCurrent ? 'rgba(59, 130, 246, 0.12)' : 'transparent',
           borderLeft: isCurrent ? '3px solid #3b82f6' : '3px solid transparent',
@@ -1720,6 +1724,49 @@ function App() {
     )
   }
 
+  const renderHeadJoint = (joint: string) => {
+    const shortName = joint.replace(/^head_/, '')
+
+    return (
+      <div
+        key={joint}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '14px',
+          width: '100%',
+          boxSizing: 'border-box',
+          padding: '8px 14px',
+          borderRadius: '8px',
+          borderLeft: '3px solid transparent',
+          opacity: 0.72,
+        }}
+      >
+        <span
+          style={{
+            width: '10px',
+            height: '10px',
+            borderRadius: '50%',
+            backgroundColor: 'transparent',
+            border: '2px solid #525252',
+            boxSizing: 'border-box',
+            flexShrink: 0,
+          }}
+        />
+        <span
+          style={{
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+            fontSize: '14px',
+            color: '#9ca3af',
+            fontWeight: 400,
+          }}
+        >
+          {shortName}
+        </span>
+      </div>
+    )
+  }
+
   const sectionHeader = (label: string, compact = false) => (
     <div
       style={{
@@ -1729,11 +1776,34 @@ function App() {
         color: '#9ca3af',
         padding: compact ? '0 4px' : '0 14px',
         marginBottom: '4px',
+        flexShrink: 0,
       }}
     >
       {label}
     </div>
   )
+
+  /** 팔별 joint list: 확대/축소 시에도 패널 높이를 균등하게 채움 */
+  const jointArmListBlock: CSSProperties = {
+    flex: 1,
+    minHeight: 0,
+    display: 'flex',
+    flexDirection: 'column',
+  }
+  const jointArmListRows: CSSProperties = {
+    flex: 1,
+    minHeight: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px',
+  }
+  const jointArmListRowSlot: CSSProperties = {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    minHeight: 0,
+    width: '100%',
+  }
 
   /** 오른쪽 상태 패널: 숫자 열(STATE·CAP·Δ)은 고정 폭으로 붙여 표시 */
   const STATE_PANEL_JOINT_COL_W = 40
@@ -1832,7 +1902,7 @@ function App() {
   ]
 
   const stateColumnHeader = () => (
-    <div style={{ ...statePanelRow, marginBottom: '4px' }}>
+    <div style={{ ...statePanelRow, marginBottom: '4px', flexShrink: 0 }}>
       {STATE_PANEL_HEADERS.map(({ label, title }) => (
         <div
           key={label}
@@ -1915,7 +1985,7 @@ function App() {
         key={joint}
         style={{
           ...statePanelRow,
-          margin: '2px 0',
+          width: '100%',
           borderRadius: '8px',
           backgroundColor: isCurrent ? 'rgba(59, 130, 246, 0.12)' : 'transparent',
           borderLeftColor: isCurrent ? '#3b82f6' : 'transparent',
@@ -2033,7 +2103,7 @@ function App() {
   )
 
   const resultColumnHeader = () => (
-    <div style={{ ...resultPanelRow, marginBottom: '4px' }}>
+    <div style={{ ...resultPanelRow, marginBottom: '4px', flexShrink: 0 }}>
       <div style={resultPanelCell}>T</div>
       <div
         style={{
@@ -2077,7 +2147,7 @@ function App() {
         key={joint}
         style={{
           ...resultPanelRow,
-          margin: '2px 0',
+          width: '100%',
           borderRadius: '8px',
           backgroundColor: isCurrent ? 'rgba(59, 130, 246, 0.08)' : 'transparent',
           borderLeftColor: isCurrent ? '#3b82f6' : 'transparent',
@@ -3940,7 +4010,7 @@ function App() {
   return (
     <div
       style={{
-        padding: '32px',
+        padding: '24px 32px',
         height: '100vh',
         boxSizing: 'border-box',
         display: 'flex',
@@ -3950,14 +4020,24 @@ function App() {
     >
       <header
         style={{
-          display: 'flex',
-          alignItems: 'baseline',
-          gap: '64px',
-          marginBottom: '40px',
+          display: 'grid',
+          gridTemplateColumns: 'auto 1fr auto',
+          alignItems: 'center',
+          columnGap: '48px',
+          marginBottom: '24px',
           width: '100%',
+          flexShrink: 0,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'baseline',
+            gap: '14px',
+            flexShrink: 0,
+            whiteSpace: 'nowrap',
+          }}
+        >
           <h1
             style={{
               margin: 0,
@@ -3973,38 +4053,67 @@ function App() {
           </span>
         </div>
 
-        <nav style={{ display: 'flex', alignItems: 'center', gap: '72px', marginLeft: '48px', flexWrap: 'wrap' }}>
+        <nav
+          aria-label="캘리브레이션 단계"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexWrap: 'nowrap',
+            minWidth: 0,
+            width: '100%',
+          }}
+        >
           {TABS.map((tab, i) => {
             const isActive = tab === activeTab
             return (
               <Fragment key={tab}>
                 {i > 0 && (
                   <span
+                    aria-hidden
                     style={{
+                      flexShrink: 0,
                       color: '#e0dcdc',
                       fontSize: '20px',
+                      lineHeight: 1,
                       userSelect: 'none',
+                      padding: '0 4px',
                     }}
                   >
                     |
                   </span>
                 )}
-                <button
-                  onClick={() => setActiveTab(tab)}
+                <div
                   style={{
-                    padding: '8px 4px',
-                    fontSize: '20px',
-                    fontWeight: isActive ? 600 : 400,
-                    color: isActive ? '#3b3b3b' : '#888',
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    outline: 'none',
-                    cursor: 'pointer',
-                    transition: 'color 0.15s',
+                    flex: 1,
+                    minWidth: 0,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
                   }}
                 >
-                  {tab}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab(tab)}
+                    style={{
+                      width: '100%',
+                      maxWidth: '200px',
+                      padding: '8px 12px',
+                      fontSize: '20px',
+                      fontWeight: isActive ? 600 : 400,
+                      color: isActive ? '#3b3b3b' : '#888',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      transition: 'color 0.15s',
+                      whiteSpace: 'nowrap',
+                      textAlign: 'center',
+                    }}
+                  >
+                    {tab}
+                  </button>
+                </div>
               </Fragment>
             )
           })}
@@ -4012,25 +4121,56 @@ function App() {
 
         <div
           style={{
-            flex: 1,
-            minWidth: 0,
+            flexShrink: 0,
             display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'baseline',
-            paddingRight: '24px',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
           }}
         >
-          <span
+          <div
             style={{
-              fontSize: '25px',
-              fontWeight: 600,
-              letterSpacing: '0.02em',
-              color: '#1a1a1a',
-              opacity: 0.48,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '7px 14px',
+              borderRadius: '10px',
+              backgroundColor: '#f8fafc',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 1px 3px rgba(15, 23, 42, 0.05)',
             }}
           >
-            ROBOTIS
-          </span>
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: 700,
+                letterSpacing: '0.16em',
+                color: '#9ca3af',
+              }}
+            >
+              VERSION
+            </span>
+            <span
+              aria-hidden
+              style={{
+                width: '1px',
+                height: '14px',
+                backgroundColor: '#e2e8f0',
+                flexShrink: 0,
+              }}
+            />
+            <span
+              style={{
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                fontSize: '13px',
+                fontWeight: 600,
+                fontVariantNumeric: 'tabular-nums',
+                letterSpacing: '0.03em',
+                color: '#475569',
+              }}
+            >
+              v{__APP_VERSION__}
+            </span>
+          </div>
         </div>
       </header>
 
@@ -4047,32 +4187,70 @@ function App() {
         <section
           style={{
             minWidth: '220px',
+            flexShrink: 0,
             minHeight: 0,
-            alignSelf: stretchPanels ? 'stretch' : 'flex-start',
+            alignSelf: 'stretch',
             backgroundColor: '#1a1a1a',
             border: '1px solid #2a2a2a',
             borderRadius: '12px',
             padding: '12px 8px',
             display: 'flex',
             flexDirection: 'column',
+            boxSizing: 'border-box',
           }}
         >
-          {sectionHeader('RIGHT')}
-          {JOINT_ORDER.slice(0, firstLeftJointIdx).map((j, i) => renderJoint(j, i))}
+          <div style={jointArmListBlock}>
+            {sectionHeader('RIGHT')}
+            <div style={jointArmListRows}>
+              {JOINT_ORDER.slice(0, firstLeftJointIdx).map((j, i) => (
+                <div key={j} style={jointArmListRowSlot}>
+                  {renderJoint(j, i)}
+                </div>
+              ))}
+            </div>
+          </div>
 
           <div
             style={{
               height: '1px',
+              flexShrink: 0,
               backgroundColor: '#2a2a2a',
               margin: '10px 14px',
             }}
           />
 
-          {sectionHeader('LEFT')}
-          {JOINT_ORDER.slice(firstLeftJointIdx).map((j, i) =>
-            renderJoint(j, i + firstLeftJointIdx),
-          )}
-          <div style={{ flex: 1, minHeight: 0 }} aria-hidden />
+          <div style={jointArmListBlock}>
+            {sectionHeader('LEFT')}
+            <div style={jointArmListRows}>
+              {JOINT_ORDER.slice(firstLeftJointIdx).map((j, i) => (
+                <div key={j} style={jointArmListRowSlot}>
+                  {renderJoint(j, i + firstLeftJointIdx)}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div
+            style={{
+              height: '1px',
+              flexShrink: 0,
+              backgroundColor: '#2a2a2a',
+              margin: '10px 14px',
+            }}
+          />
+
+          <div
+            style={{
+              flexShrink: 0,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            {sectionHeader('HEAD')}
+            {HEAD_JOINT_ORDER.map(j => (
+              <div key={j}>{renderHeadJoint(j)}</div>
+            ))}
+          </div>
         </section>
 
         {/* RIGHT: tab content */}
@@ -4649,36 +4827,37 @@ function App() {
               boxSizing: 'border-box',
             }}
           >
-            <div
-              style={{
-                flex: 1,
-                minHeight: 0,
-                width: '100%',
-                maxWidth: '100%',
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-              }}
-            >
-            {sectionHeader('RIGHT', true)}
-            {stateColumnHeader()}
-            {JOINT_ORDER.slice(0, firstLeftJointIdx).map((j, i) => renderJointState(j, i))}
+            <div style={jointArmListBlock}>
+              {sectionHeader('RIGHT', true)}
+              {stateColumnHeader()}
+              <div style={jointArmListRows}>
+                {JOINT_ORDER.slice(0, firstLeftJointIdx).map((j, i) => (
+                  <div key={j} style={jointArmListRowSlot}>
+                    {renderJointState(j, i)}
+                  </div>
+                ))}
+              </div>
+            </div>
 
             <div
               style={{
                 height: '1px',
+                flexShrink: 0,
                 backgroundColor: '#e5e7eb',
                 margin: '8px 4px',
-                flexShrink: 0,
               }}
             />
 
-            {sectionHeader('LEFT', true)}
-            {stateColumnHeader()}
-            {JOINT_ORDER.slice(firstLeftJointIdx).map((j, i) =>
-              renderJointState(j, i + firstLeftJointIdx),
-            )}
+            <div style={jointArmListBlock}>
+              {sectionHeader('LEFT', true)}
+              {stateColumnHeader()}
+              <div style={jointArmListRows}>
+                {JOINT_ORDER.slice(firstLeftJointIdx).map((j, i) => (
+                  <div key={j} style={jointArmListRowSlot}>
+                    {renderJointState(j, i + firstLeftJointIdx)}
+                  </div>
+                ))}
+              </div>
             </div>
           </aside>
         )}
@@ -4701,37 +4880,37 @@ function App() {
               boxSizing: 'border-box',
             }}
           >
-            <div
-              style={{
-                flex: 1,
-                minHeight: 0,
-                width: '100%',
-                maxWidth: '100%',
-                overflow: 'visible',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-              }}
-            >
-            {sectionHeader('RIGHT', true)}
-            {resultColumnHeader()}
-            {resultArmJoints('r').map(({ joint, idx }) =>
-              renderResultJointState(joint, idx),
-            )}
+            <div style={jointArmListBlock}>
+              {sectionHeader('RIGHT', true)}
+              {resultColumnHeader()}
+              <div style={jointArmListRows}>
+                {resultArmJoints('r').map(({ joint, idx }) => (
+                  <div key={joint} style={jointArmListRowSlot}>
+                    {renderResultJointState(joint, idx)}
+                  </div>
+                ))}
+              </div>
+            </div>
 
             <div
               style={{
                 height: '1px',
+                flexShrink: 0,
                 backgroundColor: '#e5e7eb',
                 margin: '8px 4px',
               }}
             />
 
-            {sectionHeader('LEFT', true)}
-            {resultColumnHeader()}
-            {resultArmJoints('l').map(({ joint, idx }) =>
-              renderResultJointState(joint, idx),
-            )}
+            <div style={jointArmListBlock}>
+              {sectionHeader('LEFT', true)}
+              {resultColumnHeader()}
+              <div style={jointArmListRows}>
+                {resultArmJoints('l').map(({ joint, idx }) => (
+                  <div key={joint} style={jointArmListRowSlot}>
+                    {renderResultJointState(joint, idx)}
+                  </div>
+                ))}
+              </div>
             </div>
           </aside>
         )}
