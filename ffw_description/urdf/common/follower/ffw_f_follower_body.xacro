@@ -305,7 +305,7 @@
       <joint name="${prefix}arm_l_joint7" type="revolute">
          <parent link="${prefix}arm_l_link6" />
          <child link="${prefix}arm_l_link7" />
-         <origin xyz="0 -0.0007 -0.0775" rpy="0 0 0" />
+         <origin xyz="-0.00025 -0.0007 -0.0775" rpy="0 0 0" />
          <axis xyz="1 0 0" />
          <limit velocity="4.8" effort="1000" lower="-1.8201" upper="1.5804" />
          <dynamics damping="0.1" />
@@ -334,9 +334,9 @@
             izz="4.156884400e-04" />
          </inertial>
       </link>
-      <xacro:sensor_d405 parent="${prefix}arm_l_link7" use_nominal_extrinsics="false" name="${prefix}camera_l">
+      <!-- <xacro:sensor_d405 parent="${prefix}arm_l_link7" use_nominal_extrinsics="false" name="${prefix}camera_l">
          <origin xyz="0.108236 -0.021 -0.062552" rpy="-1.57079632679 1.66678943569 0"/>
-      </xacro:sensor_d405>
+      </xacro:sensor_d405> -->
 
 
       <joint name="${prefix}arm_r_joint1" type="revolute">
@@ -563,9 +563,9 @@
             izz="4.156884400e-04" />
          </inertial>
       </link>
-      <xacro:sensor_d405 parent="${prefix}arm_r_link7" use_nominal_extrinsics="false" name="${prefix}camera_r">
+      <!-- <xacro:sensor_d405 parent="${prefix}arm_r_link7" use_nominal_extrinsics="false" name="${prefix}camera_r">
          <origin xyz="0.108236 -0.021 -0.062552" rpy="-1.57079632679 1.66678943569 0"/>
-      </xacro:sensor_d405>
+      </xacro:sensor_d405> -->
 
    </xacro:macro>
 

@@ -11,8 +11,7 @@
 
   <xacro:include filename="$(find ffw_description)/urdf/common/follower/ffw_f_follower_body.xacro" />
 
-  <!-- TODO: Change gripper to hx2_d1 -->
-  <xacro:include filename="$(find ffw_description)/urdf/common/rh_p12_rn_a/rh_p12_rn_a.urdf.xacro" />
+  <xacro:include filename="$(find ffw_description)/urdf/common/hx2_d1/hx2_d1.urdf.xacro" />
 
   <xacro:include filename="$(find ffw_description)/ros2_control/$(arg model)/$(arg ros2_control_type).ros2_control.xacro" />
 
@@ -55,15 +54,14 @@
     <origin xyz="0.0055 0 1.4316" rpy="0 0 0" />
   </xacro:ffw_f_follower_body>
 
-  <!-- TODO: Change gripper to hx2_d1 -->
-  <xacro:rh_p12_rn_a parent="$(arg prefix)arm_l_link7" prefix="$(arg prefix)gripper_l_">
-    <origin xyz="0 0 -0.078" rpy="0 3.14159265359 3.14159265359"/>
-  </xacro:rh_p12_rn_a>
+  <xacro:hx2_d1 parent="$(arg prefix)arm_l_link7" prefix="$(arg prefix)gripper_l_">
+    <origin xyz="0.00025 0 -0.049" rpy="0 3.14159265359 3.14159265359"/>
+  </xacro:hx2_d1>
 
   <joint name="$(arg prefix)end_effector_l_joint" type="fixed">
     <parent link="$(arg prefix)arm_l_link7"/>
     <child link="$(arg prefix)end_effector_l_link"/>
-    <origin xyz="0 0 -0.215" rpy="0 0 0"/>
+    <origin xyz="0 0 -0.186" rpy="0 0 0"/>
   </joint>
 
   <link name="$(arg prefix)end_effector_l_link">
@@ -78,15 +76,14 @@
     </visual>
   </link>
 
-  <!-- TODO: Change gripper to hx2_d1 -->
-  <xacro:rh_p12_rn_a parent="$(arg prefix)arm_r_link7" prefix="$(arg prefix)gripper_r_">
-    <origin xyz="0 0 -0.078" rpy="0 3.14159265359 3.14159265359"/>
-  </xacro:rh_p12_rn_a>
+  <xacro:hx2_d1 parent="$(arg prefix)arm_r_link7" prefix="$(arg prefix)gripper_r_">
+    <origin xyz="0.00025 0 -0.049" rpy="0 3.14159265359 3.14159265359"/>
+  </xacro:hx2_d1>
 
   <joint name="$(arg prefix)end_effector_r_joint" type="fixed">
     <parent link="$(arg prefix)arm_r_link7"/>
     <child link="$(arg prefix)end_effector_r_link"/>
-    <origin xyz="0 0 -0.215" rpy="0 0 0"/>
+    <origin xyz="0 0 -0.186" rpy="0 0 0"/>
   </joint>
 
   <link name="$(arg prefix)end_effector_r_link">
