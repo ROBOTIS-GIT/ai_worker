@@ -35,9 +35,9 @@
       </visual>
 
       <inertial>
-        <origin xyz="0.000 0.000 0.032" rpy="0 0 0"/>
-        <mass value="0.236"/>
-        <inertia ixx="0.000001" ixy="0.0" ixz="0.0" iyy="0.000001" iyz="0.0" izz="0.000001" />
+        <origin xyz="-6.8484893e-05  0.0000000e+00  3.0231995e-02" rpy="0 0 0"/>
+        <mass value="2.1967564e-01"/>
+        <inertia ixx="1.4908617e-04" ixy="0.0" ixz="8.0082096e-07" iyy="1.1107191e-04" iyz="0.0" izz="1.5613575e-04" />
       </inertial>
     </link>
 
@@ -71,9 +71,9 @@
       </visual>
 
       <inertial>
-        <origin xyz="0.000 0.034 0.004" rpy="0 0 0"/>
-        <mass value="0.068"/>
-        <inertia ixx="0.000001" ixy="0.0" ixz="0.0" iyy="0.000001" iyz="0.0" izz="0.000001" />
+        <origin xyz="0.0000000e+00  3.3664697e-02  3.3231280e-03" rpy="0 0 0"/>
+        <mass value="2.1057910e-02"/>
+        <inertia ixx="1.1229445e-05" ixy="0.0" ixz="0.0" iyy="6.6539794e-06" iyz="-1.9651419e-06" izz="7.6921770e-06" />
       </inertial>
     </link>
 
@@ -81,7 +81,7 @@
     <joint name="${prefix}joint2" type="revolute">
       <parent link="${prefix}hx2_d1_r1"/>
       <child link="${prefix}hx2_d1_r2"/>
-      <origin xyz="0.0 0.0601042 0.0176601" rpy="0 0 0"/>
+      <origin xyz="0.0 0.0494977 0.0282667" rpy="0 0 0"/>
       <axis xyz="-1 0 0"/>
       <limit velocity="6.5" effort="1000" lower="0.0" upper="1.0" />
       <dynamics damping="0.7"/>
@@ -108,9 +108,9 @@
       </visual>
 
       <inertial>
-        <origin xyz="0.000 0.006 0.011" rpy="0 0 0"/>
-        <mass value="0.022"/>
-        <inertia ixx="0.000001" ixy="0.0" ixz="0.0" iyy="0.000001" iyz="0.0" izz="0.000001" />
+        <origin xyz="0.0000000e+00 -3.5851422e-03  2.3385920e-02" rpy="0 0 0"/>
+        <mass value="8.7352051e-02"/>
+        <inertia ixx="1.9038449e-05" ixy="0.0" ixz="0.0" iyy="2.1456514e-05" iyz="4.1006291e-06" izz="7.4235992e-06" />
       </inertial>
     </link>
 
@@ -145,9 +145,9 @@
       </visual>
 
       <inertial>
-        <origin xyz="0.000 -0.034 0.004" rpy="0 0 0"/>
-        <mass value="0.068"/>
-        <inertia ixx="0.000001" ixy="0.0" ixz="0.0" iyy="0.000001" iyz="0.0" izz="0.000001" />
+        <origin xyz="0.0000000e+00 -3.1948616e-02  1.8581523e-03" rpy="0 0 0"/>
+        <mass value="1.8933866e-02"/>
+        <inertia ixx="1.0233707e-05" ixy="0.0" ixz="0.0" iyy="6.0862054e-06" iyz="1.4864276e-06" izz="6.9498404e-06" />
       </inertial>
     </link>
 
@@ -155,7 +155,7 @@
     <joint name="${prefix}joint4" type="revolute">
       <parent link="${prefix}hx2_d1_l1"/>
       <child link="${prefix}hx2_d1_l2"/>
-      <origin xyz="0.0 -0.0601042 0.0176601" rpy="0 0 0"/>
+      <origin xyz="0.0 -0.0494977 0.0282667" rpy="0 0 0"/>
       <axis xyz="1 0 0"/>
       <limit velocity="6.5" effort="1000" lower="0.0" upper="1.0" />
       <dynamics damping="0.7"/>
@@ -182,9 +182,9 @@
       </visual>
 
       <inertial>
-        <origin xyz="0.000 -0.006 0.011" rpy="0 0 0"/>
-        <mass value="0.022"/>
-        <inertia ixx="0.000001" ixy="0.0" ixz="0.0" iyy="0.000001" iyz="0.0" izz="0.000001" />
+        <origin xyz="0.0000000e+00 -6.7070088e-03  1.1261741e-02" rpy="0 0 0"/>
+        <mass value="9.5399014e-02"/>
+        <inertia ixx="2.1847544e-05" ixy="0.0" ixz="0.0" iyy="2.4457514e-05" iyz="-3.7396106e-06" izz="8.1383191e-06" />
       </inertial>
     </link>
 
