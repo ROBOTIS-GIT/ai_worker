@@ -327,11 +327,11 @@
             </geometry>
          </collision>
          <inertial>
-            <origin xyz="2.550659300e-02 0.000000000e+00 -5.539533100e-02" />
-            <mass value="1.668563000e-01" />
-            <inertia ixx="1.035867900e-04" ixy="0.000000000e+00" ixz="1.098870100e-05"
-            iyy="4.524528700e-04" iyz="0.000000000e+00"
-            izz="4.156884400e-04" />
+            <origin xyz="5.0778477e-03  0.0000000e-03 -3.1576679e-02" />
+            <mass value="1.4594797e-01" />
+            <inertia ixx="7.6276195e-05" ixy="0.000000000e+00" ixz="6.4673549e-06"
+            iyy="2.4260619e-04" iyz="0.000000000e+00"
+            izz="2.2469260e-04" />
          </inertial>
       </link>
       <!-- <xacro:sensor_d405 parent="${prefix}arm_l_link7" use_nominal_extrinsics="false" name="${prefix}camera_l">
@@ -556,11 +556,11 @@
             </geometry>
          </collision>
          <inertial>
-            <origin xyz="2.546836200e-02 1.396001200e-03 -5.539533100e-02" />
-            <mass value="1.668563000e-01" />
-            <inertia ixx="1.046318100e-04" ixy="-1.906515900e-05" ixz="1.097223300e-05"
-            iyy="4.514078500e-04" iyz="6.013716400e-07"
-            izz="4.156884400e-04" />
+            <origin xyz="5.0778477e-03  0.0000000e-03 -3.1576679e-02" />
+            <mass value="1.4594797e-01" />
+            <inertia ixx="7.6276195e-05" ixy="0.000000000e+00" ixz="6.4673549e-06"
+            iyy="2.4260619e-04" iyz="0.000000000e+00"
+            izz="2.2469260e-04" />
          </inertial>
       </link>
       <!-- <xacro:sensor_d405 parent="${prefix}arm_r_link7" use_nominal_extrinsics="false" name="${prefix}camera_r">
