@@ -2,6 +2,11 @@
 Changelog for package ffw_bringup
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.2 (2026-06-02)
+------------------
+* Updated wheel radius parameters for SH5, SG2
+* Contributors: Howon Kim
+
 1.3.1 (2026-05-14)
 ------------------
 * Added dual_laser_merger for SH5
