@@ -3,7 +3,7 @@
 
    <xacro:macro name="ffw_f_follower_body" params="prefix parent *origin">
 
-      <xacro:include filename="$(find realsense2_description)/urdf/_d405.urdf.xacro" />
+      <xacro:include filename="$(find ffw_description)/urdf/common/follower/wrist_d401.urdf.xacro" />
       <xacro:include filename="$(find realsense2_description)/urdf/_d455.urdf.xacro" />
       <xacro:property name="meshes_file_direction" value="package://ffw_description/meshes/common/follower/ffw_f" />
 
@@ -105,7 +105,7 @@
             izz="1.9418302e-03" />
          </inertial>
       </link>
-      <!-- TODO : Modify camera name -->
+
       <xacro:sensor_d455 parent="${prefix}head_link2" use_nominal_extrinsics="false" name="${prefix}camera_head">
          <origin xyz="0.032705 0 -0.0025" rpy="0 0 0"/>
       </xacro:sensor_d455>
@@ -334,9 +334,9 @@
             izz="2.2469260e-04" />
          </inertial>
       </link>
-      <!-- <xacro:sensor_d405 parent="${prefix}arm_l_link7" use_nominal_extrinsics="false" name="${prefix}camera_l">
-         <origin xyz="0.108236 -0.021 -0.062552" rpy="-1.57079632679 1.66678943569 0"/>
-      </xacro:sensor_d405> -->
+      <xacro:wrist_d401 parent="${prefix}arm_l_link7" name="${prefix}camera_l">
+         <origin xyz="0.0275 0.0 -0.0847501" rpy="-1.57079632679 1.57079632679 0"/>
+      </xacro:wrist_d401>
 
 
       <joint name="${prefix}arm_r_joint1" type="revolute">
@@ -563,9 +563,9 @@
             izz="2.2469260e-04" />
          </inertial>
       </link>
-      <!-- <xacro:sensor_d405 parent="${prefix}arm_r_link7" use_nominal_extrinsics="false" name="${prefix}camera_r">
-         <origin xyz="0.108236 -0.021 -0.062552" rpy="-1.57079632679 1.66678943569 0"/>
-      </xacro:sensor_d405> -->
+      <xacro:wrist_d401 parent="${prefix}arm_r_link7" name="${prefix}camera_r">
+         <origin xyz="0.0275 0.0 -0.0847501" rpy="-1.57079632679 1.57079632679 0"/>
+      </xacro:wrist_d401>
 
    </xacro:macro>
 
