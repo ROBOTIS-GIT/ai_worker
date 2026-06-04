@@ -52,7 +52,7 @@
         - head_joint2
       step_names: [zero, home]
       zero: [0.0, 0.0]
-      home: [0.0, 0.0]
+      home: [0.79, 0.0]
       duration: 5.0
       position_tolerance: 0.1
       velocity_tolerance: 0.01
