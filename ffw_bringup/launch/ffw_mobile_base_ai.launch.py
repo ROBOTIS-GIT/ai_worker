@@ -83,6 +83,10 @@ def generate_launch_description():
         ' ',
         'port_name:=', port_name,
         ' ',
+        'ros2_control_model:=ffw_mobile_base',
+        ' ',
+        'ros2_control_type:=ffw_mobile_base',
+        ' ',
         'model:=', model,
     ])
 

@@ -25,4 +25,6 @@ services:
       - ./workspace:/workspace
       - ../:/root/ros2_ws/src/ai_worker/
       - /var/run/robotis/agent_sockets/ai_worker:/var/run/agent
+      - /home/robotis/cyclo_manager:/opt/cyclo_manager:ro
+      - /home/robotis/blank/ai_worker/docker/s6-services/ai_worker_bringup/run:/etc/s6-overlay/s6-rc.d/ai_worker_bringup/run:ro
     privileged: true

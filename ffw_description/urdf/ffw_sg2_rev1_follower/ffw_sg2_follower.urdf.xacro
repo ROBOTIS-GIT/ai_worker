@@ -5,15 +5,17 @@
   <xacro:arg name="use_sim" default="false" />
   <xacro:arg name="use_mock_hardware" default="false" />
   <xacro:arg name="mock_sensor_commands" default="false" />
+  <xacro:arg name="port_name" default="/dev/follower" />
   <xacro:arg name="prefix" default="" />
   <xacro:arg name="model" default="ffw_sg2_rev1_follower" />
+  <xacro:arg name="ros2_control_model" default="$(arg model)" />
   <xacro:arg name="ros2_control_type" default="ffw_sg2_follower" />
 
   <xacro:include filename="$(find ffw_description)/urdf/common/follower/ffw_follower_body.xacro" />
 
   <xacro:include filename="$(find ffw_description)/urdf/common/rh_p12_rn_a/rh_p12_rn_a.urdf.xacro" />
 
-  <xacro:include filename="$(find ffw_description)/ros2_control/$(arg model)/$(arg ros2_control_type).ros2_control.xacro" />
+  <xacro:include filename="$(find ffw_description)/ros2_control/$(arg ros2_control_model)/$(arg ros2_control_type).ros2_control.xacro" />
   <xacro:include filename="$(find ffw_description)/ros2_control/$(arg model)/ffw_sg2_base.ros2_control.xacro" />
   <xacro:include filename="$(find ffw_description)/ros2_control/$(arg model)/ffw_sg2_sensor.ros2_control.xacro" />
 
@@ -381,7 +383,8 @@
   <xacro:ffw_sg2_follower_system
     use_sim="$(arg use_sim)"
     use_mock_hardware="$(arg use_mock_hardware)"
-    mock_sensor_commands="$(arg mock_sensor_commands)"/>
+    mock_sensor_commands="$(arg mock_sensor_commands)"
+    port_name="$(arg port_name)"/>
 
   <xacro:ffw_sg2_base_system
     use_sim="$(arg use_sim)"
