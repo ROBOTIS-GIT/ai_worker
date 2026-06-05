@@ -526,17 +526,17 @@ function App() {
     if (jointNames.length === 0) {
       return []
     }
-    const offResp = await callRosService(
-      '/calibration/get_offsets',
-      'ffw_calibration/srv/GetHomingOffsets',
-      {},
+    const applyResp = await callRosService(
+      '/calibration/apply_homing_offsets',
+      'ffw_calibration/srv/ApplyHomingOffsets',
+      { joint_names: jointNames },
       15,
     )
-    if (!offResp?.success) {
-      throw new Error(offResp?.message ?? 'Homing offset 조회 실패')
+    if (!applyResp?.success) {
+      throw new Error(applyResp?.message ?? 'Homing offset YAML 적용 실패')
     }
-    const names = offResp.joint_names ?? []
-    const offsets = offResp.offsets ?? []
+    const names = applyResp.joint_names ?? []
+    const offsets = applyResp.offsets ?? []
     const targets: { joint: string; id: number; offset: number }[] = []
     for (const joint of jointNames) {
       const idx = names.indexOf(joint)
@@ -1211,7 +1211,7 @@ function App() {
   // 진행률 바는 ROS /calibration/status 토픽에서 직접 동기화한다.
   // fake 타이머는 더 이상 사용하지 않는다.
 
-  const clearJointCapture = (jointKey: string) => {
+  const clearJointCapture = async (jointKey: string) => {
     setCapturedPositions(prev => {
       const next = { ...prev }
       delete next[jointKey]
@@ -1222,6 +1222,16 @@ function App() {
       delete next[jointKey]
       return next
     })
+    try {
+      await callRosService(
+        '/calibration/clear_capture_joint',
+        'ffw_calibration/srv/ClearCaptureJoint',
+        { joint: jointKey },
+        10,
+      )
+    } catch (error) {
+      console.warn('clear_capture_joint failed:', error)
+    }
   }
 
   const resetJointToPending = (jointKey: string) => {
@@ -1232,7 +1242,7 @@ function App() {
       n[idx] = 'pending'
       return n
     })
-    clearJointCapture(jointKey)
+    void clearJointCapture(jointKey)
   }
 
   const enterSafetyPrep = (arm: 'right' | 'left', stage: SafetyStage) => {

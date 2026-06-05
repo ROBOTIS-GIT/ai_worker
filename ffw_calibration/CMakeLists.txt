@@ -20,7 +20,9 @@ set(msg_files
 
 set(srv_files
   "srv/ApplyEffort.srv"
+  "srv/ApplyHomingOffsets.srv"
   "srv/CaptureJoint.srv"
+  "srv/ClearCaptureJoint.srv"
   "srv/GetCalibrationConfig.srv"
   "srv/GetHomingOffsets.srv"
   "srv/GetTestJointPoses.srv"

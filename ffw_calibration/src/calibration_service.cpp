@@ -26,7 +26,9 @@
 
 #include "ffw_calibration/msg/calibration_status.hpp"
 #include "ffw_calibration/srv/apply_effort.hpp"
+#include "ffw_calibration/srv/apply_homing_offsets.hpp"
 #include "ffw_calibration/srv/capture_joint.hpp"
+#include "ffw_calibration/srv/clear_capture_joint.hpp"
 #include "ffw_calibration/srv/get_calibration_config.hpp"
 #include "ffw_calibration/srv/get_homing_offsets.hpp"
 #include "ffw_calibration/srv/get_motion_poses.hpp"
@@ -59,6 +61,15 @@ struct OffsetUpdate
   int old_value{0};
   int new_value{0};
   std::string message;
+};
+
+struct SessionCapture
+{
+  double measured_rad{0.0};
+  double target_rad{0.0};
+  double delta_rad{0.0};
+  int delta_pulse{0};
+  int yaml_offset{0};
 };
 
 const std::vector<std::string> kJointOrder{
@@ -507,32 +518,36 @@ bool read_offset(const std::filesystem::path & path, const std::string & gpio, i
   return false;
 }
 
-OffsetUpdate add_offset_preserving_yaml(
-  const std::filesystem::path & path,
-  const std::string & gpio,
-  const int delta_pulse)
+bool read_offset_from_text(const std::string & text, const std::string & gpio, int & offset)
 {
-  OffsetUpdate result;
-  std::string text = read_file(path);
+  const std::regex re("^\\s+" + gpio + ":\\s*(-?\\d+).*$", std::regex::multiline);
+  std::smatch match;
+  if (std::regex_search(text, match, re)) {
+    offset = std::stoi(match[1].str());
+    return true;
+  }
+  return false;
+}
+
+bool set_gpio_offset_in_text(
+  std::string & text,
+  const std::string & gpio,
+  const int new_value,
+  int * old_value_out)
+{
   const std::regex re(
     "(^|\\n)([ \\t]+" + gpio + ":[ \\t]*)(-?\\d+)([^\\n]*)");
   std::smatch match;
   if (!std::regex_search(text, match, re)) {
-    result.message = gpio + " not found or commented out in " + path.string();
-    return result;
+    return false;
   }
-
-  result.old_value = std::stoi(match[3].str());
-  result.new_value = result.old_value + delta_pulse;
-
+  if (old_value_out != nullptr) {
+    *old_value_out = std::stoi(match[3].str());
+  }
   const std::string replacement =
-    match[1].str() + match[2].str() + std::to_string(result.new_value) + match[4].str();
+    match[1].str() + match[2].str() + std::to_string(new_value) + match[4].str();
   text.replace(match.position(0), match.length(0), replacement);
-  atomic_write_file(path, text);
-
-  result.ok = true;
-  result.message = "ok";
-  return result;
+  return true;
 }
 
 double clamp_duration(const double requested, const double fallback)
@@ -656,6 +671,20 @@ public:
     capture_joint_srv_ = create_service<ffw_calibration::srv::CaptureJoint>(
       "/calibration/capture_joint",
       std::bind(&CalibrationService::handle_capture_joint, this, std::placeholders::_1, std::placeholders::_2),
+      rclcpp::ServicesQoS(),
+      service_callback_group_);
+    clear_capture_joint_srv_ = create_service<ffw_calibration::srv::ClearCaptureJoint>(
+      "/calibration/clear_capture_joint",
+      std::bind(
+        &CalibrationService::handle_clear_capture_joint, this, std::placeholders::_1,
+        std::placeholders::_2),
+      rclcpp::ServicesQoS(),
+      service_callback_group_);
+    apply_homing_offsets_srv_ = create_service<ffw_calibration::srv::ApplyHomingOffsets>(
+      "/calibration/apply_homing_offsets",
+      std::bind(
+        &CalibrationService::handle_apply_homing_offsets, this, std::placeholders::_1,
+        std::placeholders::_2),
       rclcpp::ServicesQoS(),
       service_callback_group_);
     move_zero_pose_srv_ = create_service<ffw_calibration::srv::MoveToZeroPose>(
@@ -977,33 +1006,150 @@ private:
       -delta_pulse_geom :
       delta_pulse_geom;
 
+    int yaml_offset = 0;
+    if (!read_offset(homing_offsets_path_, joint_it->second, yaml_offset)) {
+      response->success = false;
+      response->message = "failed to read yaml offset for " + joint_it->second;
+      return;
+    }
+
     try {
-      create_backup_once();
-      const auto updated = add_offset_preserving_yaml(
-        homing_offsets_path_, joint_it->second, homing_offset_delta_pulse);
-      response->success = updated.ok;
-      response->message = updated.message;
+      SessionCapture capture;
+      capture.measured_rad = sample.position;
+      capture.target_rad = target;
+      capture.delta_rad = delta_rad;
+      capture.delta_pulse = homing_offset_delta_pulse;
+      capture.yaml_offset = yaml_offset;
+
+      {
+        std::lock_guard<std::mutex> lock(session_mutex_);
+        session_captures_[request->joint] = capture;
+      }
+
+      response->success = true;
+      response->message = "ok";
       response->measured_rad = sample.position;
       response->target_rad = target;
       response->delta_rad = delta_rad;
       response->delta_pulse = homing_offset_delta_pulse;
-      response->old_offset = updated.old_value;
-      response->new_offset = updated.new_value;
+      response->old_offset = yaml_offset;
+      response->new_offset = yaml_offset + homing_offset_delta_pulse;
 
-      if (updated.ok) {
-        RCLCPP_INFO(
-          get_logger(),
-          "Captured %s: measured=%+.4f target=%+.4f delta_rad=%+.4f delta_pulse=%+d offset[%s] %d -> %d",
-          request->joint.c_str(), sample.position, target, delta_rad, homing_offset_delta_pulse,
-          joint_it->second.c_str(), updated.old_value, updated.new_value);
-        publish_status("capture", arm_name_from_joint(request->joint), request->joint, 1.0, "captured");
-      } else {
-        RCLCPP_WARN(get_logger(), "%s", updated.message.c_str());
-      }
+      RCLCPP_INFO(
+        get_logger(),
+        "Captured %s (session): measured=%+.4f target=%+.4f delta_rad=%+.4f "
+        "delta_pulse=%+d yaml[%s]=%d pending=%d",
+        request->joint.c_str(), sample.position, target, delta_rad, homing_offset_delta_pulse,
+        joint_it->second.c_str(), yaml_offset, response->new_offset);
+      publish_status("capture", arm_name_from_joint(request->joint), request->joint, 1.0, "captured");
     } catch (const std::exception & error) {
       response->success = false;
       response->message = error.what();
       RCLCPP_ERROR(get_logger(), "Capture failed: %s", error.what());
+    }
+  }
+
+  void handle_clear_capture_joint(
+    const std::shared_ptr<ffw_calibration::srv::ClearCaptureJoint::Request> request,
+    const std::shared_ptr<ffw_calibration::srv::ClearCaptureJoint::Response> response)
+  {
+    const auto joint_it = kJointToGpio.find(request->joint);
+    if (joint_it == kJointToGpio.end()) {
+      response->success = false;
+      response->message = "unknown joint " + request->joint;
+      return;
+    }
+
+    std::lock_guard<std::mutex> lock(session_mutex_);
+    const auto erased = session_captures_.erase(request->joint);
+    response->success = true;
+    response->message = erased > 0 ?
+      "cleared session capture for " + request->joint :
+      "no session capture for " + request->joint;
+  }
+
+  void handle_apply_homing_offsets(
+    const std::shared_ptr<ffw_calibration::srv::ApplyHomingOffsets::Request> request,
+    const std::shared_ptr<ffw_calibration::srv::ApplyHomingOffsets::Response> response)
+  {
+    std::string message;
+    if (!try_acquire_busy(message)) {
+      response->success = false;
+      response->message = message;
+      return;
+    }
+    const auto release = std::unique_ptr<void, std::function<void(void *)>>(
+      reinterpret_cast<void *>(1), [this](void *) { release_busy(); });
+
+    if (request->joint_names.empty()) {
+      response->success = false;
+      response->message = "joint_names is empty";
+      return;
+    }
+
+    try {
+      std::string yaml_text = read_file(homing_offsets_path_);
+      bool yaml_changed = false;
+
+      for (const auto & joint : request->joint_names) {
+        const auto joint_it = kJointToGpio.find(joint);
+        if (joint_it == kJointToGpio.end()) {
+          response->success = false;
+          response->message = "unknown joint " + joint;
+          return;
+        }
+
+        int yaml_offset = 0;
+        if (!read_offset_from_text(yaml_text, joint_it->second, yaml_offset)) {
+          response->success = false;
+          response->message = "failed to read yaml offset for " + joint_it->second;
+          return;
+        }
+
+        int applied_offset = yaml_offset;
+        bool had_session_capture = false;
+        {
+          std::lock_guard<std::mutex> lock(session_mutex_);
+          const auto capture_it = session_captures_.find(joint);
+          if (capture_it != session_captures_.end()) {
+            applied_offset = capture_it->second.yaml_offset + capture_it->second.delta_pulse;
+            had_session_capture = true;
+            session_captures_.erase(capture_it);
+          }
+        }
+
+        if (applied_offset != yaml_offset) {
+          if (!set_gpio_offset_in_text(yaml_text, joint_it->second, applied_offset, nullptr)) {
+            response->success = false;
+            response->message = joint_it->second + " not found in " + homing_offsets_path_.string();
+            return;
+          }
+          yaml_changed = true;
+        }
+
+        response->joint_names.push_back(joint);
+        response->gpio_keys.push_back(joint_it->second);
+        response->offsets.push_back(applied_offset);
+
+        RCLCPP_INFO(
+          get_logger(),
+          "Apply homing %s: yaml[%s] %d -> %d%s",
+          joint.c_str(), joint_it->second.c_str(), yaml_offset, applied_offset,
+          had_session_capture ? " (session delta applied)" : "");
+      }
+
+      if (yaml_changed) {
+        create_backup_once();
+        atomic_write_file(homing_offsets_path_, yaml_text);
+      }
+
+      response->success = true;
+      response->message = yaml_changed ? "homing offsets applied to yaml" : "homing offsets read from yaml";
+      publish_status("apply_homing", "both", "", 1.0, "homing offsets applied");
+    } catch (const std::exception & error) {
+      response->success = false;
+      response->message = error.what();
+      RCLCPP_ERROR(get_logger(), "Apply homing offsets failed: %s", error.what());
     }
   }
 
@@ -1392,6 +1538,10 @@ private:
 
     try {
       atomic_write_file(homing_offsets_path_, read_file(backup_path_));
+      {
+        std::lock_guard<std::mutex> lock(session_mutex_);
+        session_captures_.clear();
+      }
       publish_status("restore", "", "", 1.0, "backup restored");
       response->success = true;
       response->message = "backup restored from " + backup_path_.string();
@@ -1820,7 +1970,9 @@ private:
   std::map<std::string, std::map<std::string, double>> targets_;
   RobotPosesData robot_poses_;
   std::mutex joint_mutex_;
+  std::mutex session_mutex_;
   std::unordered_map<std::string, JointSample> joint_samples_;
+  std::unordered_map<std::string, SessionCapture> session_captures_;
   std::atomic_bool busy_{false};
   std::atomic_bool stop_requested_{false};
   std::vector<double> current_right_effort_{std::vector<double>(7, 0.0)};
@@ -1840,6 +1992,8 @@ private:
   rclcpp::Service<ffw_calibration::srv::GetSafetyPrepPoses>::SharedPtr get_safety_prep_poses_srv_;
   rclcpp::Service<ffw_calibration::srv::GetMotionPoses>::SharedPtr get_motion_poses_srv_;
   rclcpp::Service<ffw_calibration::srv::CaptureJoint>::SharedPtr capture_joint_srv_;
+  rclcpp::Service<ffw_calibration::srv::ClearCaptureJoint>::SharedPtr clear_capture_joint_srv_;
+  rclcpp::Service<ffw_calibration::srv::ApplyHomingOffsets>::SharedPtr apply_homing_offsets_srv_;
   rclcpp::Service<ffw_calibration::srv::MoveToZeroPose>::SharedPtr move_zero_pose_srv_;
   rclcpp::Service<ffw_calibration::srv::MoveArmTrajectory>::SharedPtr move_arm_trajectory_srv_;
   rclcpp::Service<ffw_calibration::srv::MoveToPose>::SharedPtr move_pose_srv_;

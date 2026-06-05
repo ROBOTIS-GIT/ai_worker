@@ -1,0 +1,9 @@
+# Apply pending session capture deltas onto homing_offsets.yaml, then return
+# the absolute Homing Offset values to write to each DXL.
+string[] joint_names
+---
+bool success
+string message
+string[] joint_names
+string[] gpio_keys
+int32[] offsets
