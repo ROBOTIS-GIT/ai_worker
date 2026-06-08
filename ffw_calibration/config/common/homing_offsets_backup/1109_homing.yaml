@@ -1,0 +1,25 @@
+metadata:
+  robot: ffw_bg2_rev4_follower
+  captured_at: ''        # ISO 8601, set by capture node
+  generator: ''          # script + version, set by capture node
+
+offsets:  # bit values
+  # RIGHT ARM
+  dxl1: 35571            # arm_r_joint1
+  dxl2: -15                # arm_r_joint2
+  dxl3: 33938            # arm_r_joint3
+  dxl4: -328                # arm_r_joint4
+  dxl5: 0                # arm_r_joint5
+  dxl6: 1138                # arm_r_joint6
+  dxl7: -865                # arm_r_joint7
+
+  # LEFT ARM
+  dxl31: 30753           # arm_l_joint1
+  dxl32: 8               # arm_l_joint2
+  dxl33: 32742           # arm_l_joint3
+  dxl34: 246               # arm_l_joint4
+  dxl35: 1051               # arm_l_joint5
+  dxl36: 1040               # arm_l_joint6
+  dxl37: 547               # arm_l_joint7
+
+  #32768
