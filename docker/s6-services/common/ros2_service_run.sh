@@ -53,7 +53,20 @@ fi
 LAUNCH_ARGS_FILE="/run/launch_args/${SERVICE_NAME}"
 if [ -f "${LAUNCH_ARGS_FILE}" ]; then
     LAUNCH_ARGS=$(cat "${LAUNCH_ARGS_FILE}")
-    ROS2_CMD="${ROS2_CMD} ${LAUNCH_ARGS}"
+    PROCESSED_LAUNCH_ARGS=""
+    for arg in ${LAUNCH_ARGS}; do
+        if [[ -n "${ROS2_MAP_NAME_ARG_DIR}" && "${arg}" == map_name:=* ]]; then
+            MAP_NAME="${arg#map_name:=}"
+            if [[ ! "${MAP_NAME}" =~ ^[A-Za-z0-9_.-]+$ ]]; then
+                echo "[${SERVICE_NAME}] Invalid map_name '${MAP_NAME}', falling back to 'map'" >&2
+                MAP_NAME="map"
+            fi
+            PROCESSED_LAUNCH_ARGS="${PROCESSED_LAUNCH_ARGS} map:=${ROS2_MAP_NAME_ARG_DIR}/${MAP_NAME}.yaml"
+        else
+            PROCESSED_LAUNCH_ARGS="${PROCESSED_LAUNCH_ARGS} ${arg}"
+        fi
+    done
+    ROS2_CMD="${ROS2_CMD}${PROCESSED_LAUNCH_ARGS}"
     echo "[${SERVICE_NAME}] Launch args: ${LAUNCH_ARGS}"
 fi
 

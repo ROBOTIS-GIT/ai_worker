@@ -26,5 +26,9 @@ services:
       - ../:/root/ros2_ws/src/ai_worker/
       - /var/run/robotis/agent_sockets/ai_worker:/var/run/agent
       - /home/robotis/cyclo_manager:/opt/cyclo_manager:ro
+      - ./s6-services/common:/usr/local/lib/s6-services:ro
+      - ./s6-services/ai_worker_navigation:/etc/s6-overlay/s6-rc.d/ai_worker_navigation:ro
+      - ./s6-services/ai_worker_navigation-log:/etc/s6-overlay/s6-rc.d/ai_worker_navigation-log:ro
+      - ./s6-services/ai_worker_map_save:/etc/s6-overlay/s6-rc.d/ai_worker_map_save:ro
       - /home/robotis/blank/ai_worker/docker/s6-services/ai_worker_bringup/run:/etc/s6-overlay/s6-rc.d/ai_worker_bringup/run:ro
     privileged: true
