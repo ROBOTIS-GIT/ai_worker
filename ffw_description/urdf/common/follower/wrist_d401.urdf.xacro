@@ -32,7 +32,7 @@
 		<joint name="${name}_joint" type="fixed">
 			<parent link="${name}_base_link"/>
 			<child link="${name}_link"/>
-			<origin xyz="0.0126724 -0.02235 0.009" rpy="0 0 0" />
+			<origin xyz="0.0126724 -0.02235 0.009" rpy="0 0 0.3490656" />
 		</joint>
 		<link name="${name}_link" />
 	</xacro:macro>
