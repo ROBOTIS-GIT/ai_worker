@@ -1,18 +1,32 @@
 #!/command/with-contenv bash
-# AI Worker Navigation - Nav2 mapping/navigation launcher
+# AI Worker Navigation - unified follower (Mapping/Navigation)
 
 set -e
 
 SERVICE_NAME="ai_worker_navigation"
 COMMON_SCRIPT="/usr/local/lib/s6-services/ros2_service_run.sh"
-ROS2_COMMAND="ros2 launch ffw_navigation navigation.launch.py"
-ROS2_MAP_NAME_ARG_DIR="/root/ros2_ws/src/ai_worker/ffw_navigation/maps"
+NAVIGATION_TYPE_FILE="/run/navigation_type"
+
+if [ ! -f "${NAVIGATION_TYPE_FILE}" ]; then
+  echo "[${SERVICE_NAME}] Error: ${NAVIGATION_TYPE_FILE} not found. Set navigation type (map or nav) before starting." >&2
+  exit 1
+fi
+
+NAVIGATION_TYPE=$(cat "${NAVIGATION_TYPE_FILE}" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
+
+if [ "${NAVIGATION_TYPE}" = "map" ]; then
+  ROS2_COMMAND="ros2 launch ffw_navigation navigation.launch.py use_slam:=true"
+elif [ "${NAVIGATION_TYPE}" = "nav" ]; then
+  ROS2_COMMAND="ros2 launch ffw_navigation navigation.launch.py"
+else
+  echo "[${SERVICE_NAME}] Error: ${NAVIGATION_TYPE_FILE} must be 'map' or 'nav', got: ${NAVIGATION_TYPE}" >&2
+  exit 1
+fi
 
 if [ -f "${COMMON_SCRIPT}" ]; then
   export SERVICE_NAME="${SERVICE_NAME}"
   export ROS2_COMMAND="${ROS2_COMMAND}"
-  export ROS2_MAP_NAME_ARG_DIR="${ROS2_MAP_NAME_ARG_DIR}"
-  exec /command/with-contenv env SERVICE_NAME="${SERVICE_NAME}" ROS2_COMMAND="${ROS2_COMMAND}" ROS2_MAP_NAME_ARG_DIR="${ROS2_MAP_NAME_ARG_DIR}" bash -i -c "${COMMON_SCRIPT}"
+  exec /command/with-contenv env SERVICE_NAME="${SERVICE_NAME}" ROS2_COMMAND="${ROS2_COMMAND}" bash -i -c "${COMMON_SCRIPT}"
 else
   echo "Error: Common script not found at ${COMMON_SCRIPT}" >&2
   exit 1
