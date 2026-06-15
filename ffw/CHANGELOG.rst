@@ -2,6 +2,12 @@
 Changelog for package ffw
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.0.0 (2026-06-17)
+------------------
+* Set rmw_zenoh_cpp as the default RMW in Docker images
+* Added migration notice in container.sh on start and enter
+* Contributors: Hyungyu Kim
+
 1.3.1 (2026-05-14)
 ------------------
 * Added dual_laser_merger for SH5
