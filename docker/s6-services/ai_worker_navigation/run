@@ -6,6 +6,19 @@ set -e
 SERVICE_NAME="ai_worker_navigation"
 COMMON_SCRIPT="/usr/local/lib/s6-services/ros2_service_run.sh"
 NAVIGATION_TYPE_FILE="/run/navigation_type"
+MAP_DIR="/root/ros2_ws/src/ai_worker/ffw_navigation/maps"
+LAUNCH_ARGS_FILE="/run/launch_args/${SERVICE_NAME}"
+MAP_NAME="map"
+
+sanitize_map_name() {
+  local raw="$1"
+  if [[ "${raw}" =~ ^[A-Za-z0-9_.-]+$ ]]; then
+    printf '%s' "${raw}"
+  else
+    echo "[${SERVICE_NAME}] Invalid map_name '${raw}', falling back to 'map'" >&2
+    printf '%s' "map"
+  fi
+}
 
 if [ ! -f "${NAVIGATION_TYPE_FILE}" ]; then
   echo "[${SERVICE_NAME}] Error: ${NAVIGATION_TYPE_FILE} not found. Set navigation type (map or nav) before starting." >&2
@@ -16,8 +29,23 @@ NAVIGATION_TYPE=$(cat "${NAVIGATION_TYPE_FILE}" | tr -d '[:space:]' | tr '[:uppe
 
 if [ "${NAVIGATION_TYPE}" = "map" ]; then
   ROS2_COMMAND="ros2 launch ffw_navigation navigation.launch.py use_slam:=true"
+  
 elif [ "${NAVIGATION_TYPE}" = "nav" ]; then
-  ROS2_COMMAND="ros2 launch ffw_navigation navigation.launch.py"
+  if [ -f "${LAUNCH_ARGS_FILE}" ]; then
+    LAUNCH_ARGS=$(cat "${LAUNCH_ARGS_FILE}")
+    echo "[${SERVICE_NAME}] Launch args: ${LAUNCH_ARGS}"
+
+    for arg in ${LAUNCH_ARGS}; do
+      case "${arg}" in
+        map_name:=*)
+          MAP_NAME=$(sanitize_map_name "${arg#map_name:=}")
+          ;;
+      esac
+    done
+  fi
+
+  MAP_PATH="${MAP_DIR}/${MAP_NAME}.yaml"
+  ROS2_COMMAND="ros2 launch ffw_navigation navigation.launch.py map:=${MAP_PATH}"
 else
   echo "[${SERVICE_NAME}] Error: ${NAVIGATION_TYPE_FILE} must be 'map' or 'nav', got: ${NAVIGATION_TYPE}" >&2
   exit 1
