@@ -7,6 +7,10 @@ Changelog for package ffw_robot_manager
 * Set rmw_zenoh_cpp as the default RMW in Docker images
 * Contributors: Hyungyu Kim
 
+1.3.2 (2026-06-02)
+------------------
+* None
+
 1.3.1 (2026-05-14)
 ------------------
 * None
