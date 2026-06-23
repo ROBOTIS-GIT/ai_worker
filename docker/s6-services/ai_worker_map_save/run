@@ -4,28 +4,10 @@
 set -e
 
 SERVICE_NAME="ai_worker_map_save"
+COMMON_SCRIPT="/usr/local/lib/s6-services/ros2_service_run.sh"
 MAP_DIR="/root/ros2_ws/src/ai_worker/ffw_navigation/maps"
 LAUNCH_ARGS_FILE="/run/launch_args/${SERVICE_NAME}"
 MAP_NAME="map"
-
-export ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-30}
-export ROS_DISTRO=${ROS_DISTRO:-jazzy}
-export COLCON_WS=${COLCON_WS:-/root/ros2_ws}
-export S6_VERBOSITY=${S6_VERBOSITY:-1}
-
-echo "[${SERVICE_NAME}] Starting service..."
-echo "[${SERVICE_NAME}] ROS_DOMAIN_ID=${ROS_DOMAIN_ID}"
-echo "[${SERVICE_NAME}] ROS_DISTRO=${ROS_DISTRO}"
-echo "[${SERVICE_NAME}] RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION}"
-echo "[${SERVICE_NAME}] COLCON_WS=${COLCON_WS}"
-echo "[${SERVICE_NAME}] PID: $$"
-
-PGID=$(ps -o pgid= -p $$ | tr -d ' ')
-echo "[${SERVICE_NAME}] Process group: ${PGID}"
-echo "${PGID}" > /run/${SERVICE_NAME}.pgid || true
-
-source /opt/ros/${ROS_DISTRO}/setup.bash
-source "${COLCON_WS}/install/setup.bash"
 
 sanitize_map_name() {
   local raw="$1"
@@ -53,9 +35,13 @@ fi
 mkdir -p "${MAP_DIR}"
 
 echo "[${SERVICE_NAME}] Saving map to ${MAP_DIR}/${MAP_NAME}"
-echo "[${SERVICE_NAME}] Executing custom command: ros2 run nav2_map_server map_saver_cli -f ${MAP_DIR}/${MAP_NAME} --ros-args -p map_subscribe_transient_local:=true -p save_map_timeout:=10.0"
-exec ros2 run nav2_map_server map_saver_cli \
-  -f "${MAP_DIR}/${MAP_NAME}" \
-  --ros-args \
-  -p map_subscribe_transient_local:=true \
-  -p save_map_timeout:=10.0
+ROS2_COMMAND="ros2 run nav2_map_server map_saver_cli -f ${MAP_DIR}/${MAP_NAME} --ros-args -p map_subscribe_transient_local:=true -p save_map_timeout:=10.0"
+
+if [ -f "${COMMON_SCRIPT}" ]; then
+  export SERVICE_NAME="${SERVICE_NAME}"
+  export ROS2_COMMAND="${ROS2_COMMAND}"
+  exec /command/with-contenv env SERVICE_NAME="${SERVICE_NAME}" ROS2_COMMAND="${ROS2_COMMAND}" bash -i -c "${COMMON_SCRIPT}"
+else
+  echo "Error: Common script not found at ${COMMON_SCRIPT}" >&2
+  exit 1
+fi
