@@ -134,7 +134,7 @@ print_rmw_zenoh_notice() {
     BAR=$(printf '%*s' $W '' | tr ' ' '=')
     LINE1="Since v2.0.0, rmw_zenoh_cpp is the default RMW."
     LINE2="RMW_IMPLEMENTATION is set in ~/.bashrc inside the"
-    LINE3="container. Override with: export RMW_IMPLEMENTATION=..."
+    LINE3="container."
     echo ""
     echo "  +${BAR}+"
     printf "  |  %-$((W-2))s|\n" "$LINE1"
