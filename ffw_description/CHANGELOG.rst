@@ -2,6 +2,12 @@
 Changelog for package ffw_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.0.1 (2026-06-26)
+------------------
+* Added mobile base URDF xacro
+* Added mobile base ros2_control xacro for steer joints and Dynamixel hardware
+* Contributors: Howon Kim
+
 2.0.0 (2026-06-17)
 ------------------
 * Set rmw_zenoh_cpp as the default RMW in Docker images

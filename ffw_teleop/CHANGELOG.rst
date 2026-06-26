@@ -2,6 +2,10 @@
 Changelog for package ffw_teleop
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.0.1 (2026-06-26)
+------------------
+* None
+
 2.0.0 (2026-06-17)
 ------------------
 * Set rmw_zenoh_cpp as the default RMW in Docker images

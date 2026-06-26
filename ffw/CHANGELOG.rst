@@ -2,6 +2,13 @@
 Changelog for package ffw
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.0.1 (2026-06-26)
+------------------
+* Added s6 services for AI Worker navigation and map saving
+* Added map_name launch argument parsing for navigation and map save services
+* Updated ROS 2 s6 service runner to forward shutdown signals to process groups
+* Contributors: Howon Kim
+
 2.0.0 (2026-06-17)
 ------------------
 * Set rmw_zenoh_cpp as the default RMW in Docker images
