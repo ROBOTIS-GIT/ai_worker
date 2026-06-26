@@ -2,6 +2,12 @@
 Changelog for package ffw
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.0.0 (2026-06-17)
+------------------
+* Set rmw_zenoh_cpp as the default RMW in Docker images
+* Added migration notice in container.sh on start and enter
+* Contributors: Hyungyu Kim
+
 1.3.2 (2026-06-02)
 ------------------
 * Updated wheel radius parameters for SH5, SG2
