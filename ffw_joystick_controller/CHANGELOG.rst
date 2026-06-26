@@ -2,6 +2,11 @@
 Changelog for package ffw_joystick_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.0.0 (2026-06-17)
+------------------
+* Set rmw_zenoh_cpp as the default RMW in Docker images
+* Contributors: Hyungyu Kim
+
 1.3.2 (2026-06-02)
 ------------------
 * None
