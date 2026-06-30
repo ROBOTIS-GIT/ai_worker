@@ -49,10 +49,11 @@ else
     echo "[${SERVICE_NAME}] Executing default command: ${ROS2_CMD}"
 fi
 
-# Execute the ROS2 command in its own process group and forward shutdown
-# signals to the whole group. ROS 2 launch often needs a group SIGINT so all
-# child nodes get a graceful shutdown request.
-setsid bash -i -c "${ROS2_CMD}" &
+# Execute the ROS2 command as a background job in its own process group and
+# forward shutdown signals to the whole group. ROS 2 launch often needs a group
+# SIGINT so all child nodes get a graceful shutdown request.
+set -m
+bash -c "${ROS2_CMD}" &
 CHILD_PID=$!
 echo "[${SERVICE_NAME}] Child PID/process group: ${CHILD_PID}"
 echo "${CHILD_PID}" > /run/${SERVICE_NAME}.pgid || true
