@@ -2,6 +2,11 @@
 Changelog for package ffw_moveit_config
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.0.1 (2026-06-30)
+------------------
+* Fixed zenohd alias command to run rmw_zenoh_cpp rmw_zenohd
+* Contributors: kimtaehyeong99
+
 2.0.0 (2026-06-17)
 ------------------
 * Set rmw_zenoh_cpp as the default RMW in Docker images
