@@ -51,6 +51,12 @@ CAMERA_ROLES = {
     3: 'head',
 }
 
+CAMERA_USB_PORTS = {
+    1: '1-4.5-7',   # left wrist D405
+    2: '1-4.6-8',   # right wrist D405
+    3: '2-3.1-4',   # head D455
+}
+
 
 # Utility function to load YAML as dict
 def yaml_to_dict(path_to_yaml):
@@ -190,21 +196,52 @@ def stable_device_sort_key(device):
     return (device.get('usb_port') or device.get('physical_port') or device.get('serial') or '')
 
 
+def assign_devices_by_configured_ports(serials_dict, devices):
+    devices_by_port = {
+        device.get('usb_port'): device
+        for device in devices
+        if device.get('usb_port')
+    }
+
+    for index, usb_port in CAMERA_USB_PORTS.items():
+        device = devices_by_port.get(usb_port)
+        if device:
+            apply_device_to_camera(serials_dict, index, device)
+
+
+def camera_is_assigned(serials_dict, index):
+    return bool(serials_dict.get(camera_key(index, 'serial')))
+
+
+def assigned_serials(serials_dict):
+    return {
+        unquote_serial(serials_dict.get(camera_key(index, 'serial'), ''))
+        for index in CAMERA_ROLES
+        if serials_dict.get(camera_key(index, 'serial'))
+    }
+
+
 def assign_devices_by_default(devices):
     serials_dict = {}
     head_devices = [device for device in devices if is_head_camera(device)]
     wrist_devices = [device for device in devices if device not in head_devices]
 
-    for index, device in enumerate(sorted(wrist_devices, key=stable_device_sort_key)[:2], start=1):
+    assign_devices_by_configured_ports(serials_dict, devices)
+
+    assigned = assigned_serials(serials_dict)
+    unassigned_wrist_devices = [
+        device for device in wrist_devices if device.get('serial') not in assigned
+    ]
+    for index, device in zip(
+        [index for index in (1, 2) if not camera_is_assigned(serials_dict, index)],
+        sorted(unassigned_wrist_devices, key=stable_device_sort_key),
+    ):
         apply_device_to_camera(serials_dict, index, device)
 
-    if head_devices:
+    if not camera_is_assigned(serials_dict, 3) and head_devices:
         apply_device_to_camera(serials_dict, 3, sorted(head_devices, key=stable_device_sort_key)[0])
-    elif len(devices) >= 3:
-        assigned = {
-            unquote_serial(serials_dict.get(camera_key(index, 'serial'), ''))
-            for index in CAMERA_ROLES
-        }
+    elif not camera_is_assigned(serials_dict, 3) and len(devices) >= 3:
+        assigned = assigned_serials(serials_dict)
         for device in sorted(devices, key=stable_device_sort_key):
             if device.get('serial') not in assigned:
                 apply_device_to_camera(serials_dict, 3, device)
