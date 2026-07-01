@@ -28,6 +28,8 @@
 """Launch realsense2_camera node."""
 import copy
 import os
+import re
+import subprocess
 import sys
 
 from ament_index_python.packages import get_package_share_directory
@@ -46,14 +48,112 @@ import rs_launch  # noqa: E402, I100
 
 # Utility function to load YAML as dict
 def yaml_to_dict(path_to_yaml):
+    if not os.path.exists(path_to_yaml):
+        return {}
     with open(path_to_yaml, 'r') as f:
-        return yaml.load(f, Loader=yaml.SafeLoader)
+        return yaml.load(f, Loader=yaml.SafeLoader) or {}
 
 
-# Read serial numbers from rs_serial.yaml
-serials_path = os.path.join(get_package_share_directory('ffw_bringup'), 'config', 'common',
-                            'rs_serial.yaml')
-serials = yaml_to_dict(serials_path)
+def serials_from_realsense_context():
+    try:
+        import pyrealsense2 as rs
+    except ImportError:
+        return []
+
+    serials = []
+    try:
+        context = rs.context()
+    except RuntimeError:
+        return []
+
+    for device in context.query_devices():
+        try:
+            serials.append(device.get_info(rs.camera_info.serial_number))
+        except RuntimeError:
+            continue
+    return serials
+
+
+def serials_from_rs_enumerate_devices():
+    try:
+        result = subprocess.run(
+            ['rs-enumerate-devices'],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (FileNotFoundError, subprocess.SubprocessError):
+        return []
+
+    if result.returncode != 0:
+        return []
+
+    return re.findall(r'Serial Number\s*:\s*([0-9]+)', result.stdout)
+
+
+def discover_realsense_serials():
+    seen = set()
+    serials = []
+    for serial in serials_from_realsense_context() or serials_from_rs_enumerate_devices():
+        if serial and serial not in seen:
+            seen.add(serial)
+            serials.append(serial)
+    return serials
+
+
+def format_serial_for_launch(serial):
+    serial = str(serial).strip()
+    if serial.startswith("'") and serial.endswith("'"):
+        return serial
+    return f"'{serial}'"
+
+
+def serials_to_launch_dict(serials):
+    return {
+        f'camera{index}_serial': format_serial_for_launch(serial)
+        for index, serial in enumerate(serials, start=1)
+    }
+
+
+def write_serials_yaml(path_to_yaml, serials):
+    directory = os.path.dirname(path_to_yaml)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+    serials_dict = serials_to_launch_dict(serials)
+    with open(path_to_yaml, 'w') as f:
+        f.write('# Auto-generated RealSense serial numbers for this robot.\n')
+        f.write('# Delete this file to re-detect connected cameras on the next bringup.\n')
+        for key, value in serials_dict.items():
+            f.write(f'{key}: "{value}"\n')
+
+
+def load_realsense_serials():
+    persistent_path = os.environ.get('FFW_RS_SERIAL_PATH', '/workspace/config/rs_serial.yaml')
+    fallback_path = os.path.join(
+        get_package_share_directory('ffw_bringup'), 'config', 'common', 'rs_serial.yaml')
+
+    persistent_serials = yaml_to_dict(persistent_path)
+    if persistent_serials:
+        print(f'[camera_realsense] Using RealSense serials from {persistent_path}')
+        return persistent_serials
+
+    discovered_serials = discover_realsense_serials()
+    if discovered_serials:
+        try:
+            write_serials_yaml(persistent_path, discovered_serials)
+            print(f'[camera_realsense] Saved RealSense serials to {persistent_path}')
+        except OSError as exc:
+            print(f'[camera_realsense] Could not save RealSense serials to '
+                  f'{persistent_path}: {exc}')
+        return serials_to_launch_dict(discovered_serials)
+
+    print(f'[camera_realsense] Could not auto-detect RealSense serials. '
+          f'Using fallback serials from {fallback_path}')
+    return yaml_to_dict(fallback_path)
+
+
+serials = load_realsense_serials()
 serial1 = serials.get('camera1_serial', '')
 serial2 = serials.get('camera2_serial', '')
 serial3 = serials.get('camera3_serial', '')  # d455 head, only used when enable_head_camera=true
