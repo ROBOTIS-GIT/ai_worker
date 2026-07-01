@@ -45,6 +45,12 @@ realsense2_camera_launch_dir = os.path.join(get_package_share_directory('realsen
 sys.path.append(realsense2_camera_launch_dir)
 import rs_launch  # noqa: E402, I100
 
+CAMERA_ROLES = {
+    1: 'left',
+    2: 'right',
+    3: 'head',
+}
+
 
 # Utility function to load YAML as dict
 def yaml_to_dict(path_to_yaml):
@@ -54,27 +60,65 @@ def yaml_to_dict(path_to_yaml):
         return yaml.load(f, Loader=yaml.SafeLoader) or {}
 
 
-def serials_from_realsense_context():
+def get_device_info(device, camera_info):
+    try:
+        if device.supports(camera_info):
+            return device.get_info(camera_info)
+    except RuntimeError:
+        pass
+    return ''
+
+
+def normalize_usb_port(physical_port):
+    usb_ports = re.findall(r'(?<!\w)(\d+(?:-\d+(?:\.\d+)*)+)(?![\w.])', physical_port or '')
+    return usb_ports[-1] if usb_ports else physical_port
+
+
+def devices_from_realsense_context():
     try:
         import pyrealsense2 as rs
     except ImportError:
         return []
 
-    serials = []
     try:
         context = rs.context()
     except RuntimeError:
         return []
 
+    devices = []
     for device in context.query_devices():
-        try:
-            serials.append(device.get_info(rs.camera_info.serial_number))
-        except RuntimeError:
+        serial = get_device_info(device, rs.camera_info.serial_number)
+        if not serial:
             continue
-    return serials
+        physical_port = get_device_info(device, rs.camera_info.physical_port)
+        devices.append({
+            'serial': serial,
+            'name': get_device_info(device, rs.camera_info.name),
+            'product_line': get_device_info(device, rs.camera_info.product_line),
+            'usb_port': normalize_usb_port(physical_port),
+            'physical_port': physical_port,
+        })
+    return devices
 
 
-def serials_from_rs_enumerate_devices():
+def device_from_rs_enumerate_block(block):
+    serial_match = re.search(r'Serial Number\s*:\s*([0-9]+)', block)
+    if not serial_match:
+        return {}
+    physical_port_match = re.search(r'Physical Port\s*:\s*(.+)', block)
+    name_match = re.search(r'Name\s*:\s*(.+)', block)
+    product_line_match = re.search(r'Product Line\s*:\s*(.+)', block)
+    physical_port = physical_port_match.group(1).strip() if physical_port_match else ''
+    return {
+        'serial': serial_match.group(1),
+        'name': name_match.group(1).strip() if name_match else '',
+        'product_line': product_line_match.group(1).strip() if product_line_match else '',
+        'usb_port': normalize_usb_port(physical_port),
+        'physical_port': physical_port,
+    }
+
+
+def devices_from_rs_enumerate_devices():
     try:
         result = subprocess.run(
             ['rs-enumerate-devices'],
@@ -89,17 +133,23 @@ def serials_from_rs_enumerate_devices():
     if result.returncode != 0:
         return []
 
-    return re.findall(r'Serial Number\s*:\s*([0-9]+)', result.stdout)
+    devices = []
+    for block in re.split(r'\n\s*\n', result.stdout):
+        device = device_from_rs_enumerate_block(block)
+        if device:
+            devices.append(device)
+    return devices
 
 
-def discover_realsense_serials():
+def discover_realsense_devices():
     seen = set()
-    serials = []
-    for serial in serials_from_realsense_context() or serials_from_rs_enumerate_devices():
+    devices = []
+    for device in devices_from_realsense_context() or devices_from_rs_enumerate_devices():
+        serial = device.get('serial')
         if serial and serial not in seen:
             seen.add(serial)
-            serials.append(serial)
-    return serials
+            devices.append(device)
+    return devices
 
 
 def format_serial_for_launch(serial):
@@ -109,23 +159,141 @@ def format_serial_for_launch(serial):
     return f"'{serial}'"
 
 
-def serials_to_launch_dict(serials):
-    return {
-        f'camera{index}_serial': format_serial_for_launch(serial)
-        for index, serial in enumerate(serials, start=1)
+def unquote_serial(serial):
+    return str(serial).strip().strip('"').strip("'")
+
+
+def is_head_camera(device):
+    text = ' '.join([
+        device.get('name', ''),
+        device.get('product_line', ''),
+    ]).upper()
+    return 'D455' in text
+
+
+def camera_key(index, suffix):
+    return f'camera{index}_{suffix}'
+
+
+def apply_device_to_camera(serials_dict, index, device):
+    role = CAMERA_ROLES.get(index, '')
+    serials_dict[camera_key(index, 'serial')] = format_serial_for_launch(device.get('serial', ''))
+    if role:
+        serials_dict[camera_key(index, 'role')] = role
+    for key in ('usb_port', 'physical_port', 'name', 'product_line'):
+        value = device.get(key)
+        if value:
+            serials_dict[camera_key(index, key)] = value
+
+
+def stable_device_sort_key(device):
+    return (device.get('usb_port') or device.get('physical_port') or device.get('serial') or '')
+
+
+def assign_devices_by_default(devices):
+    serials_dict = {}
+    head_devices = [device for device in devices if is_head_camera(device)]
+    wrist_devices = [device for device in devices if device not in head_devices]
+
+    for index, device in enumerate(sorted(wrist_devices, key=stable_device_sort_key)[:2], start=1):
+        apply_device_to_camera(serials_dict, index, device)
+
+    if head_devices:
+        apply_device_to_camera(serials_dict, 3, sorted(head_devices, key=stable_device_sort_key)[0])
+    elif len(devices) >= 3:
+        assigned = {
+            unquote_serial(serials_dict.get(camera_key(index, 'serial'), ''))
+            for index in CAMERA_ROLES
+        }
+        for device in sorted(devices, key=stable_device_sort_key):
+            if device.get('serial') not in assigned:
+                apply_device_to_camera(serials_dict, 3, device)
+                break
+
+    return serials_dict
+
+
+def update_serials_from_stored_ports(stored_serials, devices):
+    if not devices:
+        return stored_serials
+
+    devices_by_port = {
+        device.get('usb_port'): device
+        for device in devices
+        if device.get('usb_port')
     }
+    updated_serials = dict(stored_serials)
+    matched_by_port = False
+
+    for index in CAMERA_ROLES:
+        stored_port = stored_serials.get(camera_key(index, 'usb_port'))
+        device = devices_by_port.get(stored_port)
+        if device:
+            apply_device_to_camera(updated_serials, index, device)
+            matched_by_port = True
+
+    return updated_serials if matched_by_port else stored_serials
 
 
-def write_serials_yaml(path_to_yaml, serials):
+def add_ports_to_existing_serials(stored_serials, devices):
+    if not devices:
+        return stored_serials
+
+    devices_by_serial = {
+        device.get('serial'): device
+        for device in devices
+        if device.get('serial')
+    }
+    updated_serials = dict(stored_serials)
+
+    for index in CAMERA_ROLES:
+        serial = unquote_serial(stored_serials.get(camera_key(index, 'serial'), ''))
+        device = devices_by_serial.get(serial)
+        if device:
+            apply_device_to_camera(updated_serials, index, device)
+
+    return updated_serials
+
+
+def serials_have_ports(serials_dict):
+    return all(
+        serials_dict.get(camera_key(index, 'usb_port'))
+        for index in (1, 2)
+        if serials_dict.get(camera_key(index, 'serial'))
+    )
+
+
+def ensure_head_from_model(serials_dict, devices):
+    if serials_dict.get('camera3_serial') or not devices:
+        return serials_dict
+
+    for device in devices:
+        if is_head_camera(device):
+            updated_serials = dict(serials_dict)
+            apply_device_to_camera(updated_serials, 3, device)
+            return updated_serials
+
+    return serials_dict
+
+
+def write_serials_yaml(path_to_yaml, serials_dict):
     directory = os.path.dirname(path_to_yaml)
     if directory:
         os.makedirs(directory, exist_ok=True)
-    serials_dict = serials_to_launch_dict(serials)
     with open(path_to_yaml, 'w') as f:
-        f.write('# Auto-generated RealSense serial numbers for this robot.\n')
-        f.write('# Delete this file to re-detect connected cameras on the next bringup.\n')
-        for key, value in serials_dict.items():
-            f.write(f'{key}: "{value}"\n')
+        f.write('# Auto-generated RealSense camera mapping for this robot.\n')
+        f.write('# camera1=left, camera2=right, camera3=head.\n')
+        f.write('# USB ports are used as the stable camera identity across bringups.\n')
+        yaml.safe_dump(serials_dict, f, sort_keys=False, default_flow_style=False)
+
+
+def try_write_serials_yaml(path_to_yaml, serials_dict):
+    try:
+        write_serials_yaml(path_to_yaml, serials_dict)
+        print(f'[camera_realsense] Saved RealSense camera mapping to {path_to_yaml}')
+    except OSError as exc:
+        print(f'[camera_realsense] Could not save RealSense camera mapping to '
+              f'{path_to_yaml}: {exc}')
 
 
 def load_realsense_serials():
@@ -134,19 +302,22 @@ def load_realsense_serials():
         get_package_share_directory('ffw_bringup'), 'config', 'common', 'rs_serial.yaml')
 
     persistent_serials = yaml_to_dict(persistent_path)
+    discovered_devices = discover_realsense_devices()
     if persistent_serials:
-        print(f'[camera_realsense] Using RealSense serials from {persistent_path}')
-        return persistent_serials
+        if serials_have_ports(persistent_serials):
+            serials = update_serials_from_stored_ports(persistent_serials, discovered_devices)
+        else:
+            serials = add_ports_to_existing_serials(persistent_serials, discovered_devices)
+        serials = ensure_head_from_model(serials, discovered_devices)
+        if serials != persistent_serials:
+            try_write_serials_yaml(persistent_path, serials)
+        print(f'[camera_realsense] Using RealSense camera mapping from {persistent_path}')
+        return serials
 
-    discovered_serials = discover_realsense_serials()
-    if discovered_serials:
-        try:
-            write_serials_yaml(persistent_path, discovered_serials)
-            print(f'[camera_realsense] Saved RealSense serials to {persistent_path}')
-        except OSError as exc:
-            print(f'[camera_realsense] Could not save RealSense serials to '
-                  f'{persistent_path}: {exc}')
-        return serials_to_launch_dict(discovered_serials)
+    if discovered_devices:
+        serials = assign_devices_by_default(discovered_devices)
+        try_write_serials_yaml(persistent_path, serials)
+        return serials
 
     print(f'[camera_realsense] Could not auto-detect RealSense serials. '
           f'Using fallback serials from {fallback_path}')
