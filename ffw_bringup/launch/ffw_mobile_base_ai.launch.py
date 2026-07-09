@@ -126,7 +126,7 @@ def generate_launch_description():
         output='screen'
     )
 
-    # Separate spawner for swerve_steering_initial_position_controller    
+    # Separate spawner for swerve_steering_initial_position_controller
     swerve_steering_initial_position_spawner = Node(
         package='controller_manager',
         executable='spawner',
