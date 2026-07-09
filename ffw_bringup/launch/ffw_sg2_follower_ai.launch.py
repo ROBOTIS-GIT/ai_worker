@@ -45,7 +45,7 @@ def generate_launch_description():
                               description='Enable mock sensor commands.'),
         DeclareLaunchArgument('port_name', default_value='/dev/follower',
                               description='Port name for hardware connection.'),
-        DeclareLaunchArgument('launch_cameras', default_value='false',  # 기존 true
+        DeclareLaunchArgument('launch_cameras', default_value='true',
                               description='Whether to launch cameras.'),
         DeclareLaunchArgument('launch_lidar', default_value='true',
                               description='Whether to launch lidar.'),
