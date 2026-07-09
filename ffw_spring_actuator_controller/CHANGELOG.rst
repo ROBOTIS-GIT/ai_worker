@@ -2,9 +2,14 @@
 Changelog for package ffw_spring_actuator_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2.0.1 (2026-06-26)
+2.0.2 (2026-07-09)
 ------------------
 * None
+
+2.0.1 (2026-06-30)
+------------------
+* Fixed zenohd alias command to run rmw_zenoh_cpp rmw_zenohd
+* Contributors: kimtaehyeong99
 
 2.0.0 (2026-06-17)
 ------------------

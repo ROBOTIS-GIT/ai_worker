@@ -165,7 +165,7 @@ RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc  && \
     echo "alias ffw_bh5_follower_ai='ros2 launch ffw_bringup ffw_bh5_follower_ai.launch.py'" >> ~/.bashrc && \
     echo "alias motion_controller='ros2 launch cyclo_motion_controller_ros ai_worker_controller.launch.py'" >> ~/.bashrc && \
     echo "alias motion_controller_hand='ros2 launch cyclo_motion_controller_ros ai_worker_controller.launch.py controller_type:=vr hand:=true'" >> ~/.bashrc && \
-    echo "alias zenohd='ros2 run zenoh_cpp_daemon zenohd'" >> ~/.bashrc && \
+    echo "alias zenohd='ros2 run rmw_zenoh_cpp rmw_zenohd'" >> ~/.bashrc && \
     echo "export RMW_IMPLEMENTATION=rmw_zenoh_cpp" >> ~/.bashrc && \
     echo "export ROS_DOMAIN_ID=30" >> ~/.bashrc
 
