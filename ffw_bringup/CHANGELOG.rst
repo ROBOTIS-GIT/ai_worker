@@ -2,6 +2,11 @@
 Changelog for package ffw_bringup
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.0.2 (2026-07-09)
+------------------
+* Added mobile base AI launch file
+* Contributors: Howon Kim
+
 2.0.1 (2026-06-30)
 ------------------
 * Fixed zenohd alias command to run rmw_zenoh_cpp rmw_zenohd
