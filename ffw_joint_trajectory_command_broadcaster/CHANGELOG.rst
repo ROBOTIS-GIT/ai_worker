@@ -2,6 +2,19 @@
 Changelog for package ffw_joint_trajectory_command_broadcaster
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.0.0 (2026-06-17)
+------------------
+* Set rmw_zenoh_cpp as the default RMW in Docker images
+* Contributors: Hyungyu Kim
+
+1.3.2 (2026-06-02)
+------------------
+* None
+
+1.3.1 (2026-05-14)
+------------------
+* None
+
 1.3.0 (2026-05-04)
 ------------------
 * None
