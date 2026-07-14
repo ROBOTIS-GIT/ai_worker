@@ -4,6 +4,7 @@ services:
     image: robotis/ai-worker:2.0.1
     tty: true
     restart: always
+    gpus: all
     cap_add:
       - SYS_NICE
     ulimits:
@@ -15,6 +16,8 @@ services:
     environment:
      - DISPLAY=${DISPLAY}
      - QT_X11_NO_MITSHM=1
+     - NVIDIA_VISIBLE_DEVICES=all
+     - NVIDIA_DRIVER_CAPABILITIES=all
     volumes:
       - /dev:/dev
       - /dev/shm:/dev/shm

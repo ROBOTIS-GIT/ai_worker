@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+	<xacro:macro name="wrist_d401" params="parent *origin name:=camera">
+
+		<joint name="${name}_link_joint" type="fixed">
+			<xacro:insert_block name="origin" />
+			<parent link="${parent}"/>
+			<child link="${name}_base_link" />
+		</joint>
+		<link name="${name}_base_link">
+			<visual>
+				<geometry>
+					<mesh filename="file://$(find ffw_description)/meshes/common/follower/wrist_d401_base.stl" scale="0.001 0.001 0.001"/>
+				</geometry>
+				<material name="d401_black">
+                  <color rgba="0.2 0.2 0.2 1"/>
+               </material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0" rpy="0 0 0"/>
+				<geometry>
+					<mesh filename="file://$(find ffw_description)/meshes/common/follower/wrist_d401_base.stl" scale="0.001 0.001 0.001"/>
+				</geometry>
+			</collision>
+			<inertial>
+				<mass value="3.6935029e-02" />
+				<origin xyz="-1.1702196e-02 -9.0595024e-04  4.5916978e-04" />
+				<inertia ixx="1.9718941e-05" ixy="-1.2011101e-06" ixz="-1.1357280e-07" iyy="1.7266296e-05" iyz="1.7450661e-08" izz="8.6783614e-06" />
+			</inertial>
+		</link>
+
+		<joint name="${name}_joint" type="fixed">
+			<parent link="${name}_base_link"/>
+			<child link="${name}_link"/>
+			<origin xyz="0.0126724 -0.02235 0.009" rpy="0 0 0.3490656" />
+		</joint>
+		<link name="${name}_link" />
+	</xacro:macro>
+</robot>

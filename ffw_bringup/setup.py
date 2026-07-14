@@ -29,6 +29,8 @@ setup(
          glob('config/ffw_bg2_rev4_follower/*')),
         (os.path.join('share', package_name, 'config/ffw_bh5_rev1_follower'),
          glob('config/ffw_bh5_rev1_follower/*')),
+        (os.path.join('share', package_name, 'config/ffw_f2_follower'),
+         glob('config/ffw_f2_follower/*')),
         (os.path.join('share', package_name, 'config/ffw_sg2_rev1_follower'),
          glob('config/ffw_sg2_rev1_follower/*')),
         (os.path.join('share', package_name, 'config/ffw_lg2_leader'),
@@ -58,6 +60,10 @@ setup(
         'console_scripts': [
             'joint_trajectory_executor = ffw_bringup.joint_trajectory_executor:main',
             'head_eef_tracker = ffw_bringup.head_eef_tracker:main',
+            'link_pose_logger = ffw_bringup.link_pose_logger:main',
+            'vision_pick_place = ffw_bringup.vision_pick_place:main',
+            'color_bottle_pick_place = ffw_bringup.color_bottle_pick_place:main',
+            'bottle_basket_pick_place = ffw_bringup.bottle_basket_pick_place:main',
         ],
     },
 )

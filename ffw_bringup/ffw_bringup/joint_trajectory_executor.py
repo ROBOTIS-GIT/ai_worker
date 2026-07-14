@@ -44,6 +44,7 @@ class JointTrajectoryExecutor(Node):
         self.declare_parameter(
             'action_topic', '/arm_controller/follow_joint_trajectory'
         )
+        self.declare_parameter('trajectory_topic', '')
         self.declare_parameter('joint_states_topic', '/joint_states')
 
         # Load basic parameters
@@ -57,6 +58,7 @@ class JointTrajectoryExecutor(Node):
         self.position_tolerance = self.get_parameter('position_tolerance').value
         self.velocity_tolerance = self.get_parameter('velocity_tolerance').value
         self.action_topic = self.get_parameter('action_topic').value
+        self.trajectory_topic = self.get_parameter('trajectory_topic').value
         self.joint_states_topic = self.get_parameter('joint_states_topic').value
 
         # Validate basic parameters
@@ -90,10 +92,18 @@ class JointTrajectoryExecutor(Node):
                 )
                 sys.exit(1)
 
-        # Create action client for FollowJointTrajectory
-        self.action_client = ActionClient(
-            self, FollowJointTrajectory, self.action_topic
-        )
+        self.action_client = None
+        self.trajectory_pub = None
+        if self.trajectory_topic:
+            self.trajectory_pub = self.create_publisher(
+                JointTrajectory,
+                self.trajectory_topic,
+                10,
+            )
+        else:
+            self.action_client = ActionClient(
+                self, FollowJointTrajectory, self.action_topic
+            )
         self.subscription = self.create_subscription(
             JointState, self.joint_states_topic, self.joint_state_callback, 10
         )
@@ -103,14 +113,18 @@ class JointTrajectoryExecutor(Node):
         self.reached_target = False
         self.num_points = 100  # Number of points for smooth trajectory
         self.goal_handle = None
+        self.goal_sent = False
         self.last_status_time = 0.0
         self.status_interval = 1.0  # Log status every second
         self.current_step = 0
 
-        self.get_logger().info('Waiting for action server...')
-        self.action_client.wait_for_server()
-        self.get_logger().info('Action server available')
-        self.get_logger().info(f'Using action topic: {self.action_topic}')
+        if self.trajectory_pub is not None:
+            self.get_logger().info(f'Using trajectory topic: {self.trajectory_topic}')
+        else:
+            self.get_logger().info('Waiting for action server...')
+            self.action_client.wait_for_server()
+            self.get_logger().info('Action server available')
+            self.get_logger().info(f'Using action topic: {self.action_topic}')
         self.get_logger().info(f'Using joint states topic: {self.joint_states_topic}')
 
     def get_step_target_positions(self):
@@ -136,6 +150,7 @@ class JointTrajectoryExecutor(Node):
         goal_handle = future.result()
         if not goal_handle.accepted:
             self.get_logger().info('Goal rejected :(')
+            self.goal_sent = False
             return
 
         self.get_logger().info('Goal accepted :)')
@@ -151,17 +166,25 @@ class JointTrajectoryExecutor(Node):
             ]
 
             # Check if current step has reached its target
-            if self.goal_handle is None:
+            if not self.goal_sent:
                 if self.current_step < len(self.positions_list):
                     target_positions = self.get_step_target_positions()
                     self.get_logger().info(
                         f'Moving to step {self.current_step} target positions'
                     )
 
-                    goal_msg = FollowJointTrajectory.Goal()
-                    goal_msg.trajectory = self.create_smooth_trajectory(
+                    trajectory = self.create_smooth_trajectory(
                         self.current_positions, target_positions
                     )
+                    self.goal_sent = True
+
+                    if self.trajectory_pub is not None:
+                        self.get_logger().info('Publishing trajectory...')
+                        self.trajectory_pub.publish(trajectory)
+                        return
+
+                    goal_msg = FollowJointTrajectory.Goal()
+                    goal_msg.trajectory = trajectory
 
                     goal_msg.path_tolerance = []
                     goal_msg.goal_tolerance = []
@@ -182,6 +205,7 @@ class JointTrajectoryExecutor(Node):
                     self.reached_target = True
                     self.get_logger().info(f'🎯 Step {self.current_step} completed!')
                     self.goal_handle = None
+                    self.goal_sent = False
                     self.current_step += 1
                     self.reached_target = False
 
@@ -191,7 +215,7 @@ class JointTrajectoryExecutor(Node):
                         return
 
     def shutdown_node(self):
-        if self.goal_handle:
+        if self.goal_handle and self.action_client is not None:
             self.goal_handle.cancel_goal_async()
         self.destroy_node()
         rclpy.shutdown()
