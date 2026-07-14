@@ -357,9 +357,15 @@ def load_realsense_serials():
         try_write_serials_yaml(persistent_path, serials)
         return serials
 
-    print(f'[camera_realsense] Could not auto-detect RealSense serials. '
-          f'Using fallback serials from {fallback_path}')
-    return yaml_to_dict(fallback_path)
+    fallback_serials = yaml_to_dict(fallback_path)
+    if fallback_serials:
+        print(f'[camera_realsense] Could not auto-detect RealSense serials. '
+              f'Using fallback serials from {fallback_path}')
+        return fallback_serials
+
+    raise RuntimeError(
+        '[camera_realsense] No RealSense cameras were detected and no camera mapping was '
+        f'found at {persistent_path} or {fallback_path}.')
 
 
 serials = load_realsense_serials()
