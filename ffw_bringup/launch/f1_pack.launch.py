@@ -30,7 +30,7 @@ def generate_launch_description():
     pkg_share = get_package_share_directory('ffw_bringup')
 
     # Path to the omy_3m.launch.py file
-    ffw_f1_pack_launch_file = os.path.join(pkg_share, 'launch', 'ffw_f1_follower_ai.launch.py')
+    ffw_f1_pack_launch_file = os.path.join(pkg_share, 'launch', 'f1_follower_ai.launch.py')
 
     # Include the ffw_f1_follower_ai.launch.py with pack parameters
     ffw_f1_pack_launch = IncludeLaunchDescription(
