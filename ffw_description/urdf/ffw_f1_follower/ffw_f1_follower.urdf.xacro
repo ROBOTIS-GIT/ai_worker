@@ -103,6 +103,8 @@
     use_mock_hardware="$(arg use_mock_hardware)"
     mock_sensor_commands="$(arg mock_sensor_commands)"/>
 
+  <xacro:ffw_f1_follower_gazebo />
+
   <gazebo>
       <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
         <parameters>$(find ffw_bringup)/config/$(arg model)/ffw_f1_follower_ai_hardware_controller.yaml</parameters>
