@@ -6,7 +6,7 @@ Changelog for package ffw
 ------------------
 * Added support for F1 and F2
 * Improved camera bringup and automatic camera role detection
-* Contributors: Yeonguk Kim
+* Contributors: Yeonguk Kim, Dongyun Kim
 
 2.0.2 (2026-07-09)
 ------------------
