@@ -11,7 +11,7 @@ Changelog for package ffw_bringup
 ------------------
 * Added support for F1 and F2
 * Added automatic camera role detection and multi-camera bringup support
-* Contributors: Yeonguk Kim
+* Contributors: Yeonguk Kim, Dongyun Kim
 
 2.0.2 (2026-07-09)
 ------------------
