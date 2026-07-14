@@ -2,9 +2,13 @@
 Changelog for package ffw_joint_trajectory_command_broadcaster
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2.1.0 (2026-07-22)
+2.2.0 (2026-07-22)
 ------------------
 * None
+
+2.1.0 (2026-07-14)
+------------------
+* Version synchronized for the AI Worker 2.1.0 release
 
 2.0.2 (2026-07-09)
 ------------------
