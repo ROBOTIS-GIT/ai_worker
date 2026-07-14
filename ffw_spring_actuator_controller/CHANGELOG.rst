@@ -2,6 +2,10 @@
 Changelog for package ffw_spring_actuator_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.1.0 (2026-07-14)
+------------------
+* Version synchronized for the AI Worker 2.1.0 release
+
 2.0.2 (2026-07-09)
 ------------------
 * None
