@@ -239,7 +239,8 @@ def assign_devices_by_default(devices):
         apply_device_to_camera(serials_dict, index, device)
 
     if not camera_is_assigned(serials_dict, 3) and head_devices:
-        apply_device_to_camera(serials_dict, 3, sorted(head_devices, key=stable_device_sort_key)[0])
+        head_device = sorted(head_devices, key=stable_device_sort_key)[0]
+        apply_device_to_camera(serials_dict, 3, head_device)
     elif not camera_is_assigned(serials_dict, 3) and len(devices) >= 3:
         assigned = assigned_serials(serials_dict)
         for device in sorted(devices, key=stable_device_sort_key):
