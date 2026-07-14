@@ -69,7 +69,7 @@ RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc  && \
     echo "alias ffw_sh5_follower_ai='ros2 launch ffw_bringup ffw_sh5_follower_ai.launch.py start_rviz:=true use_mock_hardware:=true launch_cameras:=false launch_lidar:=false'" >> ~/.bashrc && \
     echo "alias ffw_bh5_follower_ai='ros2 launch ffw_bringup ffw_bh5_follower_ai.launch.py start_rviz:=true use_mock_hardware:=true launch_cameras:=false launch_lidar:=false'" >> ~/.bashrc && \
     echo "alias ffw_bg2_follower_ai='ros2 launch ffw_bringup ffw_bg2_follower_ai.launch.py start_rviz:=true use_mock_hardware:=true launch_cameras:=false launch_lidar:=false'" >> ~/.bashrc && \
-    echo "alias zenohd='ros2 run zenoh_cpp_daemon zenohd'" >> ~/.bashrc && \
+    echo "alias zenohd='ros2 run rmw_zenoh_cpp rmw_zenohd'" >> ~/.bashrc && \
     echo "export RMW_IMPLEMENTATION=rmw_zenoh_cpp" >> ~/.bashrc && \
     echo "export ROS_DOMAIN_ID=30" >> ~/.bashrc
 
@@ -96,7 +96,8 @@ RUN pip install --no-cache-dir --ignore-installed -r /opt/cyclo_manager/requirem
 COPY docker/s6-agent /etc/s6-overlay/s6-rc.d/s6-agent
 
 # Define ROS2 services
-ARG ROS2_SERVICES="ai_worker_bringup avatar_bringup"
+ARG ROS2_SERVICES="ai_worker_bringup avatar_bringup ai_worker_navigation"
+ARG ROS2_ONESHOT_SERVICES="ai_worker_map_save"
 
 # Copy all ROS2 service directories directly to s6-rc.d
 COPY docker/s6-services/ /etc/s6-overlay/s6-rc.d/
@@ -108,6 +109,9 @@ RUN for service in ${ROS2_SERVICES}; do \
     mkdir -p /var/log/${service} && \
     chown nobody:nogroup /var/log/${service} && \
     chmod 02755 /var/log/${service}; \
+    done && \
+    for service in ${ROS2_ONESHOT_SERVICES}; do \
+    chmod +x /etc/s6-overlay/s6-rc.d/${service}/run; \
     done && \
     # Remove common directory from s6-rc.d (it's copied separately below)
     rm -rf /etc/s6-overlay/s6-rc.d/common
