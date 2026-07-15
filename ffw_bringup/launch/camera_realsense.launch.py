@@ -35,7 +35,6 @@ import sys
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 import yaml
 
@@ -368,11 +367,6 @@ def load_realsense_serials():
         f'found at {persistent_path} or {fallback_path}.')
 
 
-serials = load_realsense_serials()
-serial1 = serials.get('camera1_serial', '')
-serial2 = serials.get('camera2_serial', '')
-serial3 = serials.get('camera3_serial', '')  # d455 head, only used when enable_head_camera=true
-
 local_parameters = [{'name': 'camera_name1', 'default': 'camera_left',
                      'description': 'camera1 unique name'},
                     {'name': 'camera_name2', 'default': 'camera_right',
@@ -385,12 +379,6 @@ local_parameters = [{'name': 'camera_name1', 'default': 'camera_left',
                      'description': 'camera2 namespace'},
                     {'name': 'camera_namespace3', 'default': 'camera_head',
                      'description': 'camera3 namespace'},
-                    {'name': 'serial_no1', 'default': serial1,
-                     'description': 'choose device1 by serial number'},
-                    {'name': 'serial_no2', 'default': serial2,
-                     'description': 'choose device2 by serial number'},
-                    {'name': 'serial_no3', 'default': serial3,
-                     'description': 'choose device3 by serial number'},
                     {'name': 'depth_module.depth_profile1', 'default': '480,270,30',
                      'description': 'depth stream profile for camera1'},
                     {'name': 'depth_module.depth_profile2', 'default': '480,270,30',
@@ -419,12 +407,74 @@ def duplicate_params(general_params, posix):
     return local_params
 
 
+def launch_realsense_cameras(context, params_by_camera):
+    assignment_mode = LaunchConfiguration('camera_assignment_mode').perform(context)
+    enable_head_camera = LaunchConfiguration('enable_head_camera').perform(context).lower() == 'true'
+
+    if assignment_mode == 'serial':
+        serials = {
+            1: LaunchConfiguration('camera_left_serial').perform(context),
+            2: LaunchConfiguration('camera_right_serial').perform(context),
+            3: LaunchConfiguration('camera_head_serial').perform(context),
+        }
+        required_cameras = (1, 2, 3) if enable_head_camera else (1, 2)
+        missing_roles = [CAMERA_ROLES[index] for index in required_cameras
+                         if not unquote_serial(serials[index])]
+        if missing_roles:
+            raise RuntimeError(
+                '[camera_realsense] camera_assignment_mode:=serial requires serial numbers '
+                f'for: {", ".join(missing_roles)}')
+        print('[camera_realsense] Using serial numbers supplied as launch arguments.')
+    else:
+        detected_serials = load_realsense_serials()
+        serials = {
+            index: detected_serials.get(camera_key(index, 'serial'), '')
+            for index in CAMERA_ROLES
+        }
+
+    actions = []
+    camera_indexes = (1, 2, 3) if enable_head_camera else (1, 2)
+    for index in camera_indexes:
+        context.launch_configurations[f'serial_no{index}'] = format_serial_for_launch(
+            unquote_serial(serials[index]))
+        camera_actions = rs_launch.launch_setup(
+            context,
+            params=set_configurable_parameters(params_by_camera[index]),
+            param_name_suffix=str(index),
+        )
+        if camera_actions:
+            actions.extend(camera_actions)
+    return actions
+
+
 def generate_launch_description():
     params1 = duplicate_params(rs_launch.configurable_parameters, '1')
     params2 = duplicate_params(rs_launch.configurable_parameters, '2')
     params3 = duplicate_params(rs_launch.configurable_parameters, '3')
     return LaunchDescription(
         [
+            DeclareLaunchArgument(
+                'camera_assignment_mode',
+                default_value='usb_port',
+                choices=['usb_port', 'serial'],
+                description='Assign camera roles from the fixed robot USB ports, or from '
+                            'serial numbers supplied as launch arguments.'
+            ),
+            DeclareLaunchArgument(
+                'camera_left_serial',
+                default_value='',
+                description='Left wrist camera serial. Required in serial mode.'
+            ),
+            DeclareLaunchArgument(
+                'camera_right_serial',
+                default_value='',
+                description='Right wrist camera serial. Required in serial mode.'
+            ),
+            DeclareLaunchArgument(
+                'camera_head_serial',
+                default_value='',
+                description='Head camera serial. Required in serial mode when enabled.'
+            ),
             DeclareLaunchArgument(
                 'enable_head_camera',
                 default_value='false',
@@ -440,26 +490,8 @@ def generate_launch_description():
         rs_launch.declare_configurable_parameters(params3) +
         [
             OpaqueFunction(
-                function=rs_launch.launch_setup,
-                kwargs={
-                    'params': set_configurable_parameters(params1),
-                    'param_name_suffix': '1'
-                }
-            ),
-            OpaqueFunction(
-                function=rs_launch.launch_setup,
-                kwargs={
-                    'params': set_configurable_parameters(params2),
-                    'param_name_suffix': '2'
-                }
-            ),
-            OpaqueFunction(
-                function=rs_launch.launch_setup,
-                kwargs={
-                    'params': set_configurable_parameters(params3),
-                    'param_name_suffix': '3'
-                },
-                condition=IfCondition(LaunchConfiguration('enable_head_camera'))
+                function=launch_realsense_cameras,
+                kwargs={'params_by_camera': {1: params1, 2: params2, 3: params3}},
             ),
         ]
     )
