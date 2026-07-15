@@ -372,7 +372,10 @@ def generate_launch_description():
     camera_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(PathJoinSubstitution([bringup_launch_dir,
                                                             'camera.launch.py'])),
-        launch_arguments={'head_camera_type': head_camera_type}.items(),
+        launch_arguments={
+            'head_camera_type': head_camera_type,
+            'camera_assignment_mode': 'usb_port',
+        }.items(),
         condition=IfCondition(launch_cameras)
     )
 
