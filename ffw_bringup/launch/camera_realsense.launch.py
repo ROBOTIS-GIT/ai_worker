@@ -411,7 +411,7 @@ def launch_realsense_cameras(context, params_by_camera):
     assignment_mode = LaunchConfiguration('camera_assignment_mode').perform(context)
     enable_head_camera = LaunchConfiguration('enable_head_camera').perform(context).lower() == 'true'
 
-    if assignment_mode == 'serial':
+    if assignment_mode == 'manual':
         serials = {
             1: LaunchConfiguration('camera_left_serial').perform(context),
             2: LaunchConfiguration('camera_right_serial').perform(context),
@@ -422,7 +422,7 @@ def launch_realsense_cameras(context, params_by_camera):
                          if not unquote_serial(serials[index])]
         if missing_roles:
             raise RuntimeError(
-                '[camera_realsense] camera_assignment_mode:=serial requires serial numbers '
+                '[camera_realsense] camera_assignment_mode:=manual requires serial numbers '
                 f'for: {", ".join(missing_roles)}')
         print('[camera_realsense] Using serial numbers supplied as launch arguments.')
     else:
@@ -455,25 +455,25 @@ def generate_launch_description():
         [
             DeclareLaunchArgument(
                 'camera_assignment_mode',
-                default_value='usb_port',
-                choices=['usb_port', 'serial'],
-                description='Assign camera roles from the fixed robot USB ports, or from '
-                            'serial numbers supplied as launch arguments.'
+                default_value='auto',
+                choices=['auto', 'manual'],
+                description='Assign camera roles automatically, or use serial numbers declared '
+                            'as launch arguments.'
             ),
             DeclareLaunchArgument(
                 'camera_left_serial',
                 default_value='',
-                description='Left wrist camera serial. Required in serial mode.'
+                description='Left wrist camera serial. Required in manual mode.'
             ),
             DeclareLaunchArgument(
                 'camera_right_serial',
                 default_value='',
-                description='Right wrist camera serial. Required in serial mode.'
+                description='Right wrist camera serial. Required in manual mode.'
             ),
             DeclareLaunchArgument(
                 'camera_head_serial',
                 default_value='',
-                description='Head camera serial. Required in serial mode when enabled.'
+                description='Head camera serial. Required in manual mode when enabled.'
             ),
             DeclareLaunchArgument(
                 'enable_head_camera',
