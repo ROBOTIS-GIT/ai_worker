@@ -35,6 +35,7 @@ import sys
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.logging import get_logger
 from launch.substitutions import LaunchConfiguration
 import yaml
 
@@ -421,9 +422,11 @@ def launch_realsense_cameras(context, params_by_camera):
         missing_roles = [CAMERA_ROLES[index] for index in required_cameras
                          if not unquote_serial(serials[index])]
         if missing_roles:
-            raise RuntimeError(
-                '[camera_realsense] camera_assignment_mode:=manual requires serial numbers '
-                f'for: {", ".join(missing_roles)}')
+            get_logger('camera_realsense').error(
+                'Camera bringup failed: camera_assignment_mode:=manual requires serial numbers '
+                f'for: {", ".join(missing_roles)}. Skipping RealSense camera nodes; '
+                'the remaining bringup will continue.')
+            return []
         print('[camera_realsense] Using serial numbers supplied as launch arguments.')
     else:
         detected_serials = load_realsense_serials()
