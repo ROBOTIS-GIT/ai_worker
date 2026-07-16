@@ -363,9 +363,10 @@ def load_realsense_serials():
               f'Using fallback serials from {fallback_path}')
         return fallback_serials
 
-    raise RuntimeError(
-        '[camera_realsense] No RealSense cameras were detected and no camera mapping was '
+    get_logger('camera_realsense').error(
+        'Camera bringup failed: no RealSense cameras were detected and no camera mapping was '
         f'found at {persistent_path} or {fallback_path}.')
+    return {}
 
 
 local_parameters = [{'name': 'camera_name1', 'default': 'camera_left',
@@ -410,7 +411,9 @@ def duplicate_params(general_params, posix):
 
 def launch_realsense_cameras(context, params_by_camera):
     assignment_mode = LaunchConfiguration('camera_assignment_mode').perform(context)
-    enable_head_camera = LaunchConfiguration('enable_head_camera').perform(context).lower() == 'true'
+    enable_head_camera = (
+        LaunchConfiguration('enable_head_camera').perform(context).lower() == 'true'
+    )
 
     if assignment_mode == 'manual':
         serials = {
@@ -434,6 +437,16 @@ def launch_realsense_cameras(context, params_by_camera):
             index: detected_serials.get(camera_key(index, 'serial'), '')
             for index in CAMERA_ROLES
         }
+
+        required_cameras = (1, 2, 3) if enable_head_camera else (1, 2)
+        missing_roles = [CAMERA_ROLES[index] for index in required_cameras
+                         if not unquote_serial(serials[index])]
+        if missing_roles:
+            get_logger('camera_realsense').error(
+                'Camera bringup failed: automatic assignment did not find cameras for: '
+                f'{", ".join(missing_roles)}. Skipping RealSense camera nodes; '
+                'the remaining bringup will continue.')
+            return []
 
     actions = []
     camera_indexes = (1, 2, 3) if enable_head_camera else (1, 2)
