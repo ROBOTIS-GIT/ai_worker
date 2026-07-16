@@ -23,12 +23,14 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, TimerAction
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
 
 
 def generate_launch_description():
     bringup_launch_dir = os.path.join(get_package_share_directory('ffw_bringup'), 'launch')
+    camera_assignment_mode = LaunchConfiguration('camera_assignment_mode')
 
     follower = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(bringup_launch_dir,
@@ -37,6 +39,7 @@ def generate_launch_description():
             'launch_cameras': 'true',
             'init_position': 'true',
             'head_camera_type': 'realsense',
+            'camera_assignment_mode': camera_assignment_mode,
         }.items()
     )
     leader = IncludeLaunchDescription(
@@ -45,6 +48,10 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        DeclareLaunchArgument(
+            'camera_assignment_mode', default_value='auto',
+            choices=['auto', 'manual'],
+            description='Assign RealSense cameras automatically or by configured serials.'),
         follower,
         TimerAction(period=30.0, actions=[leader]),
     ])
