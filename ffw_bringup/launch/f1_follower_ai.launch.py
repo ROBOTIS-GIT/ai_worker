@@ -229,7 +229,7 @@ def generate_launch_description():
                                                             'camera.launch.py'])),
         launch_arguments={
             'head_camera_type': head_camera_type,
-            'camera_assignment_mode': 'usb_port',
+            'camera_assignment_mode': 'auto',
         }.items(),
         condition=IfCondition(launch_cameras)
     )

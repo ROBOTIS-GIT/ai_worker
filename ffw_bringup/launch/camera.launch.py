@@ -68,16 +68,17 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             'camera_assignment_mode',
-            default_value='usb_port',
-            choices=['usb_port', 'serial'],
-            description='Assign RealSense camera roles by fixed USB ports or explicit serials.'
+            default_value='auto',
+            choices=['auto', 'manual'],
+            description='Assign RealSense camera roles automatically, or use the serials '
+                        'declared in this launch file.'
         ),
         DeclareLaunchArgument('camera_left_serial', default_value='',
-                              description='Left wrist RealSense serial in serial mode.'),
+                              description='Left wrist RealSense serial in manual mode.'),
         DeclareLaunchArgument('camera_right_serial', default_value='',
-                              description='Right wrist RealSense serial in serial mode.'),
+                              description='Right wrist RealSense serial in manual mode.'),
         DeclareLaunchArgument('camera_head_serial', default_value='',
-                              description='Head RealSense serial in serial mode.'),
+                              description='Head RealSense serial in manual mode.'),
         camera_zed,
         TimerAction(period=10.0, actions=[camera_realsense]),
     ])

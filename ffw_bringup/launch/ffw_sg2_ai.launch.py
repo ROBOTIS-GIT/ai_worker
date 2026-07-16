@@ -50,8 +50,8 @@ def generate_launch_description():
 
     return LaunchDescription([
         DeclareLaunchArgument(
-            'camera_assignment_mode', default_value='usb_port',
-            choices=['usb_port', 'serial'],
+            'camera_assignment_mode', default_value='auto',
+            choices=['auto', 'manual'],
             description='Assign wrist cameras by fixed USB ports or explicit serials.'),
         DeclareLaunchArgument('camera_left_serial', default_value='',
                               description='Left wrist RealSense serial in serial mode.'),
