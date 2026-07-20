@@ -328,10 +328,11 @@ def write_serials_yaml(path_to_yaml, serials_dict):
 def try_write_serials_yaml(path_to_yaml, serials_dict):
     try:
         write_serials_yaml(path_to_yaml, serials_dict)
-        print(f'[camera_realsense] Saved RealSense camera mapping to {path_to_yaml}')
+        get_logger('camera_realsense').info(
+            f'Saved RealSense camera mapping to {path_to_yaml}')
     except OSError as exc:
-        print(f'[camera_realsense] Could not save RealSense camera mapping to '
-              f'{path_to_yaml}: {exc}')
+        get_logger('camera_realsense').error(
+            f'Could not save RealSense camera mapping to {path_to_yaml}: {exc}')
 
 
 def load_realsense_serials():
@@ -349,7 +350,8 @@ def load_realsense_serials():
         serials = ensure_head_from_model(serials, discovered_devices)
         if serials != persistent_serials:
             try_write_serials_yaml(persistent_path, serials)
-        print(f'[camera_realsense] Using RealSense camera mapping from {persistent_path}')
+        get_logger('camera_realsense').info(
+            f'Using RealSense camera mapping from {persistent_path}')
         return serials
 
     if discovered_devices:
@@ -359,8 +361,9 @@ def load_realsense_serials():
 
     fallback_serials = yaml_to_dict(fallback_path)
     if fallback_serials:
-        print(f'[camera_realsense] Could not auto-detect RealSense serials. '
-              f'Using fallback serials from {fallback_path}')
+        get_logger('camera_realsense').warning(
+            f'Could not auto-detect RealSense serials. '
+            f'Using fallback serials from {fallback_path}')
         return fallback_serials
 
     get_logger('camera_realsense').error(
@@ -430,7 +433,8 @@ def launch_realsense_cameras(context, params_by_camera):
                 f'for: {", ".join(missing_roles)}. Skipping RealSense camera nodes; '
                 'the remaining bringup will continue.')
             return []
-        print('[camera_realsense] Using serial numbers supplied as launch arguments.')
+        get_logger('camera_realsense').info(
+            'Using serial numbers supplied as launch arguments.')
     else:
         detected_serials = load_realsense_serials()
         serials = {
