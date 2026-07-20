@@ -735,7 +735,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="file:///root/ros2_ws/install/ffw_description/share/ffw_description/meshes/common/follower/zedm.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://ffw_description/meshes/common/follower/zedm.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="zedm_mat">
         <color rgba="0.25 0.25 0.25 1.0"/>
@@ -744,7 +744,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="file:///root/ros2_ws/install/ffw_description/share/ffw_description/meshes/common/follower/zedm.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://ffw_description/meshes/common/follower/zedm.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
