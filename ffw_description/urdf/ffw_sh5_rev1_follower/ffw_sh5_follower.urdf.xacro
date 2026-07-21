@@ -10,16 +10,16 @@
 
   <xacro:include filename="$(find ffw_description)/urdf/common/follower/ffw_follower_body.xacro" />
 
-  <xacro:include filename="$(find ffw_description)/urdf/common/hx5_d20/hx5_d20_left.urdf.xacro" />
-
-  <xacro:include filename="$(find ffw_description)/urdf/common/hx5_d20/hx5_d20_right.urdf.xacro" />
+  <xacro:include filename="$(find robotis_hand_description)/urdf/hx5_d20_rev2/hx5_d20_left.urdf.xacro" />
+  <xacro:include filename="$(find robotis_hand_description)/urdf/hx5_d20_rev2/hx5_d20_right.urdf.xacro" />
 
   <xacro:include filename="$(find ffw_description)/ros2_control/$(arg model)/ffw_sh5_follower.ros2_control.xacro" />
   <xacro:include filename="$(find ffw_description)/ros2_control/$(arg model)/ffw_sh5_base.ros2_control.xacro" />
   <xacro:include filename="$(find ffw_description)/ros2_control/$(arg model)/ffw_sh5_sensor.ros2_control.xacro" />
 
   <xacro:include filename="$(find ffw_description)/gazebo/ffw_sh5_rev1_follower/ffw_sh5_follower.gazebo.xacro" />
-
+  <xacro:include filename="$(find robotis_hand_description)/gazebo/hx5_d20/hx5_d20_left.gazebo.xacro" />
+  <xacro:include filename="$(find robotis_hand_description)/gazebo/hx5_d20/hx5_d20_right.gazebo.xacro" />
 
   <link name="$(arg prefix)base_link">
     <visual>
@@ -105,13 +105,21 @@
     <origin xyz="-0.0199 0 1.4316" rpy="0 0 0" />
   </xacro:ffw_follower_body>
 
-  <xacro:hx5_d20_left parent="$(arg prefix)arm_l_link7" prefix="$(arg prefix)">
+  <joint name="$(arg prefix)hx5_d20_left_joint" type="fixed">
+    <parent link="$(arg prefix)arm_l_link7"/>
+    <child link="$(arg prefix)hx5_d20_left_base"/>
     <origin xyz="0 0 -0.078" rpy="0 3.14159265359 1.5708"/>
-  </xacro:hx5_d20_left>
+  </joint>
 
-  <xacro:hx5_d20_right parent="$(arg prefix)arm_r_link7" prefix="$(arg prefix)">
+  <xacro:hx5_d20_left prefix="$(arg prefix)" />
+
+  <joint name="$(arg prefix)hx5_d20_right_joint" type="fixed">
+    <parent link="$(arg prefix)arm_r_link7"/>
+    <child link="$(arg prefix)hx5_d20_right_base"/>
     <origin xyz="0 0 -0.078" rpy="0 3.14159265359 -1.5708"/>
-  </xacro:hx5_d20_right>
+  </joint>
+
+  <xacro:hx5_d20_right prefix="$(arg prefix)" />
 
   <joint name="$(arg prefix)left_wheel_steer" type="revolute">
       <parent link="$(arg prefix)base_link"/>
