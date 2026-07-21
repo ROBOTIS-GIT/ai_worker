@@ -2,6 +2,11 @@
 Changelog for package ffw_bringup
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.1.0 (2026-07-22)
+------------------
+* Added tactile sensor topic broadcaster
+* Contributors: Hyunwoo Nam
+
 2.0.2 (2026-07-09)
 ------------------
 * Added mobile base AI launch file

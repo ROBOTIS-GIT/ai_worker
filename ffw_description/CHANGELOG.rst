@@ -2,6 +2,11 @@
 Changelog for package ffw_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.1.0 (2026-07-22)
+------------------
+* Updated SH5 ros2_control and urdf xacro
+* Contributors: Hyunwoo Nam
+
 2.0.2 (2026-07-09)
 ------------------
 * Added mobile base URDF xacro
