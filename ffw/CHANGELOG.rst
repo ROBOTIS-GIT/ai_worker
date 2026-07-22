@@ -2,6 +2,11 @@
 Changelog for package ffw
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.0.3 (2026-07-22)
+------------------
+* Added robotis_hand repository to Dockerfile
+* Contributors: Hyunwoo Nam
+
 2.0.2 (2026-07-09)
 ------------------
 * Added s6 services for AI Worker navigation and map saving

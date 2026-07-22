@@ -2,6 +2,10 @@
 Changelog for package ffw_bringup
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.0.3 (2026-07-22)
+------------------
+* None
+
 2.0.2 (2026-07-09)
 ------------------
 * Added mobile base AI launch file
