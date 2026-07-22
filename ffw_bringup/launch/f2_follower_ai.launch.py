@@ -54,13 +54,7 @@ def generate_launch_description():
                                           'zed for sg2/bg2/sh5/bh5.'),
         DeclareLaunchArgument('camera_assignment_mode', default_value='auto',
                               choices=['auto', 'manual'],
-                              description='Assign cameras automatically or by serials.'),
-        DeclareLaunchArgument('camera_left_serial', default_value='',
-                              description='Left wrist RealSense serial in manual mode.'),
-        DeclareLaunchArgument('camera_right_serial', default_value='',
-                              description='Right wrist RealSense serial in manual mode.'),
-        DeclareLaunchArgument('camera_head_serial', default_value='',
-                              description='Head RealSense serial in manual mode.'),
+                              description='Use automatic assignment or the manual camera YAML.'),
         DeclareLaunchArgument('launch_lidar', default_value='true',
                               description='Whether to launch lidar.'),
         DeclareLaunchArgument('init_position', default_value='true',
@@ -88,9 +82,6 @@ def generate_launch_description():
     launch_cameras = LaunchConfiguration('launch_cameras')
     head_camera_type = LaunchConfiguration('head_camera_type')
     camera_assignment_mode = LaunchConfiguration('camera_assignment_mode')
-    camera_left_serial = LaunchConfiguration('camera_left_serial')
-    camera_right_serial = LaunchConfiguration('camera_right_serial')
-    camera_head_serial = LaunchConfiguration('camera_head_serial')
     launch_lidar = LaunchConfiguration('launch_lidar')
     init_position = LaunchConfiguration('init_position')
     model = LaunchConfiguration('model')
@@ -315,9 +306,6 @@ def generate_launch_description():
         launch_arguments={
             'head_camera_type': head_camera_type,
             'camera_assignment_mode': camera_assignment_mode,
-            'camera_left_serial': camera_left_serial,
-            'camera_right_serial': camera_right_serial,
-            'camera_head_serial': camera_head_serial,
         }.items(),
         condition=IfCondition(launch_cameras)
     )

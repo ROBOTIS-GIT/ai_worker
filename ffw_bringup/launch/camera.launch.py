@@ -31,9 +31,6 @@ def generate_launch_description():
 
     head_camera_type = LaunchConfiguration('head_camera_type')
     camera_assignment_mode = LaunchConfiguration('camera_assignment_mode')
-    camera_left_serial = LaunchConfiguration('camera_left_serial')
-    camera_right_serial = LaunchConfiguration('camera_right_serial')
-    camera_head_serial = LaunchConfiguration('camera_head_serial')
 
     is_zed_head = PythonExpression(["'", head_camera_type, "' == 'zed'"])
     enable_realsense_head = PythonExpression(
@@ -52,9 +49,6 @@ def generate_launch_description():
         launch_arguments={
             'enable_head_camera': enable_realsense_head,
             'camera_assignment_mode': camera_assignment_mode,
-            'camera_left_serial': camera_left_serial,
-            'camera_right_serial': camera_right_serial,
-            'camera_head_serial': camera_head_serial,
         }.items(),
     )
 
@@ -68,17 +62,11 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             'camera_assignment_mode',
-            default_value='auto',
+            default_value='manual',
             choices=['auto', 'manual'],
-            description='Assign RealSense camera roles automatically, or use the serials '
-                        'declared in this launch file.'
+            description='Assign RealSense camera roles automatically, or load serials from '
+                        'ffw_bringup/config/common/rs_serial.yaml.'
         ),
-        DeclareLaunchArgument('camera_left_serial', default_value='',
-                              description='Left wrist RealSense serial in manual mode.'),
-        DeclareLaunchArgument('camera_right_serial', default_value='',
-                              description='Right wrist RealSense serial in manual mode.'),
-        DeclareLaunchArgument('camera_head_serial', default_value='',
-                              description='Head RealSense serial in manual mode.'),
         camera_zed,
         TimerAction(period=10.0, actions=[camera_realsense]),
     ])

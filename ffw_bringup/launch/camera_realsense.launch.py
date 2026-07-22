@@ -335,8 +335,9 @@ def try_write_serials_yaml(path_to_yaml, serials_dict):
             f'Could not save RealSense camera mapping to {path_to_yaml}: {exc}')
 
 
-def load_realsense_serials():
-    persistent_path = os.environ.get('FFW_RS_SERIAL_PATH', '/workspace/config/rs_serial.yaml')
+def load_auto_realsense_serials():
+    persistent_path = os.environ.get(
+        'FFW_RS_SERIAL_PATH', '/workspace/config/rs_serial_auto.yaml')
     fallback_path = os.path.join(
         get_package_share_directory('ffw_bringup'), 'config', 'common', 'rs_serial.yaml')
 
@@ -369,6 +370,20 @@ def load_realsense_serials():
     get_logger('camera_realsense').error(
         'Camera bringup failed: no RealSense cameras were detected and no camera mapping was '
         f'found at {persistent_path} or {fallback_path}.')
+    return {}
+
+
+def load_manual_realsense_serials():
+    manual_path = os.path.join(
+        get_package_share_directory('ffw_bringup'), 'config', 'common', 'rs_serial.yaml')
+    serials = yaml_to_dict(manual_path)
+    if serials:
+        get_logger('camera_realsense').info(
+            f'Using manually configured RealSense serials from {manual_path}')
+        return serials
+
+    get_logger('camera_realsense').error(
+        f'Camera bringup failed: no manual camera mapping was found at {manual_path}.')
     return {}
 
 
@@ -419,24 +434,22 @@ def launch_realsense_cameras(context, params_by_camera):
     )
 
     if assignment_mode == 'manual':
+        configured_serials = load_manual_realsense_serials()
         serials = {
-            1: LaunchConfiguration('camera_left_serial').perform(context),
-            2: LaunchConfiguration('camera_right_serial').perform(context),
-            3: LaunchConfiguration('camera_head_serial').perform(context),
+            index: configured_serials.get(camera_key(index, 'serial'), '')
+            for index in CAMERA_ROLES
         }
         required_cameras = (1, 2, 3) if enable_head_camera else (1, 2)
         missing_roles = [CAMERA_ROLES[index] for index in required_cameras
                          if not unquote_serial(serials[index])]
         if missing_roles:
             get_logger('camera_realsense').error(
-                'Camera bringup failed: camera_assignment_mode:=manual requires serial numbers '
+                'Camera bringup failed: the manual camera mapping is missing serial numbers '
                 f'for: {", ".join(missing_roles)}. Skipping RealSense camera nodes; '
                 'the remaining bringup will continue.')
             return []
-        get_logger('camera_realsense').info(
-            'Using serial numbers supplied as launch arguments.')
     else:
-        detected_serials = load_realsense_serials()
+        detected_serials = load_auto_realsense_serials()
         serials = {
             index: detected_serials.get(camera_key(index, 'serial'), '')
             for index in CAMERA_ROLES
@@ -475,25 +488,10 @@ def generate_launch_description():
         [
             DeclareLaunchArgument(
                 'camera_assignment_mode',
-                default_value='auto',
+                default_value='manual',
                 choices=['auto', 'manual'],
-                description='Assign camera roles automatically, or use serial numbers declared '
-                            'as launch arguments.'
-            ),
-            DeclareLaunchArgument(
-                'camera_left_serial',
-                default_value='',
-                description='Left wrist camera serial. Required in manual mode.'
-            ),
-            DeclareLaunchArgument(
-                'camera_right_serial',
-                default_value='',
-                description='Right wrist camera serial. Required in manual mode.'
-            ),
-            DeclareLaunchArgument(
-                'camera_head_serial',
-                default_value='',
-                description='Head camera serial. Required in manual mode when enabled.'
+                description='Assign camera roles automatically, or load serials from the '
+                            'ffw_bringup manual camera YAML.'
             ),
             DeclareLaunchArgument(
                 'enable_head_camera',
