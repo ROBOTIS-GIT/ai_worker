@@ -28,8 +28,6 @@ from launch.substitutions import LaunchConfiguration
 def generate_launch_description():
     bringup_launch_dir = os.path.join(get_package_share_directory('ffw_bringup'), 'launch')
     camera_assignment_mode = LaunchConfiguration('camera_assignment_mode')
-    camera_left_serial = LaunchConfiguration('camera_left_serial')
-    camera_right_serial = LaunchConfiguration('camera_right_serial')
 
     follower = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(bringup_launch_dir,
@@ -39,8 +37,6 @@ def generate_launch_description():
             'init_position': 'true',
             'head_camera_type': 'zed',
             'camera_assignment_mode': camera_assignment_mode,
-            'camera_left_serial': camera_left_serial,
-            'camera_right_serial': camera_right_serial,
         }.items()
     )
     leader = IncludeLaunchDescription(
@@ -50,13 +46,9 @@ def generate_launch_description():
 
     return LaunchDescription([
         DeclareLaunchArgument(
-            'camera_assignment_mode', default_value='auto',
+            'camera_assignment_mode', default_value='manual',
             choices=['auto', 'manual'],
-            description='Assign wrist cameras by fixed USB ports or explicit serials.'),
-        DeclareLaunchArgument('camera_left_serial', default_value='',
-                              description='Left wrist RealSense serial in serial mode.'),
-        DeclareLaunchArgument('camera_right_serial', default_value='',
-                              description='Right wrist RealSense serial in serial mode.'),
+            description='Use the manual camera YAML or automatic camera assignment.'),
         follower,
         TimerAction(period=30.0, actions=[leader]),
     ])

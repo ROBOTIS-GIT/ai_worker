@@ -52,6 +52,9 @@ def generate_launch_description():
                               choices=['zed', 'realsense'],
                               description='Head camera type. zed for sg2/bg2/sh5/bh5, '
                                           'realsense for f2.'),
+        DeclareLaunchArgument('camera_assignment_mode', default_value='manual',
+                              choices=['auto', 'manual'],
+                              description='Use the manual camera YAML or automatic assignment.'),
         DeclareLaunchArgument('launch_lidar', default_value='true',
                               description='Whether to launch lidar.'),
         DeclareLaunchArgument('init_position', default_value='true',
@@ -73,6 +76,7 @@ def generate_launch_description():
     port_name = LaunchConfiguration('port_name')
     launch_cameras = LaunchConfiguration('launch_cameras')
     head_camera_type = LaunchConfiguration('head_camera_type')
+    camera_assignment_mode = LaunchConfiguration('camera_assignment_mode')
     launch_lidar = LaunchConfiguration('launch_lidar')
     init_position = LaunchConfiguration('init_position')
     model = LaunchConfiguration('model')
@@ -375,7 +379,7 @@ def generate_launch_description():
                                                             'camera.launch.py'])),
         launch_arguments={
             'head_camera_type': head_camera_type,
-            'camera_assignment_mode': 'auto',
+            'camera_assignment_mode': camera_assignment_mode,
         }.items(),
         condition=IfCondition(launch_cameras)
     )
