@@ -45,8 +45,8 @@ def generate_launch_description():
                               choices=['zed', 'realsense'],
                               description='Head camera type. zed for sg2/bg2/sh5/bh5, '
                                           'realsense for f2.'),
-        DeclareLaunchArgument('camera_assignment_mode', default_value='manual',
-                              choices=['auto', 'manual'],
+        DeclareLaunchArgument('auto_assign_cameras', default_value='false',
+                              choices=['true', 'false'],
                               description='Use the manual camera YAML or automatic assignment.'),
         DeclareLaunchArgument('init_position', default_value='true',
                               description='Whether to launch the init_position node.'),
@@ -72,7 +72,7 @@ def generate_launch_description():
     port_name = LaunchConfiguration('port_name')
     launch_cameras = LaunchConfiguration('launch_cameras')
     head_camera_type = LaunchConfiguration('head_camera_type')
-    camera_assignment_mode = LaunchConfiguration('camera_assignment_mode')
+    auto_assign_cameras = LaunchConfiguration('auto_assign_cameras')
     init_position = LaunchConfiguration('init_position')
     model = LaunchConfiguration('model')
     use_head_eef_tracker = LaunchConfiguration('use_head_eef_tracker')
@@ -302,7 +302,7 @@ def generate_launch_description():
                                                             'camera.launch.py'])),
         launch_arguments={
             'head_camera_type': head_camera_type,
-            'camera_assignment_mode': camera_assignment_mode,
+            'auto_assign_cameras': auto_assign_cameras,
         }.items(),
         condition=IfCondition(launch_cameras)
     )

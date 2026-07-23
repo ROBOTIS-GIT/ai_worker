@@ -30,7 +30,7 @@ from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
     bringup_launch_dir = os.path.join(get_package_share_directory('ffw_bringup'), 'launch')
-    camera_assignment_mode = LaunchConfiguration('camera_assignment_mode')
+    auto_assign_cameras = LaunchConfiguration('auto_assign_cameras')
 
     follower = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(bringup_launch_dir,
@@ -39,7 +39,7 @@ def generate_launch_description():
             'launch_cameras': 'true',
             'init_position': 'true',
             'head_camera_type': 'realsense',
-            'camera_assignment_mode': camera_assignment_mode,
+            'auto_assign_cameras': auto_assign_cameras,
         }.items()
     )
     leader = IncludeLaunchDescription(
@@ -49,8 +49,8 @@ def generate_launch_description():
 
     return LaunchDescription([
         DeclareLaunchArgument(
-            'camera_assignment_mode', default_value='auto',
-            choices=['auto', 'manual'],
+            'auto_assign_cameras', default_value='true',
+            choices=['true', 'false'],
             description='Assign RealSense cameras automatically or by configured serials.'),
         follower,
         TimerAction(period=30.0, actions=[leader]),

@@ -30,7 +30,7 @@ def generate_launch_description():
     bringup_launch_dir = os.path.join(get_package_share_directory('ffw_bringup'), 'launch')
 
     head_camera_type = LaunchConfiguration('head_camera_type')
-    camera_assignment_mode = LaunchConfiguration('camera_assignment_mode')
+    auto_assign_cameras = LaunchConfiguration('auto_assign_cameras')
 
     is_zed_head = PythonExpression(["'", head_camera_type, "' == 'zed'"])
     enable_realsense_head = PythonExpression(
@@ -48,7 +48,7 @@ def generate_launch_description():
             os.path.join(bringup_launch_dir, 'camera_realsense.launch.py')),
         launch_arguments={
             'enable_head_camera': enable_realsense_head,
-            'camera_assignment_mode': camera_assignment_mode,
+            'auto_assign_cameras': auto_assign_cameras,
         }.items(),
     )
 
@@ -61,9 +61,9 @@ def generate_launch_description():
                         'wrists). realsense for f2 (d455 head + 2 d405 wrists).'
         ),
         DeclareLaunchArgument(
-            'camera_assignment_mode',
-            default_value='manual',
-            choices=['auto', 'manual'],
+            'auto_assign_cameras',
+            default_value='false',
+            choices=['true', 'false'],
             description='Assign RealSense camera roles automatically, or load serials from '
                         'ffw_bringup/config/common/rs_serial.yaml.'
         ),
