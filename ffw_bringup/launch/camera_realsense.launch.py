@@ -428,12 +428,14 @@ def duplicate_params(general_params, posix):
 
 
 def launch_realsense_cameras(context, params_by_camera):
-    assignment_mode = LaunchConfiguration('camera_assignment_mode').perform(context)
+    auto_assign_cameras = (
+        LaunchConfiguration('auto_assign_cameras').perform(context).lower() == 'true'
+    )
     enable_head_camera = (
         LaunchConfiguration('enable_head_camera').perform(context).lower() == 'true'
     )
 
-    if assignment_mode == 'manual':
+    if not auto_assign_cameras:
         configured_serials = load_manual_realsense_serials()
         serials = {
             index: configured_serials.get(camera_key(index, 'serial'), '')
@@ -487,9 +489,9 @@ def generate_launch_description():
     return LaunchDescription(
         [
             DeclareLaunchArgument(
-                'camera_assignment_mode',
-                default_value='manual',
-                choices=['auto', 'manual'],
+                'auto_assign_cameras',
+                default_value='false',
+                choices=['true', 'false'],
                 description='Assign camera roles automatically, or load serials from the '
                             'ffw_bringup manual camera YAML.'
             ),
