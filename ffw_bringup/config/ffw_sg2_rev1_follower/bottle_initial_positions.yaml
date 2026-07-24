@@ -1,0 +1,82 @@
+arm_l_joint_trajectory_executor:
+  ros__parameters:
+    joint_names:
+      - arm_l_joint1
+      - arm_l_joint2
+      - arm_l_joint3
+      - arm_l_joint4
+      - arm_l_joint5
+      - arm_l_joint6
+      - arm_l_joint7
+      - gripper_l_joint1
+    step_names: [bottle_ready]
+    bottle_ready:
+      - 1.4545373609880325
+      - 0.14897589979848755
+      - 0.26106435533828753
+      - -2.197091920348831
+      - 0.3863833951736012
+      - -0.7401217617050112
+      - -0.3450942567232166
+      - 0.0
+    duration: 6.0
+    position_tolerance: 0.1
+    velocity_tolerance: 0.01
+    action_topic: '/arm_l_controller/follow_joint_trajectory'
+    trajectory_topic: '/leader/joint_trajectory_command_broadcaster_left/joint_trajectory'
+    joint_states_topic: '/joint_states'
+
+arm_r_joint_trajectory_executor:
+  ros__parameters:
+    joint_names:
+      - arm_r_joint1
+      - arm_r_joint2
+      - arm_r_joint3
+      - arm_r_joint4
+      - arm_r_joint5
+      - arm_r_joint6
+      - arm_r_joint7
+      - gripper_r_joint1
+    step_names: [bottle_ready]
+    bottle_ready:
+      - 1.4304011320286443
+      - -0.15785621045335677
+      - -0.14885605754943398
+      - -2.208956303005134
+      - -0.21769344540580213
+      - -0.7225289195439477
+      - 0.24942435698426815
+      - 0.0015339807878856412
+    duration: 6.0
+    position_tolerance: 0.1
+    velocity_tolerance: 0.01
+    action_topic: '/arm_r_controller/follow_joint_trajectory'
+    trajectory_topic: '/leader/joint_trajectory_command_broadcaster_right/joint_trajectory'
+    joint_states_topic: '/joint_states'
+
+head_joint_trajectory_executor:
+  ros__parameters:
+    joint_names:
+      - head_joint1
+      - head_joint2
+    step_names: [bottle_view]
+    bottle_view: [0.7715923363062704, 0.00613592315133582]
+    duration: 4.0
+    position_tolerance: 0.1
+    velocity_tolerance: 0.01
+    action_topic: '/head_controller/follow_joint_trajectory'
+    trajectory_topic: '/leader/joystick_controller_left/joint_trajectory'
+    joint_states_topic: '/joint_states'
+
+lift_joint_trajectory_executor:
+  ros__parameters:
+    joint_names:
+      - lift_joint
+    step_names: [bottle_ready]
+    bottle_ready: [-0.16492]
+    duration: 6.0
+    position_tolerance: 0.1
+    velocity_tolerance: 0.01
+    action_topic: '/lift_controller/follow_joint_trajectory'
+    trajectory_topic: '/leader/joystick_controller_right/joint_trajectory'
+    joint_states_topic: '/joint_states'
