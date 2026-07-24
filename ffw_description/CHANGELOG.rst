@@ -2,6 +2,11 @@
 Changelog for package ffw_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.1.0 (2026-07-14)
+------------------
+* Added support for F1 and F2
+* Contributors: Yeonguk Kim
+
 2.0.2 (2026-07-09)
 ------------------
 * Added mobile base URDF xacro

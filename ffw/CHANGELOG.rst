@@ -2,6 +2,12 @@
 Changelog for package ffw
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.1.0 (2026-07-14)
+------------------
+* Added support for F1 and F2
+* Improved camera bringup and automatic camera role detection
+* Contributors: Yeonguk Kim, Dongyun Kim
+
 2.0.2 (2026-07-09)
 ------------------
 * Added s6 services for AI Worker navigation and map saving
