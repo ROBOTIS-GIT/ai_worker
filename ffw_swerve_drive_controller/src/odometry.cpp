@@ -19,6 +19,7 @@
  #include "ffw_swerve_drive_controller/odometry.hpp"
 
 #include <Eigen/Dense>
+#include <algorithm>
 #include <vector>
 #include <cmath>
 #include <stdexcept>
@@ -40,7 +41,6 @@ Odometry::Odometry(size_t velocity_rolling_window_size)
   velocity_in_base_frame_linear_y_(0.0),
   velocity_in_base_frame_angular_z_(0.0),
   num_modules_(0),
-  wheel_radius_(0.0),
   solver_method_(OdomSolverMethod::SVD),
   velocity_rolling_window_size_(velocity_rolling_window_size),
   linear_x_accumulator_(velocity_rolling_window_size),
@@ -66,21 +66,26 @@ void Odometry::init(const rclcpp::Time & time, const std::array<double, 3> & bas
 void Odometry::setModuleParams(
   const std::vector<double> & module_x_offsets,
   const std::vector<double> & module_y_offsets,
-  const double wheel_radius)
+  const std::vector<double> & wheel_radii)
 {
-  if (module_x_offsets.size() != module_y_offsets.size()) {
-    throw std::runtime_error("Odometry: Module X and Y offset vectors must have the same size.");
+  if (module_x_offsets.size() != module_y_offsets.size() ||
+    module_x_offsets.size() != wheel_radii.size())
+  {
+    throw std::runtime_error(
+      "Odometry: Module X offsets, Y offsets, and wheel radii must have the same size.");
   }
   num_modules_ = module_x_offsets.size();
   if (num_modules_ != 3 && num_modules_ != 4) {
     throw std::runtime_error("Odometry: Number of modules must be 3 or 4.");
   }
-  if (wheel_radius <= 0.0) {
-    throw std::runtime_error("Odometry: Wheel radius must be positive.");
+  const bool has_invalid_wheel_radius = std::any_of(
+    wheel_radii.begin(), wheel_radii.end(), [](const double radius) {return radius <= 0.0;});
+  if (has_invalid_wheel_radius) {
+    throw std::runtime_error("Odometry: Every wheel radius must be positive.");
   }
   module_x_offsets_ = module_x_offsets;
   module_y_offsets_ = module_y_offsets;
-  wheel_radius_ = wheel_radius;
+  wheel_radii_ = wheel_radii;
 }
 
 // ***** set solver method *****
@@ -122,7 +127,7 @@ bool Odometry::update(
 {
   auto logger = rclcpp::get_logger("swerve_odometry_update");
 
-  if (num_modules_ == 0 || wheel_radius_ == 0.0) { /* ... */ return false;}
+  if (num_modules_ == 0 || wheel_radii_.size() != num_modules_) { /* ... */ return false;}
   if (steering_positions.size() != num_modules_ || wheel_velocities.size() != num_modules_) {
     return false;
   }
@@ -135,7 +140,7 @@ bool Odometry::update(
   for (size_t i = 0; i < num_modules_; ++i) {
     const double theta_s = steering_positions[i];
     const double omega_w = wheel_velocities[i];
-    const double v_w = omega_w * wheel_radius_;
+    const double v_w = omega_w * wheel_radii_[i];
     const double lx = module_x_offsets_[i];
     const double ly = module_y_offsets_[i];
 

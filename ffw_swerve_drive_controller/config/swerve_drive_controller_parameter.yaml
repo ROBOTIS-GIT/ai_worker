@@ -18,11 +18,11 @@ ffw_swerve_drive_controller:
   }
 
   wheel_radius: {
-    type: double,
-    default_value: 0.033,
-    description: "Radius of the wheels in meters",
+    type: double_array,
+    default_value: [0.033, 0.033, 0.033, 0.033],
+    description: "Effective rolling radius of each wheel in meters. Order matches wheel_joint_names and other module-specific parameters.",
     validation: {
-      gt<>: [0.0] # Must be greater than 0
+      not_empty<>: []
     }
   }
 

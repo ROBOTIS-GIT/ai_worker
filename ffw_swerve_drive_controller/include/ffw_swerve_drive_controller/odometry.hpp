@@ -64,7 +64,7 @@ public:
   void setModuleParams(
     const std::vector<double> & module_x_offsets,
     const std::vector<double> & module_y_offsets,
-    const double wheel_radius);
+    const std::vector<double> & wheel_radii);
 
   void set_solver_method(OdomSolverMethod method);
 
@@ -90,7 +90,7 @@ private:
   size_t num_modules_ = 0;
   std::vector<double> module_x_offsets_;
   std::vector<double> module_y_offsets_;
-  double wheel_radius_ = 0.0;
+  std::vector<double> wheel_radii_;
 
   static double normalize_angle(double angle_rad);
 

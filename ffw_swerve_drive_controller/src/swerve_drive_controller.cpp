@@ -70,7 +70,7 @@ CallbackReturn SwerveDriveController::on_init()
     // ***** declare parameters *****
     auto_declare<std::vector<std::string>>("steering_joint_names", std::vector<std::string>{});
     auto_declare<std::vector<std::string>>("wheel_joint_names", std::vector<std::string>{});
-    auto_declare<double>("wheel_radius", 0.05);
+    auto_declare<std::vector<double>>("wheel_radius", {0.033, 0.033, 0.033, 0.033});
     auto_declare<std::vector<double>>("module_x_offsets", std::vector<double>{});
     auto_declare<std::vector<double>>("module_y_offsets", std::vector<double>{});
     auto_declare<std::vector<double>>("module_angle_offsets", std::vector<double>{});
@@ -84,8 +84,8 @@ CallbackReturn SwerveDriveController::on_init()
     auto_declare<double>("steering_alignment_angle_error_threshold", 0.1);
     auto_declare<double>("steering_alignment_start_angle_error_threshold", 0.1);
     auto_declare<double>("steering_alignment_start_speed_error_threshold", 0.1);
-    auto_declare<double>("linear_vel_deadband", 0.1);
-    auto_declare<double>("angular_vel_deadband", 0.1);
+    auto_declare<double>("linear_vel_deadband", 0.0);
+    auto_declare<double>("angular_vel_deadband", 0.0);
 
     auto_declare<std::string>("cmd_vel_topic", "/cmd_vel");
     auto_declare<double>("cmd_vel_timeout", 500.0);
@@ -221,7 +221,7 @@ CallbackReturn SwerveDriveController::on_configure(
   try {
     steering_joint_names_ = get_node()->get_parameter("steering_joint_names").as_string_array();
     wheel_joint_names_ = get_node()->get_parameter("wheel_joint_names").as_string_array();
-    wheel_radius_ = get_node()->get_parameter("wheel_radius").as_double();
+    wheel_radii_ = get_node()->get_parameter("wheel_radius").as_double_array();
     module_x_offsets_ = get_node()->get_parameter("module_x_offsets").as_double_array();
     module_y_offsets_ = get_node()->get_parameter("module_y_offsets").as_double_array();
     module_angle_offsets_ = get_node()->get_parameter("module_angle_offsets").as_double_array();
@@ -307,7 +307,8 @@ CallbackReturn SwerveDriveController::on_configure(
     module_steering_limit_lower_.size() != num_modules_ ||
     module_steering_limit_upper_.size() != num_modules_ ||
     module_wheel_speed_limit_lower_.size() != num_modules_ ||
-    module_wheel_speed_limit_upper_.size() != num_modules_)
+    module_wheel_speed_limit_upper_.size() != num_modules_ ||
+    wheel_radii_.size() != num_modules_)
   {
     RCLCPP_FATAL(
       logger,
@@ -318,17 +319,21 @@ CallbackReturn SwerveDriveController::on_configure(
       "steering_joint_names: %zu, wheel_joint_names: %zu,"
       " module_x_offsets: %zu, module_y_offsets: %zu, module_angle_offsets: %zu,"
       " module_steering_limit_lower: %zu, module_steering_limit_upper: %zu, "
-      "module_wheel_speed_limit_lower: %zu, module_wheel_speed_limit_upper: %zu",
+      "module_wheel_speed_limit_lower: %zu, module_wheel_speed_limit_upper: %zu,"
+      " wheel_radius: %zu",
       steering_joint_names_.size(), wheel_joint_names_.size(),
       module_x_offsets_.size(), module_y_offsets_.size(),
       module_angle_offsets_.size(),
       module_steering_limit_lower_.size(),
       module_steering_limit_upper_.size(),
-      module_wheel_speed_limit_lower_.size(), module_wheel_speed_limit_upper_.size());
+      module_wheel_speed_limit_lower_.size(), module_wheel_speed_limit_upper_.size(),
+      wheel_radii_.size());
     return CallbackReturn::ERROR;
   }
-  if (wheel_radius_ <= 0.0) {
-    RCLCPP_ERROR(logger, "'wheel_radius' must be positive.");
+  const bool has_invalid_wheel_radius = std::any_of(
+    wheel_radii_.begin(), wheel_radii_.end(), [](const double radius) {return radius <= 0.0;});
+  if (has_invalid_wheel_radius) {
+    RCLCPP_ERROR(logger, "Every 'wheel_radius' entry must be positive.");
     return CallbackReturn::ERROR;
   }
 
@@ -358,7 +363,7 @@ CallbackReturn SwerveDriveController::on_configure(
   // initialize odometry and set parameters
   try {
     odometry_.init(get_node()->now());
-    odometry_.setModuleParams(module_x_offsets_, module_y_offsets_, wheel_radius_);
+    odometry_.setModuleParams(module_x_offsets_, module_y_offsets_, wheel_radii_);
     odometry_.setVelocityRollingWindowSize(velocity_rolling_window_size_);
     OdomSolverMethod solver_method_enum = OdomSolverMethod::SVD;
     if (odom_solver_method_str_ == "pseudo_inverse") {
@@ -480,8 +485,8 @@ CallbackReturn SwerveDriveController::on_configure(
   previoud_steering_commands_.resize(num_modules_, 0.0);
 
   RCLCPP_DEBUG(
-    logger, "Configuration complete: %zu modules, wheel_radius=%.3f",
-    num_modules_, wheel_radius_);
+    logger, "Configuration complete: %zu modules with per-wheel radius calibration.",
+    num_modules_);
   return CallbackReturn::SUCCESS;
 }
 
@@ -978,7 +983,7 @@ controller_interface::return_type SwerveDriveController::update(
     double effective_direction = (reversal_phase_[i] == ReversalPhase::DECELERATING) ?
       previous_wheel_rotation_direction_[i] : wheel_rotation_direction;
     double final_wheel_vel_cmd = effective_direction * target_wheel_speed *
-      wheel_speed_scale_[i] / wheel_radius_;
+      wheel_speed_scale_[i] / wheel_radii_[i];
 
     // 4.7. save the commands in order to send the hardware interface
     // and stop the wheel when steering is not aligned
@@ -1103,7 +1108,7 @@ controller_interface::return_type SwerveDriveController::update(
     for (size_t i = 0; i < num_modules_; ++i) {
       robot_frame_steering_angles_for_viz_[i] =
         final_steering_commands_[i] + module_angle_offsets_[i];
-      wheel_linear_vels_for_viz_[i] = final_wheel_velocity_commands_[i] * wheel_radius_;
+      wheel_linear_vels_for_viz_[i] = final_wheel_velocity_commands_[i] * wheel_radii_[i];
     }
 
     visualizer_->publish_markers(

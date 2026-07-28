@@ -141,7 +141,7 @@ protected:
   // Parameters
   std::vector<std::string> steering_joint_names_;
   std::vector<std::string> wheel_joint_names_;
-  double wheel_radius_;
+  std::vector<double> wheel_radii_;
   std::vector<double> module_x_offsets_;
   std::vector<double> module_y_offsets_;
   std::vector<double> module_angle_offsets_;
