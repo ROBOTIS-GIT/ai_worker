@@ -13,7 +13,10 @@ def generate_launch_description():
             'input_topic', default_value='/zedm/zed_node/point_cloud/cloud_registered'
         ),
         DeclareLaunchArgument(
-            'output_topic', default_value='/zedm/zed_node/point_cloud/cloud_cropped'
+            'output_topic',
+            default_value='/centerpose/cloud_cropped',
+            description='Same namespace as marker_topic/table_plane_topic so all '
+                        'three show up grouped together in RViz.',
         ),
         DeclareLaunchArgument('target_frame', default_value='base_link'),
         DeclareLaunchArgument(
@@ -47,7 +50,7 @@ def generate_launch_description():
                         'reconstruction, so it does not flicker with depth noise.',
         ),
         DeclareLaunchArgument(
-            'table_plane_topic', default_value='/zedm/zed_node/point_cloud/table_plane'
+            'table_plane_topic', default_value='/centerpose/table_plane'
         ),
         DeclareLaunchArgument('table_plane_distance_threshold', default_value='0.01'),
         DeclareLaunchArgument('table_plane_ransac_iterations', default_value='150'),
@@ -87,6 +90,36 @@ def generate_launch_description():
             description='Points more than this far below the smoothed table '
                         'height are dropped from the main cropped cloud.',
         ),
+        DeclareLaunchArgument(
+            'freeze_table_plane',
+            default_value='false',
+            description='Once a table plane raster is successfully captured, keep '
+                        'republishing that exact snapshot (position + color) '
+                        'forever instead of refitting/retexturing every frame -- '
+                        'freezes the display to whatever the camera saw the moment '
+                        'it was first captured.',
+        ),
+
+        # --- Wall (bent up from the table's far edge) --------------------------
+        DeclareLaunchArgument(
+            'enable_wall',
+            default_value='true',
+            description='Add a second raster standing straight up from the '
+                        'table\'s far edge (farthest from the robot along '
+                        'base_link +X), textured the same way as the table, so '
+                        'the color image beyond the table footprint doesn\'t just '
+                        'get cut off.',
+        ),
+        DeclareLaunchArgument(
+            'wall_min_height',
+            default_value='0.02',
+            description='The wall\'s height is solved geometrically each frame so '
+                        'its own projection reaches the top row of the image -- '
+                        'stood up tall enough to cover everything above the '
+                        'table the camera can see. Clamped to '
+                        '[wall_min_height, wall_max_height] as a safety bound.',
+        ),
+        DeclareLaunchArgument('wall_max_height', default_value='2.0'),
 
         # --- Bbox markers ------------------------------------------------------
         DeclareLaunchArgument('detections_topic', default_value='/centerpose/detections'),
@@ -116,8 +149,11 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             'marker_lifetime',
-            default_value='0.5',
-            description='Seconds before an unrefreshed marker auto-expires in RViz.',
+            default_value='2.0',
+            description='Seconds before an unrefreshed marker auto-expires in RViz. '
+                        'Needs to comfortably outlast the gap between CenterPose\'s '
+                        'own (slow/bursty) detections -- too short makes the marker '
+                        'flicker on/off between detections.',
         ),
     ]
 
@@ -152,6 +188,11 @@ def generate_launch_description():
             'table_plane_grid_resolution': LaunchConfiguration('table_plane_grid_resolution'),
             'color_topic': LaunchConfiguration('color_topic'),
             'below_table_margin': LaunchConfiguration('below_table_margin'),
+            'freeze_table_plane': LaunchConfiguration('freeze_table_plane'),
+
+            'enable_wall': LaunchConfiguration('enable_wall'),
+            'wall_min_height': LaunchConfiguration('wall_min_height'),
+            'wall_max_height': LaunchConfiguration('wall_max_height'),
 
             'detections_topic': LaunchConfiguration('detections_topic'),
             'camera_info_topic': LaunchConfiguration('camera_info_topic'),

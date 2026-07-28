@@ -67,6 +67,8 @@ setup(
             'bgra_to_bgr_compressed = ffw_bringup.bgra_to_bgr_compressed:main',
             'centerpose_bottle_pick = ffw_bringup.centerpose_bottle_pick:main',
             'bottle_box = ffw_bringup.bottle_box:main',
+            'box_pick = ffw_bringup.box_pick:main',
+            'shoes_pick = ffw_bringup.shoes_pick:main',
             'pointcloud_crop = ffw_bringup.pointcloud_crop:main',
             'left_gripper_controller = ffw_bringup.left_gripper_controller:main',
             'image_plane_pointcloud = ffw_bringup.image_plane_pointcloud:main',
