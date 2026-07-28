@@ -52,14 +52,19 @@ def generate_launch_description():
     ffw_bringup_path = os.path.join(
         get_package_share_directory('ffw_bringup'))
 
+    workspace_share_dir = str(Path(ffw_description_path).parent.resolve())
+    robotis_hand_parent_dir = '/root/ros2_ws/src/robotis_hand'
+
     # Set gazebo sim resource path
     gazebo_resource_path = SetEnvironmentVariable(
         name='GZ_SIM_RESOURCE_PATH',
         value=[
-            os.path.join(ffw_bringup_path, 'worlds'), ':' +
-            str(Path(ffw_description_path).parent.resolve())
-            ]
-        )
+            os.path.join(ffw_bringup_path, 'worlds'), ':',
+            workspace_share_dir, ':',
+            robotis_hand_parent_dir, ':',
+            '/opt/ros/jazzy/share'
+        ]
+    )
 
     gazebo = IncludeLaunchDescription(
                 PythonLaunchDescriptionSource([os.path.join(
@@ -117,8 +122,12 @@ def generate_launch_description():
     joint_state_broadcaster_spawner = Node(
         package='controller_manager',
         executable='spawner',
-        arguments=['joint_state_broadcaster'],
-        output='screen'
+        arguments=[
+            'joint_state_broadcaster',
+            '--controller-manager',
+            '/controller_manager',
+        ],
+        output='screen',
     )
 
     robot_controller_spawner = Node(

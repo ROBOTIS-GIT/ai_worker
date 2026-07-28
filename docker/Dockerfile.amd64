@@ -46,6 +46,7 @@ RUN mkdir -p ${COLCON_WS}/src && \
     git clone -b jazzy https://github.com/ROBOTIS-GIT/DynamixelSDK.git && \
     git clone -b jazzy https://github.com/ROBOTIS-GIT/ai_worker.git && \
     git clone -b jazzy https://github.com/ROBOTIS-GIT/cyclo_control.git && \
+    git clone -b jazzy https://github.com/ROBOTIS-GIT/robotis_hand.git && \
     git clone -b jazzy https://github.com/ROBOTIS-GIT/robotis_interfaces.git && \
     git clone -b r/4.56.4 https://github.com/IntelRealSense/realsense-ros.git && \
     cd realsense-ros && git checkout cbd8b8487d4c0126bb590822db9469414496e62a

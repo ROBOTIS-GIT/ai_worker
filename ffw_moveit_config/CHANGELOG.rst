@@ -2,6 +2,10 @@
 Changelog for package ffw_moveit_config
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.0 (2026-07-22)
+------------------
+* None
+
 2.1.0 (2026-07-14)
 ------------------
 * Added support for F1 and F2

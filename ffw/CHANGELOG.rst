@@ -2,6 +2,13 @@
 Changelog for package ffw
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.0 (2026-07-22)
+------------------
+* Added robotis_hand repository to Dockerfile for HX5-D20 tactile sensor support
+* Added tactile sensor topic broadcaster
+* Updated SH5 ros2_control and urdf xacro
+* Contributors: Hyunwoo Nam
+
 2.1.0 (2026-07-14)
 ------------------
 * Added support for F1 and F2
