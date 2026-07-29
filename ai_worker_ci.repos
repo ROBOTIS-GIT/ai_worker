@@ -3,3 +3,11 @@ repositories:
     type: git
     url: https://github.com/ROBOTIS-GIT/dynamixel_hardware_interface.git
     version: main
+  robotis_hand:
+    type: git
+    url: https://github.com/ROBOTIS-GIT/robotis_hand.git
+    version: main
+  robotis_interfaces:
+    type: git
+    url: https://github.com/ROBOTIS-GIT/robotis_interfaces.git
+    version: main

@@ -2,6 +2,17 @@
 Changelog for package ffw_bringup
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.0 (2026-07-22)
+------------------
+* Added tactile sensor topic broadcaster
+* Contributors: Hyunwoo Nam
+
+2.1.0 (2026-07-14)
+------------------
+* Added support for F1 and F2
+* Added automatic camera role detection and multi-camera bringup support
+* Contributors: Yeonguk Kim, Dongyun Kim
+
 2.0.2 (2026-07-09)
 ------------------
 * Added mobile base AI launch file
