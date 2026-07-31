@@ -181,7 +181,7 @@ RUN git clone https://github.com/ROBOTIS-GIT/cyclo_manager.git /opt/cyclo_manage
 
 ENV PYTHONPATH=/opt/cyclo_manager:${PYTHONPATH}
 
-RUN pip install --no-cache-dir --ignore-installed -r /opt/cyclo_manager/requirements.txt
+RUN pip install --no-cache-dir --ignore-installed -r /opt/cyclo_manager/requirements-agent.txt
 
 # New-style s6-rc services (recommended in s6-overlay v3 docs)
 # Define services under /etc/s6-overlay/s6-rc.d and add them to the user bundle.

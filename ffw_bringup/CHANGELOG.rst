@@ -2,6 +2,10 @@
 Changelog for package ffw_bringup
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.1 (2026-08-03)
+------------------
+* None
+
 2.2.0 (2026-07-22)
 ------------------
 * Added tactile sensor topic broadcaster
