@@ -156,13 +156,9 @@ def launch_setup(context, *args, **kwargs):
     info = 'Using camera configuration file: ' + config_camera_path
     return_array.append(LogInfo(msg=TextSubstitution(text=info)))
 
-    # FFMPEG configuration file (only if the installed zed_wrapper still ships one;
-    # FFMPEG image transport support was removed from newer zed-ros2-wrapper releases)
-    config_ffmpeg_val = config_ffmpeg.perform(context)
-    use_ffmpeg_config = os.path.isfile(config_ffmpeg_val)
-    if use_ffmpeg_config:
-        info = 'Using FFMPEG configuration file: ' + config_ffmpeg_val
-        return_array.append(LogInfo(msg=TextSubstitution(text=info)))
+    # FFMPEG configuration file
+    info = 'Using FFMPEG configuration file: ' + config_ffmpeg.perform(context)
+    return_array.append(LogInfo(msg=TextSubstitution(text=info)))
 
     # ROS parameters override file
     ros_params_override_path_val = ros_params_override_path.perform(context)
@@ -239,9 +235,8 @@ def launch_setup(context, *args, **kwargs):
             # YAML files
             config_common_path_val,  # Common parameters
             config_camera_path,  # Camera related parameters
+            config_ffmpeg  # FFMPEG parameters
     ]
-    if use_ffmpeg_config:
-        node_parameters.append(config_ffmpeg)  # FFMPEG parameters
 
     if (ros_params_override_path_val != ''):
         node_parameters.append(ros_params_override_path)

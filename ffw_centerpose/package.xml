@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>ffw_bringup</name>
+  <name>ffw_centerpose</name>
   <version>2.0.1</version>
   <description>
-    ROS 2 launch scripts for starting the FFW
+    CenterPose-based pick-and-place pipeline (box, shoes, bottle) for the FFW.
   </description>
   <maintainer email="pyo@robotis.com">Pyo</maintainer>
   <license>Apache 2.0</license>
@@ -15,18 +15,18 @@
   <author email="wwj@robotis.com">Woojin Wie</author>
   <author email="ywh@robotis.com">Wonho Yun</author>
   <depend>rclpy</depend>
-  <depend>dynamixel_hardware_interface</depend>
-  <depend>ros_gz_bridge</depend>
-  <depend>ros_gz_sim</depend>
-  <depend>ros_gz_image</depend>
-  <exec_depend>robot_state_publisher</exec_depend>
-  <exec_depend>gz_ros2_control</exec_depend>
-  <exec_depend>ros2_control</exec_depend>
-  <exec_depend>ros2_controllers</exec_depend>
-  <exec_depend>rviz2</exec_depend>
-  <exec_depend>ffw_description</exec_depend>
-  <exec_depend>xacro</exec_depend>
-  <exec_depend>image_transport_plugins</exec_depend>
+  <depend>geometry_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>builtin_interfaces</depend>
+  <depend>robotis_interfaces</depend>
+  <depend>trajectory_msgs</depend>
+  <depend>tf2_ros</depend>
+  <depend>cv_bridge</depend>
+  <depend>vision_msgs</depend>
+  <depend>visualization_msgs</depend>
+
   <export>
     <build_type>ament_python</build_type>
   </export>

@@ -3,7 +3,7 @@ import os
 
 from setuptools import find_packages, setup
 
-package_name = 'ffw_bringup'
+package_name = 'ffw_centerpose'
 authors_info = [
     ('Sungho Woo', 'wsh@robotis.com'),
     ('Woojin Wie', 'wwj@robotis.com'),
@@ -21,22 +21,8 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch', glob('launch/*.launch.py')),
-        (os.path.join('share', package_name, 'config/ffw_bg2_rev2_follower'),
-         glob('config/ffw_bg2_rev2_follower/*')),
-        (os.path.join('share', package_name, 'config/ffw_bg2_rev3_follower'),
-         glob('config/ffw_bg2_rev3_follower/*')),
-        (os.path.join('share', package_name, 'config/ffw_bg2_rev4_follower'),
-         glob('config/ffw_bg2_rev4_follower/*')),
-        (os.path.join('share', package_name, 'config/ffw_bh5_rev1_follower'),
-         glob('config/ffw_bh5_rev1_follower/*')),
         (os.path.join('share', package_name, 'config/ffw_sg2_rev1_follower'),
          glob('config/ffw_sg2_rev1_follower/*')),
-        (os.path.join('share', package_name, 'config/ffw_lg2_leader'),
-         glob('config/ffw_lg2_leader/*')),
-        (os.path.join('share', package_name, 'config/ffw_sh5_rev1_follower'),
-         glob('config/ffw_sh5_rev1_follower/*')),
-        (os.path.join('share', package_name, 'config/common'), glob('config/common/*')),
-        ('share/' + package_name + '/worlds', glob('worlds/*.sdf')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -51,13 +37,18 @@ setup(
         'Programming Language :: Python',
         'Topic :: Software Development',
     ],
-    description='ROS 2 launch scripts for starting the FFW',
+    description='CenterPose-based pick-and-place pipeline (box, shoes, bottle) for the FFW.',
     license='Apache 2.0',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'joint_trajectory_executor = ffw_bringup.joint_trajectory_executor:main',
-            'head_eef_tracker = ffw_bringup.head_eef_tracker:main',
+            'centerpose_bottle = ffw_centerpose.centerpose_bottle:main',
+            'centerpose_box = ffw_centerpose.centerpose_box:main',
+            'centerpose_shoe = ffw_centerpose.centerpose_shoe:main',
+            'centerpose_pointcloud = ffw_centerpose.centerpose_pointcloud:main',
+            'centerpose_camera = ffw_centerpose.centerpose_camera:main',
+            'joint_trajectory_topic_executor = '
+            'ffw_centerpose.joint_trajectory_topic_executor:main',
         ],
     },
 )
