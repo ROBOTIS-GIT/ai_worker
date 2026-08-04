@@ -144,8 +144,7 @@ def generate_launch_description():
             'bbox_size_scale',
             default_value='0.2',
             description='Flat correction for CenterPose bbox.size, measured against '
-                        'the real object (e.g. a 0.06x0.06x0.20m bottle reported as '
-                        '~0.38x1.00x0.37m -> ~1/5 scale).',
+                        'the real object (~1/5 scale).',
         ),
         DeclareLaunchArgument(
             'marker_lifetime',

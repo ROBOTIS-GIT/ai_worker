@@ -39,6 +39,8 @@ class PickPlaceNodeBase(Node):
     # (예: 'bottle(s)', 'box(es)')
     _OBJECT_LABEL_PLURAL = 'object(s)'
 
+    # TF/락/센서 구독/명령 퍼블리셔/capture-execute-cancel 서비스를 한 번에 초기화.
+    # 서브클래스가 __init__에서 자기 파라미터를 다 선언/저장한 뒤 마지막에 호출.
     def _setup_common(self):
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
@@ -91,10 +93,12 @@ class PickPlaceNodeBase(Node):
         self.create_service(Trigger, '~/cancel', self._cancel_callback)
 
     # --- 구독 콜백: 최신 값만 저장해두고 실제 처리는 capture 시점에 ---
+    # CameraInfo(카메라 내부 파라미터)는 최신 것만 들고 있으면 됨.
     def _camera_info_callback(self, msg):
         with self.data_lock:
             self.latest_camera_info = msg
 
+    # depth 이미지를 OpenCV 형식으로 변환해서 최신 것만 저장.
     def _depth_callback(self, msg):
         try:
             image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
@@ -107,17 +111,20 @@ class PickPlaceNodeBase(Node):
             self.latest_depth_image = image
             self.latest_depth_msg = msg
 
+    # CenterPose 검출 결과와 받은 시각을 저장 (시각은 나중에 detection_timeout 체크용).
     def _detections_callback(self, msg):
         with self.data_lock:
             self.latest_detection_msg = msg
             self.latest_detection_time = self.get_clock().now()
 
+    # /joint_states에서 온 관절 이름:위치 값을 딕셔너리로 계속 갱신.
     def _joint_state_callback(self, msg):
         with self.joint_lock:
             for name, position in zip(msg.name, msg.position):
                 self.current_joint_positions[name] = float(position)
 
     # --- 서비스 콜백 ---
+    # ~/capture: 지금 보이는 CenterPose 검출들을 목표 자세로 변환해서 큐에 저장.
     def _capture_callback(self, _request, response):
         results = self._process_detections(log=True)
         if not results:
@@ -138,6 +145,8 @@ class PickPlaceNodeBase(Node):
         p = item['pose'].pose.position
         return f'({p.x:.3f}, {p.y:.3f}, {p.z:.3f})'
 
+    # ~/execute: capture로 큐에 담긴 물체들을 하나씩 실제로 집어서 놓는 동작을
+    # 별도 스레드에서 시작 (서비스 콜백은 스레드만 띄우고 바로 응답).
     def _execute_callback(self, _request, response):
         if not self.execute_motion:
             response.success = False
@@ -177,12 +186,15 @@ class PickPlaceNodeBase(Node):
         )
         return response
 
+    # ~/cancel: 실행 중인 동작에 중단 신호를 보냄 (cancel_event를 여러 곳에서 확인).
     def _cancel_callback(self, _request, response):
         self.cancel_event.set()
         response.success = True
         response.message = 'cancel requested' if self.execution_lock.locked() else 'idle'
         return response
 
+    # 최신 검출/depth/camera_info로 감지된 물체 전부를 목표 자세 리스트로 변환.
+    # (각 물체별 실제 변환 계산은 서브클래스의 _process_single_detection이 담당)
     def _process_detections(self, log):
         with self.data_lock:
             detections = self.latest_detection_msg
@@ -231,6 +243,7 @@ class PickPlaceNodeBase(Node):
         return results
 
     # --- 카메라/깊이 기하 계산 ---
+    # 카메라 좌표계의 3D 위치를 카메라 내부 파라미터(fx, fy, cx, cy)로 픽셀 (u, v)에 투영.
     def _project_to_pixel(self, camera_info, position, log):
         if abs(position.z) < 1e-6:
             if log:
@@ -247,6 +260,7 @@ class PickPlaceNodeBase(Node):
         v = fy * (position.y / position.z) + cy
         return u, v
 
+    # 픽셀 (u, v) 주변 depth_window 크기 영역에서 유효한 depth 값들의 중앙값을 샘플링.
     def _sample_depth(self, depth_image, depth_msg, u, v):
         height, width = depth_image.shape[:2]
         half_window = max(0, self.depth_window // 2)
@@ -299,6 +313,8 @@ class PickPlaceNodeBase(Node):
         transform_q /= transform_norm
         return transform_q, np.array([t.x, t.y, t.z], dtype=np.float64)
 
+    # 그립 높이(z)를 결정: fixed_grasp_z가 설정돼 있으면 그 값을 그대로 쓰고,
+    # 아니면 지금 엔드이펙터(eef_link)의 실제 z 높이를 TF로 읽어와서 씀.
     def _current_eef_z(self):
         if self.fixed_grasp_z >= 0.0:
             return self.fixed_grasp_z
@@ -316,6 +332,7 @@ class PickPlaceNodeBase(Node):
         return float(transform.transform.translation.z)
 
     # --- MoveL / 그리퍼 명령 ---
+    # 팔을 지정한 pose로 MoveL 명령 한 번 보내고, 이동이 끝날 시간만큼(duration+settle_time) 대기.
     def _move_l(self, pose, duration=None):
         if not self._wait_for_subscriber(self.movel_pub, self.movel_topic):
             return False
@@ -327,6 +344,7 @@ class PickPlaceNodeBase(Node):
         self.movel_pub.publish(msg)
         return self._cancelable_sleep(duration + self.settle_time)
 
+    # 그리퍼 관절만 target 위치로 바꾸고 나머지 관절은 현재 위치 그대로 유지한 채 스트리밍.
     def _move_gripper(self, target):
         deadline = time.monotonic() + 2.0
         positions = None
@@ -394,6 +412,7 @@ class PickPlaceNodeBase(Node):
             time.sleep(period)
         return True
 
+    # 퍼블리셔에 구독자가 붙을 때까지 대기 (movel_subscriber_timeout 넘으면 에러로 취급).
     def _wait_for_subscriber(self, publisher, topic):
         deadline = time.monotonic() + self.movel_subscriber_timeout
         while time.monotonic() < deadline:
@@ -405,6 +424,7 @@ class PickPlaceNodeBase(Node):
         self.get_logger().error(f'No subscriber on {topic}')
         return False
 
+    # 그냥 time.sleep과 달리, cancel_event가 설정되면 즉시 깨어나서 False를 반환.
     def _cancelable_sleep(self, seconds):
         deadline = time.monotonic() + max(0.0, seconds)
         while time.monotonic() < deadline:
@@ -414,12 +434,14 @@ class PickPlaceNodeBase(Node):
         return True
 
     # --- 파라미터 읽기 유틸 ---
+    # launch 인자로 문자열("[0.1, 0.2]")로 넘어와도, 실제 리스트로 넣어도 둘 다 처리.
     def _list_parameter(self, name):
         value = self.get_parameter(name).value
         if isinstance(value, str):
             return list(ast.literal_eval(value))
         return list(value)
 
+    # 문자열("true"/"1" 등)로 넘어와도, 실제 bool로 넘어와도 둘 다 처리.
     def _bool_parameter(self, name):
         value = self.get_parameter(name).value
         if isinstance(value, str):
@@ -427,6 +449,7 @@ class PickPlaceNodeBase(Node):
         return bool(value)
 
     # --- 쿼터니언 / 포즈 유틸 ---
+    # [x, y, z, w] 배열을 정규화해서 ROS Quaternion 메시지로 변환.
     @staticmethod
     def _quaternion_message(q):
         msg = PoseStamped().pose.orientation
@@ -434,6 +457,7 @@ class PickPlaceNodeBase(Node):
         msg.x, msg.y, msg.z, msg.w = [float(value / norm) for value in q]
         return msg
 
+    # 벡터 하나를 쿼터니언 q로 회전 (카메라 좌표 -> 로봇 좌표 변환에 쓰임).
     @staticmethod
     def _rotate_vector(vector, q):
         q_vector = q[:3]
@@ -441,6 +465,7 @@ class PickPlaceNodeBase(Node):
         uuv = np.cross(q_vector, uv)
         return vector + 2.0 * (q[3] * uv + uuv)
 
+    # PoseStamped를 값만 복사해서 새로 하나 만듦 (원본 참조 안 건드리도록).
     @staticmethod
     def _copy_pose(source):
         pose = PoseStamped()
@@ -451,6 +476,7 @@ class PickPlaceNodeBase(Node):
         pose.pose.orientation = source.pose.orientation
         return pose
 
+    # xyz 배열 + xyzw 쿼터니언 배열 값을 PoseStamped에 그대로 채워넣음.
     @staticmethod
     def _set_pose_from_arrays(pose, xyz, xyzw):
         pose.pose.position.x = float(xyz[0])
@@ -461,6 +487,7 @@ class PickPlaceNodeBase(Node):
         pose.pose.orientation.z = float(xyzw[2])
         pose.pose.orientation.w = float(xyzw[3])
 
+    # 초(float)를 ROS Duration(sec, nanosec)으로 변환.
     @staticmethod
     def _duration(seconds):
         duration = MoveL().time_from_start

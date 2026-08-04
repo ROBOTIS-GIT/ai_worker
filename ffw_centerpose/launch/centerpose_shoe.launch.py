@@ -126,12 +126,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'grasp_position_y_slope',
             default_value='-6.944444444444444e-05',
-            description='Position-based y correction, same pattern as centerpose_box.py: '
-                        'the shoe needs progressively more +Y (left) correction as '
-                        'its detected pixel moves toward screen center. '
-                        'grasp_position_offset[1] is exactly correct at '
-                        'grasp_position_y_reference_pixel (u=288); this adds 2cm '
-                        'more left by the time it reaches center (u=576).',
+            description='centerpose_box와 같은 방식의 픽셀 위치 기반 y 보정 기울기.',
         ),
         DeclareLaunchArgument('grasp_position_y_reference_pixel', default_value='288.0'),
         DeclareLaunchArgument(
@@ -204,9 +199,8 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'place_slot_2_position_xyz',
             default_value='[0.45977485179901123, 0.22981253385543823, 0.9466336965560913]',
-            description='y shifted 4cm further from slot 1 (right) so the two placed '
-                        'shoes do not touch, then another 1cm right on 2026-07-30 '
-                        '(0.23981253385543824 -> 0.22981253385543823).',
+            description='y shifted from slot 1 (right) so the two placed shoes do '
+                        'not touch.',
         ),
         DeclareLaunchArgument(
             'place_slot_2_orientation_xyzw',

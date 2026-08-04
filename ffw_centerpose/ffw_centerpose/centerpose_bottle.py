@@ -11,62 +11,49 @@ from ffw_centerpose.pick_place_base import PickPlaceNodeBase
 
 
 class CenterposeBottle(PickPlaceNodeBase):
-    """Grab a CenterPose-detected bottle with the left arm and drop it in a fixed box.
+    """CenterPose로 검출한 병을 왼팔로 집어서 정해진 박스에 놓는 노드.
 
-    The gripper orientation never follows the detected object's yaw -- it stays
-    at the single fixed orientation measured in the arm's bottle_ready initial
-    pose for every step (pregrasp, grasp, lift, and the box drop), only the
-    target x/y/z position changes. Left arm only.
-
-    Common capture/execute/MoveL/gripper/TF plumbing lives in PickPlaceNodeBase
-    (shared with centerpose_box.py); only the bottle-specific parameters and the actual
-    pick/place motion below are specific to this node.
+    그리퍼 방향은 항상 고정(bottle_ready 자세 기준)이고, x/y/z 위치만 검출을
+    따라간다. 공통 로직은 PickPlaceNodeBase 참고.
     """
 
     _OBJECT_LABEL_PLURAL = 'bottle(s)'
 
+    # 파라미터 선언/읽기 후 공통 초기화(_setup_common) 호출까지 한 번에 처리.
     def __init__(self):
         super().__init__('centerpose_bottle')
 
         # --- 파라미터 선언 (기본값들) ---
         self.declare_parameter('detections_topic', '/centerpose/detections')
         self.declare_parameter('camera_info_topic', '/camera_info')
-        # CenterPose's own depth is unreliable, so x/y are recovered by projecting
-        # CenterPose's direction to a pixel and reading real metric depth from this
-        # image at that pixel. z always stays fixed (see fixed_grasp_z) and never
-        # comes from either source.
+        # CenterPose depth는 부정확해서 x/y는 픽셀 투영 + 실측 depth로 구하고,
+        # z는 항상 고정값(fixed_grasp_z)을 씀.
         self.declare_parameter('depth_topic', '/zedm/zed_node/depth/depth_registered')
         self.declare_parameter('depth_window', 5)
         self.declare_parameter('joint_states_topic', '/joint_states')
         self.declare_parameter('target_frame', 'base_link')
         self.declare_parameter('projection_frame', '')
         self.declare_parameter('detection_timeout', 10.0)
-        # Safety bound: a target this far forward is outside the real workspace and
-        # almost always means depth was misread. ~/execute refuses to move at all if
-        # any captured pose exceeds this.
+        # 안전장치: 이 값보다 x가 크면 depth 오독으로 보고 ~/execute가 동작을 거부.
         self.declare_parameter('max_grasp_x', 0.7)
         self.declare_parameter('execute_motion', False)
         self.declare_parameter('movel_topic', '/l_goal_move')
         self.declare_parameter('movel_duration', 5.0)
-        # Approaching straight to the final grasp pose lets the gripper body clip the
-        # bottle on the way in. Instead, back off along the gripper's own approach axis
-        # (fixed, since orientation is fixed) to a pregrasp pose clear of the object,
-        # then move straight in along that same axis to grasp.
+        # 직진으로 바로 잡으면 그리퍼가 병에 부딪힐 수 있어서, 진입축을 따라
+        # 이만큼 뒤로 뺀 pregrasp를 거쳐서 들어감.
         self.declare_parameter('pregrasp_distance', 0.08)
         self.declare_parameter('pregrasp_duration', 2.0)
         self.declare_parameter('insertion_duration', 1.0)
         self.declare_parameter('movel_subscriber_timeout', 2.0)
         self.declare_parameter('settle_time', 0.5)
         self.declare_parameter('eef_link', 'end_effector_l_link')
-        # CenterPose height is not trusted: z always stays at this fixed height, never
-        # the vision-measured object height. Negative: fall back to dynamically
-        # holding the current EEF base-frame Z at capture time instead.
+        # 병 높이도 안 믿고 z는 항상 이 고정값 사용. 음수면 캡처 시점의 현재
+        # 엔드이펙터 z를 대신 사용.
         self.declare_parameter('fixed_grasp_z', 0.8241714239120483)
-        # Calibrated from measured grasp error on the real robot.
+        # 실제 로봇에서 측정한 grasp 오차로 보정한 값.
         self.declare_parameter('grasp_position_offset', [0.01, -0.04, 0.0])
-        # Fixed gripper orientation used for every step (pregrasp/grasp/lift/box) --
-        # measured via tf2_echo base_link end_effector_l_link with the left arm in its
-        # bottle_ready initial pose. The gripper never rolls to match the bottle.
+        # 모든 단계에서 고정으로 쓰는 그리퍼 방향 (bottle_ready 자세에서 tf2_echo로
+        # 측정). 병 방향엔 안 따라감.
         self.declare_parameter(
             'grasp_orientation_xyzw',
             [-0.0657237321138382, -0.6881383657455444, -0.06250208616256714, 0.7198885083198547],
@@ -93,23 +80,13 @@ class CenterposeBottle(PickPlaceNodeBase):
         self.declare_parameter('gripper_closed_position', 0.7)
         self.declare_parameter('gripper_duration', 0.5)
         self.declare_parameter('gripper_settle_time', 0.2)
-        # The MoveL controller (cyclo_control) streams arm-only trajectory points to
-        # this same topic continuously to hold its pose, so a single one-shot gripper
-        # command gets pre-empted almost immediately -- the target is re-asserted at
-        # this rate instead (see PickPlaceNodeBase._stream_trajectory).
+        # MoveL 컨트롤러가 같은 토픽에 계속 스트리밍하므로, 그리퍼 명령도 이 주기로
+        # 계속 재전송해야 밀려나지 않음.
         self.declare_parameter('command_rate_hz', 300.0)
         self.declare_parameter('lift_height', 0.1)
         self.declare_parameter('lift_duration', 1.0)
-        # Where each bottle gets dropped off: first hover above its box slot, then
-        # move straight down by box_place_z_offset to the release height (so the
-        # bottle isn't dragged sideways into the box wall on the way down), release,
-        # then straight back up to the same hover pose. There are two slots, filled
-        # left-to-right by capture order (leftmost detection -> slot 1, next -> slot
-        # 2); with only one bottle captured, slot 1 is used, matching the original
-        # single-box behavior. Each slot has its own orientation -- slot 2 needs the
-        # wrist rotated to fit its spot, unlike the fixed grasp_orientation_xyzw used
-        # for picking. All measured via `ros2 topic echo --once /l_goal_pose` with
-        # the arm holding a bottle above/at each slot.
+        # 놓는 위치: hover -> box_place_z_offset만큼 내려서 release -> 다시 hover.
+        # 슬롯 2개, 캡처 순서(왼쪽부터)로 채움 -- 슬롯 1개만 쓸 땐 슬롯1만 사용.
         self.declare_parameter(
             'box_slot_1_position_xyz',
             [0.6468760967254639, 0.36483344435691833, 0.9507306218147278],
@@ -127,13 +104,11 @@ class CenterposeBottle(PickPlaceNodeBase):
             [0.13866588473320007, -0.6788055896759033, 0.13322767615318298, 0.7086924910545349],
         )
         self.declare_parameter('box_duration', 1.5)
-        # Both slots' hover -> place poses were measured 0.1093128323554992m apart in
-        # Z; reused for both since only the hover pose was measured per slot.
+        # hover에서 놓는 높이까지 내려가는 z 거리 (두 슬롯 공통값).
         self.declare_parameter('box_place_z_offset', 0.1093128323554992)
         self.declare_parameter('box_place_duration', 1.0)
         self.declare_parameter('return_to_initial', True)
-        # Measured via tf2_echo base_link end_effector_l_link with the left arm in its
-        # bottle_ready initial pose (same pose grasp_orientation_xyzw was measured from).
+        # bottle_ready 초기 자세에서 tf2_echo로 측정한 원위치.
         self.declare_parameter(
             'home_position_xyz',
             [0.13451801240444183, 0.2999741733074188, 0.9742214239120483],
@@ -176,10 +151,8 @@ class CenterposeBottle(PickPlaceNodeBase):
         if orientation_norm < 1e-9:
             raise ValueError('grasp_orientation_xyzw must not be zero')
         self.grasp_orientation = grasp_orientation / orientation_norm
-        # Measured from the calibrated grasp orientation: local -Z rotates to
-        # ~base_link +X (toward the bottle), so that's the direction of travel when
-        # inserting; back off along the opposite of it to get the pregrasp point.
-        # Fixed once here since the orientation itself never changes per detection.
+        # grasp_orientation 기준 진입 방향(local -Z가 대략 병 쪽을 향함) -- 방향이
+        # 고정이라 한 번만 계산해둠.
         self.approach_dir = self._rotate_vector(
             np.array([0.0, 0.0, -1.0]), self.grasp_orientation
         )
@@ -321,8 +294,7 @@ class CenterposeBottle(PickPlaceNodeBase):
                     if self.cancel_event.is_set():
                         return
                     label = f'bottle {index + 1}/{len(queue)}'
-                    # Extra bottles beyond the number of physical slots reuse the
-                    # last slot -- there's nowhere else defined to put them.
+                    # 슬롯 개수보다 병이 많으면 마지막 슬롯을 재사용.
                     slot = self.box_slots[min(index, len(self.box_slots) - 1)]
                     if not self._pick_and_place(item['pose'], slot, label):
                         if self.cancel_event.is_set():
@@ -364,8 +336,8 @@ class CenterposeBottle(PickPlaceNodeBase):
             ('move above box', lambda: self._move_l(box_pose, duration=self.box_duration)),
             ('lower into box', lambda: self._move_l(box_place_pose, duration=self.box_place_duration)),
             ('release in box', lambda: self._move_gripper(self.gripper_open_position)),
-            # Retreat straight back up to the hover pose before heading home, rather
-            # than pulling out low and close to the box -- less risk of clipping it.
+            # 박스에 가깝게 낮은 채로 빼지 않고, hover 높이로 먼저 올라간 뒤 집으로
+            # 이동 (박스에 부딪힐 위험을 줄임).
             ('raise back above box', lambda: self._move_l(box_pose, duration=self.box_place_duration)),
         ]
         if self.return_to_initial:
@@ -387,7 +359,7 @@ class CenterposeBottle(PickPlaceNodeBase):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = CenterposeBottle()
+    node = CenterposeBottle()  # 노드 실행 진입점 (ros2 run/launch에서 호출됨)
     try:
         rclpy.spin(node)
     except (KeyboardInterrupt, ExternalShutdownException):

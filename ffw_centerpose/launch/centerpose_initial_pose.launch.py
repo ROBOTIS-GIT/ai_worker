@@ -11,7 +11,7 @@ def generate_launch_description():
         FindPackageShare('ffw_centerpose'),
         'config',
         'ffw_sg2_rev1_follower',
-        'bottle_initial_positions.yaml',
+        'centerpose_initial_positions.yaml',
     ])
 
     arm_l = Node(

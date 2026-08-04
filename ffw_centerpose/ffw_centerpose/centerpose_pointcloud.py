@@ -19,10 +19,8 @@ from tf2_ros import TransformException
 from vision_msgs.msg import Detection3DArray
 from visualization_msgs.msg import Marker, MarkerArray
 
-# PointField.datatype -> numpy scalar type, for building a structured dtype that
-# mirrors the incoming cloud's own field layout (including any padding, via
-# point_step as the record itemsize) so every field (rgb, intensity, ...) survives
-# the crop untouched -- only which points survive changes.
+# PointField.datatype -> numpy 타입 매핑. 원본 클라우드의 필드 구성을 그대로
+# 살려서(패딩 포함) 크롭해도 rgb/intensity 등 모든 필드가 그대로 유지되게 함.
 _DATATYPE_TO_NUMPY = {
     PointField.INT8: np.int8,
     PointField.UINT8: np.uint8,
@@ -36,144 +34,94 @@ _DATATYPE_TO_NUMPY = {
 
 
 class CenterposePointcloud(Node):
-    """Workspace point cloud tooling: crop, flatten the table, and mark detections.
+    """작업 공간 포인트클라우드 도구: 크롭 + 테이블 평면 시각화 + 검출 마커.
 
-    Three things bundled into one node so there's a single thing to launch:
-
-    1. Crop: republish the ZED registered cloud with only points inside an
-       axis-aligned box in target_frame kept (base_link: +X forward, +Y left) --
-       crops to "in front of the robot" regardless of which way the camera looks.
-       Points below the (smoothed) table height minus below_table_margin are
-       dropped too, once a table plane has been found.
-    2. Table plane: RANSAC-fit the dominant flat surface among the cropped points
-       (same idea as table_plane_pointcloud.py) to find the table's real pose and
-       footprint, smoothed across frames (table_plane_smoothing_alpha) since a
-       raw per-frame fit wobbles even for a static table. Unlike a point-cloud
-       reconstruction (each point placed from its own noisy stereo depth), the
-       output is a regular raster built directly on that real, fixed plane
-       (table_plane_grid_resolution apart) and colored by reprojecting the color
-       image onto it -- like image_plane_pointcloud.py's flat image, except
-       grounded to the table's real position/orientation instead of floating in
-       front of the camera and following its viewing angle. Depth is only used to
-       measure where/how big that plane is, never to place individual points. A
-       second raster (enable_wall) bends up from the table's far edge (farthest
-       from the robot along base_link +X) along the table normal, textured the
-       same way, so the color image content beyond the table's own footprint
-       doesn't just get cut off -- it stands up like a wall instead. Its height
-       isn't known from the table fit (RANSAC only ever sees the flat table), so
-       it's measured each frame from one real depth reading straight up in the
-       image from the edge (see _build_wall_points), smoothed the same way as the
-       table geometry.
-    3. Bbox markers: render CenterPose's detections as RViz cubes, corrected the
-       same way the pick nodes correct their grasp targets -- CenterPose's own
-       position/size assume a canonical object size and can be off several times
-       over, so position is recovered via camera_info+depth reprojection and size
-       via a flat measured scale factor.
+    하나의 노드에 세 기능을 합쳐놓음:
+    1. 크롭: target_frame 기준 박스 안(로봇 앞쪽)의 점만 남기고, 테이블
+       평면을 찾은 뒤엔 그 아래 점도 제거.
+    2. 테이블 평면: 크롭된 점들로 RANSAC 평면 피팅 후 여러 프레임에 걸쳐
+       부드럽게(smoothing), 실제 depth 대신 카메라 이미지로 색을 입힌
+       평평한 격자로 다시 그림. enable_wall이면 테이블 먼 쪽 가장자리에
+       벽면도 하나 더 세워서 화면이 잘려 보이지 않게 함.
+    3. Bbox 마커: CenterPose 검출을 RViz 큐브로 표시하되, pick 노드들과
+       같은 방식으로 위치/크기를 보정 (CenterPose 원본 값은 부정확함).
     """
 
+    # 파라미터 선언/읽기, 퍼블리셔/구독 설정까지 전부 이 안에서 처리.
     def __init__(self):
         super().__init__('centerpose_pointcloud')
 
-        # --- Crop -------------------------------------------------------------
+        # --- 크롭 ---
         self.declare_parameter('input_topic', '/zedm/zed_node/point_cloud/cloud_registered')
         # marker_topic(/centerpose/bbox_markers)과 같은 네임스페이스에 둬서 RViz에서
         # bbox 마커/크롭 클라우드/테이블 평면이 한 카테고리로 묶여 보이게 함.
         self.declare_parameter('output_topic', '/centerpose/cloud_cropped')
         self.declare_parameter('target_frame', 'base_link')
-        # Forward reach: keep points with 0 <= x <= x_max (base_link +X is forward).
+        # 전방 범위: 0 <= x <= x_max인 점만 남김 (base_link +X가 전방).
         self.declare_parameter('x_max', 1.2)
-        # Left/right reach: keep points with -y_extent <= y <= y_extent (base_link
-        # +Y is left), i.e. y_extent=1.0 keeps a 2m-wide band. 0 (or negative)
-        # disables this bound entirely -- left/right is left uncropped.
+        # 좌우 범위: -y_extent <= y <= y_extent (base_link +Y가 왼쪽). 0 이하면
+        # 좌우는 크롭 안 함.
         self.declare_parameter('y_extent', 1.0)
-        # Height bounds default wide open (effectively disabled) since it wasn't
-        # asked for; narrow these if the ceiling/floor need cropping too.
+        # 높이 범위는 기본적으로 거의 무제한 -- 천장/바닥도 잘라야 하면 좁히기.
         self.declare_parameter('z_min', -10.0)
         self.declare_parameter('z_max', 10.0)
 
-        # --- Table plane --------------------------------------------------------
+        # --- 테이블 평면 ---
         self.declare_parameter('publish_table_plane', True)
         self.declare_parameter('table_plane_topic', '/centerpose/table_plane')
-        # Max distance from the fitted plane (meters) to count as "on the table".
+        # 피팅된 평면과의 거리(m)가 이 안이면 "테이블 위"로 간주.
         self.declare_parameter('table_plane_distance_threshold', 0.01)
         self.declare_parameter('table_plane_ransac_iterations', 150)
         self.declare_parameter('table_plane_min_inliers', 200)
-        # RANSAC samples from at most this many of the cropped points, to keep the
-        # fit cheap regardless of how dense the input cloud is.
+        # RANSAC이 크롭된 점들 중 최대 이만큼만 샘플링 (입력이 조밀해도 계산량 고정).
         self.declare_parameter('table_plane_max_ransac_points', 20000)
-        # Reject the fitted plane if it's tilted more than ~37 degrees off
-        # horizontal (base_link Z) -- guards against locking onto a wall, the
-        # robot's own arm, or some other non-table flat surface in the crop box.
+        # 피팅된 평면이 수평(base_link Z)에서 이 이상 기울어져 있으면 버림 --
+        # 벽이나 로봇 팔 같은 테이블 아닌 평면에 잘못 걸리는 걸 방지.
         self.declare_parameter('table_plane_normal_z_min', 0.8)
-        # Per-frame RANSAC fits wobble a little even for a static table (stereo
-        # depth noise), which made a naive per-point reconstruction flicker like a
-        # raw depth cloud instead of looking like a stable image. Blend each new
-        # fit (pose and footprint both) into a running estimate (higher alpha =
-        # faster to track, jitterier).
+        # 프레임마다 RANSAC 결과가 약간씩 흔들려서, 매번 새로 그리면 화면이
+        # 깜빡거림 -- 이전 추정치와 섞어서(EMA) 부드럽게 함 (클수록 빠르게 추적,
+        # 대신 더 흔들림).
         self.declare_parameter('table_plane_smoothing_alpha', 0.15)
-        # Cell size (meters) of the output raster -- the table plane is redrawn as
-        # a regular grid on the smoothed, real plane (not one point per noisy
-        # source point), so this is closer to "image resolution" than a point
-        # density knob.
+        # 출력 격자의 셀 크기(m) -- 노이즈 있는 원본 점 하나하나가 아니라, 부드럽게
+        # 다듬은 평면 위에 일정 간격 격자로 다시 그리므로 "이미지 해상도"에 가까움.
         self.declare_parameter('table_plane_grid_resolution', 0.004)
-        # Color source for the raster: the color image is reprojected onto the
-        # real table plane using the camera's own pose, not per-pixel depth.
+        # 격자의 색은 depth가 아니라 컬러 이미지를 카메라 자세로 실제 평면에
+        # 재투영해서 입힘.
         self.declare_parameter('color_topic', '/zedm/zed_node/left/image_rect_color/compressed')
-        # Points more than this far below the smoothed table height are dropped
-        # from the main cropped cloud (legs, floor, robot base clutter under the
-        # table). A small margin (not 0) keeps the table's own noisy points, which
-        # scatter slightly below the fit, from being eaten too.
+        # 다듬어진 테이블 높이보다 이만큼 이상 아래인 점은 제거 (다리/바닥/로봇
+        # 몸체 등). 0이 아니라 약간 여유를 둬서 테이블 자체의 노이즈 점까지
+        # 같이 잘리는 걸 방지.
         self.declare_parameter('below_table_margin', 0.02)
-        # Once a table plane raster is successfully built, keep republishing that
-        # exact snapshot (position + color) forever instead of refitting/retexturing
-        # every frame -- freezes the display to whatever the camera saw the moment
-        # it was first captured.
+        # 한 번 테이블 격자가 만들어지면, 그 뒤로는 매 프레임 다시 계산하지 않고
+        # 그 스냅샷(위치+색)을 계속 그대로 재발행 -- 화면을 고정시킴.
         self.declare_parameter('freeze_table_plane', False)
 
-        # --- Wall (bent up from the table's far edge) -----------------------------
-        # The table raster above only covers the table's own flat footprint. This
-        # adds a second raster standing straight up (along the table normal) from
-        # the table's far edge (the edge farthest from the robot along base_link
-        # +X), textured the same way, so the color image content beyond the table
-        # edge doesn't just get cut off.
+        # --- 벽면 (테이블 먼 쪽 가장자리에서 위로 세움) ---
+        # 테이블 래스터는 테이블 자기 영역만 덮으므로, 그 너머 화면이 그냥 잘려
+        # 보이지 않게 같은 방식으로 텍스처 입힌 벽면을 하나 더 세움.
         self.declare_parameter('enable_wall', True)
-        # The wall's height isn't known from the table fit (RANSAC only ever sees
-        # the flat table) -- it's solved geometrically each frame so the wall's
-        # own projection reaches the top row of the image, i.e. it's stood up
-        # tall enough to cover everything above the table the camera can see.
-        # Clamped to this range as a safety bound (e.g. if the wall stands
-        # near edge-on to the camera, the solve can blow up).
+        # 벽 높이는 테이블 피팅만으론 알 수 없어서 매 프레임 기하학적으로 계산
+        # (화면 맨 위까지 닿도록). 안전을 위해 이 범위로 clamp.
         self.declare_parameter('wall_min_height', 0.02)
         self.declare_parameter('wall_max_height', 2.0)
 
-        # --- Bbox markers --------------------------------------------------------
+        # --- Bbox 마커 ---
         self.declare_parameter('detections_topic', '/centerpose/detections')
         self.declare_parameter('camera_info_topic', '/zedm/zed_node/left/camera_info')
         self.declare_parameter('depth_topic', '/zedm/zed_node/depth/depth_registered')
         self.declare_parameter('depth_window', 5)
         self.declare_parameter('marker_topic', '/centerpose/bbox_markers')
         self.declare_parameter('marker_color_rgba', [1.0, 0.3, 0.0, 0.35])
-        # CenterPose's own bbox.size is measured ~5x too big against the real object
-        # (e.g. a 0.06x0.06x0.20m bottle reported as ~0.38x1.00x0.37m); fixed ratio,
-        # not distance-dependent, so it's applied as a flat scale.
+        # CenterPose의 bbox.size는 실제보다 약 5배 크게 나와서, 거리와 무관한
+        # 고정 비율로 이렇게 축소해서 씀.
         self.declare_parameter('bbox_size_scale', 0.2)
-        # Markers auto-expire this long after being published, so stale boxes don't
-        # linger in RViz if the detections stream stops or drops a frame. CenterPose
-        # itself publishes slowly/burstily (see detection_timeout elsewhere), so this
-        # needs to comfortably outlast the gap between its detections -- too short
-        # (e.g. the old 0.5s default) makes the marker flicker on/off between
-        # detections instead of just disappearing when the stream actually stops.
+        # 마커는 이 시간 뒤 자동 소멸 -- CenterPose 발행 주기가 들쭉날쭉해서 너무
+        # 짧으면 검출 사이사이에 마커가 깜빡거림.
         self.declare_parameter('marker_lifetime', 2.0)
-        # CenterPose's detections stream is bursty and sometimes skips an id for a
-        # single frame (e.g. one failed depth sample) even though the object is still
-        # there -- treating that as "gone" and deleting the marker right away made it
-        # flicker off and back on every gap. Instead, keep redrawing each marker's
-        # last known position/size for up to this long after its last real update,
-        # and only delete it once it's actually been missing longer than this.
+        # CenterPose가 한 프레임만 검출을 놓쳐도 물체는 그대로 있는 경우가 많아서,
+        # 바로 지우지 않고 이 시간까지는 마지막 위치로 계속 그려줌 (깜빡임 방지).
         self.declare_parameter('marker_hold_timeout', 1.0)
-        # Draws a red/green/blue XYZ axis triad at each box's center (its detected
-        # orientation), the same way RViz's own TF axes look -- makes the object's
-        # pose, not just its position, visible at a glance.
+        # 각 박스 중심에 RGB 축(XYZ)을 그려서 위치뿐 아니라 방향도 한눈에 보이게 함.
         self.declare_parameter('show_marker_axes', True)
         self.declare_parameter('marker_axis_length', 0.15)
         self.declare_parameter('marker_axis_width', 0.006)
@@ -296,8 +244,7 @@ class CenterposePointcloud(Node):
             f'(corrected with {self.camera_info_topic}, {self.depth_topic})'
         )
 
-    # --- Point cloud crop + table plane ---------------------------------------
-    # (포인트클라우드 크롭 + 테이블 평면 감지/텍스처링)
+    # --- 포인트클라우드 크롭 + 테이블 평면 감지/텍스처링 ---
 
     def _lookup_rotation_translation(self, target_frame, source_frame):
         """target_frame <- source_frame TF를 조회해 (회전행렬, 평행이동벡터)로 반환.
@@ -382,8 +329,8 @@ class CenterposePointcloud(Node):
             self._table_centroid_ema = centroid.copy()
             self._table_normal_ema = normal.copy()
         else:
-            # Keep the normal on the same hemisphere as the running estimate
-            # before blending -- RANSAC/SVD can flip its sign frame to frame.
+            # RANSAC/SVD가 프레임마다 법선 부호를 뒤집을 수 있어서, 섞기 전에
+            # 기존 추정치와 같은 방향으로 맞춤.
             if self._table_normal_ema @ normal < 0.0:
                 normal = -normal
             self._table_centroid_ema = (1.0 - alpha) * self._table_centroid_ema + alpha * centroid
@@ -407,8 +354,7 @@ class CenterposePointcloud(Node):
     # freeze_table_plane=true면 처음 한 번만 계산하고 그 뒤로는 그대로 재발행.
     def _color_callback(self, msg):
         if self.freeze_table_plane and self._frozen_table_cloud is not None:
-            # Already captured one snapshot -- keep republishing it untouched so
-            # the display stays frozen instead of following the live camera feed.
+            # 이미 스냅샷을 찍었으면 그대로 재발행만 (실시간 카메라를 안 따라감).
             self._frozen_table_cloud.header.stamp = msg.header.stamp
             self.table_plane_pub.publish(self._frozen_table_cloud)
             return
@@ -432,8 +378,8 @@ class CenterposePointcloud(Node):
             return
 
         camera_frame = msg.header.frame_id or camera_info.header.frame_id
-        # Inverse of the crop's lookup (camera <- target instead of target <-
-        # camera): gives points-in-target -> points-in-camera directly.
+        # 크롭에서 쓰는 조회의 역방향 (camera<-target) -- target 좌표를 바로
+        # camera 좌표로 바꿔줌.
         rotation_translation = self._lookup_rotation_translation(
             camera_frame, self.target_frame
         )
@@ -454,18 +400,15 @@ class CenterposePointcloud(Node):
         grid_pu = grid_pu.reshape(-1)
         grid_pv = grid_pv.reshape(-1)
 
-        # Build the raster directly on the real, smoothed table plane -- every
-        # grid point's position is pure geometry (centroid/basis), never derived
-        # from a noisy per-pixel depth reading.
+        # 격자 점 위치는 순수 기하 계산(centroid/basis)으로만 정해짐 -- 노이즈
+        # 있는 depth를 직접 쓰지 않음.
         table_positions_target = (
             centroid[None, :] + grid_pu[:, None] * u_hat[None, :] + grid_pv[:, None] * v_hat[None, :]
         )
 
         intrinsics = self._scaled_intrinsics(camera_info, bgr.shape)
 
-        # Reproject into the camera to look up which pixel colors each grid
-        # point -- this is the only place depth/vision touches color, and it's
-        # a lookup, not a placement.
+        # 각 격자점을 카메라에 재투영해서 색만 조회 (위치 결정에는 안 쓰임).
         sel_positions, rgb_float = self._reproject_and_sample_color(
             table_positions_target, rotation, translation, intrinsics, bgr
         )
@@ -516,6 +459,7 @@ class CenterposePointcloud(Node):
                 'Table plane captured; freezing further updates (freeze_table_plane=true)'
             )
 
+    # camera_info의 해상도와 실제 받은 이미지 해상도가 다를 때 fx/fy/cx/cy를 비례 조정.
     @staticmethod
     def _scaled_intrinsics(camera_info, image_shape):
         """fx, fy, cx, cy rescaled to the actually-received image size, in case it
@@ -530,6 +474,7 @@ class CenterposePointcloud(Node):
             camera_info.k[5] * scale_y,
         )
 
+    # 평면 위 3D 점들을 카메라에 재투영해서 그 픽셀의 색을 읽어옴 (색 입히기 전용).
     @staticmethod
     def _reproject_and_sample_color(positions_target, rotation, translation, intrinsics, bgr):
         """Project target-frame points into the camera and look up their pixel
@@ -570,27 +515,19 @@ class CenterposePointcloud(Node):
         self, centroid, normal, u_hat, v_hat, pu_min, pu_max, pv_min, pv_max,
         rotation, translation, intrinsics,
     ):
-        """Grid of points standing straight up (along the table normal) from the
-        table's far edge -- the edge farthest from the robot along base_link +X --
-        so the color image content beyond the table doesn't just get cut off.
+        """테이블 먼 쪽 가장자리에서 법선 방향으로 곧게 세운 격자.
 
-        The wall's height isn't known from the table fit (RANSAC only ever sees
-        the flat table). A real depth reading straight up from the edge was tried
-        first, but the sensor frequently has no valid return that far up/off to
-        the side, making the wall come out too short. Instead, solve
-        geometrically for the height at which the wall's own projection reaches
-        the top row of the image (v=0) -- i.e. stand the wall up until it covers
-        everything above the table that the camera can see, not a measured or
-        assumed height.
+        벽 높이는 테이블 피팅만으론 알 수 없음. 가장자리에서 실측 depth를
+        읽는 방법도 시도했으나 그쪽 방향엔 유효한 depth가 없는 경우가 많아서
+        벽이 너무 짧아짐 -- 대신 벽의 투영이 화면 맨 위(v=0)에 닿는 높이를
+        기하학적으로 직접 풀어서 구함.
         """
-        # Normal may point either up or down depending on how RANSAC/SVD happened
-        # to orient it this session -- force it up so "along the normal" from the
-        # table means up, not down through the floor.
+        # 이번 세션에 RANSAC/SVD가 법선을 위/아래 어느 쪽으로 정했을지 몰라서,
+        # 항상 위쪽을 향하도록 강제.
         wall_normal = normal if normal[2] >= 0.0 else -normal
 
-        # Which in-plane axis (u or v) points away from the robot (base_link +X)
-        # decides which one the wall stands up from; the other stays the wall's
-        # width.
+        # 로봇 반대쪽(base_link +X)을 가리키는 축(u 또는 v)이 벽이 서는 방향이고,
+        # 나머지 축은 벽의 폭이 됨.
         u_dot = float(u_hat[0])
         v_dot = float(v_hat[0])
         if abs(u_dot) >= abs(v_dot):
@@ -610,8 +547,8 @@ class CenterposePointcloud(Node):
         if edge_cam[2] <= 1e-3:
             return None
 
-        # Along the line edge_cam + H*normal_cam, v_px(H) = fy*y/z + cy. Solve
-        # v_px(H) = 0 directly (top row) instead of scanning/sampling.
+        # edge_cam + H*normal_cam 선 위에서 v_px(H) = fy*y/z + cy. v_px(H)=0(맨
+        # 위 행)이 되는 H를 스캔 없이 바로 수식으로 풀이.
         normal_cam = wall_normal @ rotation.T
         denom = fy * normal_cam[1] + cy * normal_cam[2]
         if abs(denom) < 1e-9:
@@ -640,6 +577,7 @@ class CenterposePointcloud(Node):
             + grid_h[:, None] * wall_normal[None, :]
         )
 
+    # 평면의 법선(normal) 하나로부터, 그 평면 위에서 쓸 두 축(u_hat, v_hat)을 만듦.
     @staticmethod
     def _plane_basis(normal):
         reference = (
@@ -686,8 +624,7 @@ class CenterposePointcloud(Node):
         if best_normal is None or best_inlier_count < self.table_plane_min_inliers:
             return None
 
-        # Refine with a least-squares fit over all inliers (from the full point
-        # set, not just the RANSAC sampling subset) for a cleaner plane.
+        # 샘플링 서브셋이 아니라 전체 inlier로 최소자승 재피팅해서 더 정밀한 평면 구함.
         distances_all = np.abs((points - best_point) @ best_normal)
         inlier_mask = distances_all < self.table_plane_distance_threshold
         if int(inlier_mask.sum()) < self.table_plane_min_inliers:
@@ -708,6 +645,7 @@ class CenterposePointcloud(Node):
 
         return refined_normal, centroid, inlier_mask
 
+    # 원본 PointCloud2 메시지의 필드 구성(x/y/z/rgb 등)을 그대로 반영한 numpy dtype 생성.
     def _build_dtype(self, msg):
         names = []
         formats = []
@@ -735,6 +673,7 @@ class CenterposePointcloud(Node):
             'names': names, 'formats': formats, 'offsets': offsets, 'itemsize': msg.point_step,
         })
 
+    # 크롭된 포인트 배열을 원본과 같은 필드 구성의 PointCloud2로 만들어 발행.
     def _publish(self, source_msg, points):
         cloud = PointCloud2()
         cloud.header = source_msg.header
@@ -748,6 +687,7 @@ class CenterposePointcloud(Node):
         cloud.data = points.tobytes()
         self.pub.publish(cloud)
 
+    # 쿼터니언을 3x3 회전행렬로 변환.
     @staticmethod
     def _quaternion_to_matrix(q):
         x, y, z, w = q
@@ -757,13 +697,15 @@ class CenterposePointcloud(Node):
             [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)],
         ], dtype=np.float64)
 
-    # --- Bbox markers -----------------------------------------------------------
+    # --- Bbox 마커 (CenterPose 검출을 RViz 큐브 마커로 변환) ---
     # (CenterPose 검출을 RViz용 큐브 마커로 변환)
 
+    # 마커 보정용 CameraInfo는 최신 것만 저장.
     def _camera_info_callback(self, msg):
         with self.data_lock:
             self.latest_camera_info = msg
 
+    # 마커 보정용 depth 이미지를 변환해서 최신 것만 저장.
     def _depth_callback(self, msg):
         try:
             image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
@@ -776,6 +718,7 @@ class CenterposePointcloud(Node):
             self.latest_depth_image = image
             self.latest_depth_msg = msg
 
+    # CenterPose 검출이 올 때마다 위치/크기를 보정해서 bbox 마커로 다시 그림.
     def _detections_callback(self, msg):
         with self.data_lock:
             camera_info = self.latest_camera_info
@@ -820,10 +763,9 @@ class CenterposePointcloud(Node):
                 'last_seen': now,
             }
 
-        # Redraw every id we've seen recently -- not just ones this particular message
-        # refreshed -- so a single dropped/failed frame just keeps showing the last
-        # known box instead of flickering it away. Only actually delete an id once
-        # it's been stale longer than marker_hold_timeout.
+        # 이번 메시지에서 갱신된 것뿐 아니라 최근에 본 id는 전부 다시 그림 -- 한
+        # 프레임 놓쳐도 마지막 위치를 계속 보여줘서 깜빡임을 막음. marker_hold_timeout
+        # 보다 오래 안 보이면 그때 진짜로 삭제.
         stale_ids = []
         for marker_id, data in self.last_marker_data.items():
             age = (now - data['last_seen']).nanoseconds * 1e-9
@@ -842,7 +784,7 @@ class CenterposePointcloud(Node):
             box.pose.position.y = float(data['position'][1])
             box.pose.position.z = float(data['position'][2])
             box.pose.orientation = data['orientation']
-            # A zero-size cube renders invisibly and can also upset RViz; floor it.
+            # 크기가 0인 큐브는 안 보이고 RViz도 이상해질 수 있어 최소값을 보장.
             box.scale.x = max(float(data['size'][0]), 1e-3)
             box.scale.y = max(float(data['size'][1]), 1e-3)
             box.scale.z = max(float(data['size'][2]), 1e-3)
@@ -909,9 +851,8 @@ class CenterposePointcloud(Node):
         cx = camera_info.k[2]
         cy = camera_info.k[5]
 
-        # CenterPose's (x, y, z) has the wrong scale but the right bearing -- reproject
-        # that bearing to a pixel and read real depth there instead of trusting
-        # CenterPose's own z magnitude.
+        # CenterPose의 (x,y,z)는 스케일은 틀려도 방향(bearing)은 맞음 -- 그 방향을
+        # 픽셀로 투영해서 실제 depth를 다시 읽음 (CenterPose의 z값은 안 믿음).
         u = fx * (center.x / center.z) + cx
         v = fy * (center.y / center.z) + cy
 
@@ -919,18 +860,15 @@ class CenterposePointcloud(Node):
         if real_depth is None:
             return None
 
-        # CenterPose's reported size is off by a fixed ratio (bbox_size_scale),
-        # measured against the real object -- not distance-dependent like the
-        # position depth error corrected above.
+        # CenterPose가 보고하는 크기는 고정 비율(bbox_size_scale)만큼 틀림 --
+        # 위의 위치 depth 오차와 달리 거리에 따라 달라지지 않음.
         size = np.array(
             [detection.bbox.size.x, detection.bbox.size.y, detection.bbox.size.z],
             dtype=np.float64,
         ) * self.bbox_size_scale
 
-        # `real_depth` is the depth sensor's reading at the object's near (visible)
-        # surface, not its volumetric center -- push the position back along the
-        # same camera ray by half the corrected object size so the marker lands on
-        # the center instead of floating toward the camera, off the true surface.
+        # real_depth는 물체 앞면(보이는 면)까지의 거리라 중심이 아님 -- 보정된
+        # 크기의 절반만큼 카메라 반대 방향으로 밀어서 중심 위치를 추정.
         center_depth = real_depth + 0.5 * float(size.mean())
 
         position = np.array(
@@ -940,6 +878,7 @@ class CenterposePointcloud(Node):
 
         return position, size
 
+    # 픽셀 (u, v) 주변 depth_window 크기 영역에서 유효한 depth 값들의 중앙값을 샘플링.
     def _sample_depth(self, depth_image, depth_msg, u, v):
         height, width = depth_image.shape[:2]
         half_window = max(0, self.depth_window // 2)
@@ -960,6 +899,7 @@ class CenterposePointcloud(Node):
             depth *= 0.001
         return depth
 
+    # 초(float)를 ROS Duration(sec, nanosec)으로 변환.
     @staticmethod
     def _duration(seconds):
         duration = Duration()
@@ -970,7 +910,7 @@ class CenterposePointcloud(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = CenterposePointcloud()
+    node = CenterposePointcloud()  # 노드 실행 진입점 (ros2 run/launch에서 호출됨)
     try:
         rclpy.spin(node)
     except (KeyboardInterrupt, ExternalShutdownException):

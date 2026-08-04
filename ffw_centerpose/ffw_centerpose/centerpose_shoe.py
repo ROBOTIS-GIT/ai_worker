@@ -12,45 +12,19 @@ from ffw_centerpose.pick_place_base import PickPlaceNodeBase
 
 
 class CenterposeShoe(PickPlaceNodeBase):
-    """[초안/DRAFT] Grab a CenterPose-detected shoe with the left arm.
+    """[초안/DRAFT] CenterPose로 검출한 신발을 왼팔로 집는 노드.
 
-    centerpose_box.py와 핵심적으로 다른 점: 그리퍼가 신발을 위에서 아래로 내려다보며
-    잡는 자세라서, 신발이 회전하면 그리퍼는 roll이 아니라 **yaw**가 따라가야
-    한다 (centerpose_box는 옆에서 잡으므로 roll이 따라감). 실측 3개 포인트(정면 기준,
-    시계 방향, 반시계 방향)로 확인: roll을 신발 yaw에 맞춰 봤더니 오차가 46도
-    가까이 났지만, yaw를 맞추니 오차가 1도 미만이었다. grasp_fixed_roll/pitch는
-    고정, grasp_yaw_from_shoe_yaw_scale/offset으로 yaw만 계산한다.
+    신발을 위에서 내려다보며 잡으므로, 그리퍼는 roll이 아니라 yaw로 신발 방향을
+    따라간다 (centerpose_box는 옆에서 잡아서 roll로 따라감). 잡은 후에는
+    centerpose_bottle과 같은 2슬롯 방식으로 놓는다.
 
-    높이(z)는 두 단계로 나뉜다: 잡기 전(hover) 높이는 항상 fixed_grasp_z로
-    고정(시작 자세와 같은 높이), 실제로 잡을 때는 그보다 insertion_overshoot_distance
-    만큼 더 내려가는데, 이때 min_grasp_z보다 절대 더 내려가지 않도록 코드에서
-    직접 clamp한다 (실측된 "여기보다 아래로 내려가면 안 됨" 안전선).
-
-    잡은 후에는 centerpose_bottle.py와 같은 2슬롯 방식으로 놓는다 (캡처 순서대로
-    왼쪽부터 슬롯1, 슬롯2 -- 슬롯보다 신발이 많으면 마지막 슬롯 재사용):
-    슬롯 hover -> place_lower_distance만큼 내려서 놓기 -> release -> 다시 hover.
-    신발과 신발 사이에는 시작 자세로 돌아가지 않고, hover에서 바로 다음 신발의
-    pregrasp로 이어간다 -- 시작 자세 복귀(왕복이라 start_duration만큼 느리게)는
-    큐에 담긴 신발을 전부 처리한 뒤 한 번만(_execute_queue).
-
-    아직 캘리브레이션 전인 부분 (TODO로 표시):
-    - grasp_position_offset: 신발 구멍(잡는 지점) 위치가 검출 center로부터
-      x/y로 얼마나 떨어져 있는지 -- 아직 [0, 0, 0]. 실기로 ~/capture 결과와
-      비교해서 채울 예정.
-    - place_lower_distance: 슬롯 hover에서 실제로 놓는 높이까지 내려가는 거리 --
-      아직 따로 측정 안 해서 잡을 때 하강 거리를 그대로 재사용 중.
-
-    시작 자세로 가는 큰 회전은 이제 pick 시퀀스 자체에 들어있지 않다 -- 노드가
-    시작될 때(execute_motion=true) 딱 한 번, startup_pose -> start_pose 둘 다
-    아주 느린 속도(startup_duration, start_duration)로 왼팔을 이동시키고
-    (_startup_sequence),
-    이후 ~/execute는 이미 start_pose에 있다고 가정하고 바로 그리퍼를 여는 것부터
-    시작한다. 다만 놓은 뒤 복귀는 여전히 pick 시퀀스 끝에서 start_duration으로
-    (왕복 이동도 똑같이 큰 회전이라). 왼팔만 사용.
+    TODO(미조정): grasp_position_offset은 아직 [0, 0, 0], place_lower_distance는
+    잡을 때 하강 거리를 임시로 재사용 중 -- 둘 다 실기 캘리브레이션 필요.
     """
 
     _OBJECT_LABEL_PLURAL = 'shoe(s)'
 
+    # 파라미터 선언/읽기 후 공통 초기화(_setup_common) 호출까지 한 번에 처리.
     def __init__(self):
         super().__init__('centerpose_shoe')
 
@@ -211,9 +185,8 @@ class CenterposeShoe(PickPlaceNodeBase):
             [-0.0023092320188879967, 0.008429071865975857, 0.028931625187397003,
              0.9995430707931519],
         )
-        # y를 슬롯1에서 더 멀어지는(오른쪽) 방향으로 4cm 이동 (0.279813 -> 0.239813)
-        # -- 두 신발이 서로 안 닿게 간격을 다시 벌림. 2026-07-30: 오른쪽으로 1cm
-        # 추가 이동 (0.23981253385543824 -> 0.22981253385543823).
+        # y를 슬롯1에서 더 멀어지는(오른쪽) 방향으로 이동 -- 두 신발이 서로 안
+        # 닿게 간격을 벌림.
         self.declare_parameter(
             'place_slot_2_position_xyz',
             [0.45977485179901123, 0.22981253385543823, 0.9466336965560913],
@@ -678,11 +651,13 @@ class CenterposeShoe(PickPlaceNodeBase):
             dtype=np.float64,
         )
 
+    # 쿼터니언의 역회전(켤레) 계산.
     @staticmethod
     def _quaternion_conjugate(q):
         x, y, z, w = q
         return np.array([-x, -y, -z, w], dtype=np.float64)
 
+    # 쿼터니언을 "회전축 + 회전각"으로 분해.
     @staticmethod
     def _quaternion_axis_angle(q):
         """Angle in [0, pi] and its unit rotation axis, forcing w >= 0 for uniqueness."""
@@ -695,10 +670,12 @@ class CenterposeShoe(PickPlaceNodeBase):
         axis = np.zeros(3) if s < 1e-8 else np.array([x, y, z]) / s
         return axis, angle
 
+    # 각도(라디안)를 -pi ~ +pi 범위로 정규화.
     @staticmethod
     def _wrap_angle(angle):
         return math.atan2(math.sin(angle), math.cos(angle))
 
+    # roll/pitch/yaw(오일러각)를 쿼터니언으로 변환.
     @staticmethod
     def _quaternion_from_euler(roll, pitch, yaw):
         cr, sr = math.cos(roll * 0.5), math.sin(roll * 0.5)
@@ -717,7 +694,7 @@ class CenterposeShoe(PickPlaceNodeBase):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = CenterposeShoe()
+    node = CenterposeShoe()  # 노드 실행 진입점 (ros2 run/launch에서 호출됨)
     try:
         rclpy.spin(node)
     except (KeyboardInterrupt, ExternalShutdownException):

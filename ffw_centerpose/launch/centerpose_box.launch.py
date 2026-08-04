@@ -35,7 +35,7 @@ def generate_launch_description():
             description='Safety bound: ~/execute refuses to move at all if any '
                         'captured pose x exceeds this -- a target this far forward is '
                         'outside the real workspace and almost always means depth was '
-                        'misread (e.g. a background hit instead of the box).',
+                        'misread.',
         ),
 
         # --- Motion execution toggle ----------------------------------------------
@@ -59,23 +59,13 @@ def generate_launch_description():
             description='[x, y, z] offset, both x and y valid AT '
                         'grasp_position_y_reference_pixel ("left") -- see '
                         'grasp_position_x_slope/grasp_position_y_slope below for the '
-                        'pixel-dependent part. y=-0.02 (2cm right, was 0.0) on '
-                        '2026-07-30 -- grasp at "left" was landing 2cm too far left. '
-                        'x=+0.01 (1cm forward, was 0.0) same day.',
+                        'pixel-dependent part.',
         ),
         DeclareLaunchArgument(
             'grasp_position_y_slope',
             default_value='0.0',
-            description='A constant y offset only ever matches one screen position -- '
-                        'real-robot testing repeatedly adjusted this as the box needs '
-                        'progressively more +Y (left) correction from "left" toward '
-                        '"center" (or less, depending on the current sign): 0.0 at '
-                        'pixel_u=288 ("left"), 0.0 at pixel_u=576 ("center") too -- '
-                        'combined with grasp_position_offset[1]=-0.02, gives -0.02 '
-                        '(2cm right) at both. Adjusted repeatedly on 2026-07-30 '
-                        '(+0.03, then +0.01, then -0.01, -0.02, -0.03, -0.05, -0.07, '
-                        '-0.01, 0.0, +0.01, 0.0, +0.02, 0.0, settled at 0.0) -- '
-                        'centered grasp kept overshooting left/right each time. '
+            description='A constant y offset only ever matches one screen position, so '
+                        'this corrects it based on where in the frame the box was seen. '
                         'Applied as: y_offset = grasp_position_offset[1] + '
                         'grasp_position_y_slope * (pixel_u - '
                         'grasp_position_y_reference_pixel).',
@@ -92,11 +82,7 @@ def generate_launch_description():
             description='Same idea as grasp_position_y_slope, but for forward/'
                         'backward. Applied as: x_offset = grasp_position_offset[0] + '
                         'grasp_position_x_slope * (pixel_u - '
-                        'grasp_position_y_reference_pixel). Added 2026-07-30 at '
-                        '+0.02 (2cm more forward than grasp_position_offset[0] at '
-                        '"center"), settled at a value that cancels '
-                        'grasp_position_offset[0] out to 0.0 (no correction) at '
-                        '"center".',
+                        'grasp_position_y_reference_pixel).',
         ),
         DeclareLaunchArgument(
             'box_depth_center_offset',
@@ -168,16 +154,7 @@ def generate_launch_description():
                         'box_yaw_reference_orientation_xyzw (see centerpose_box.py '
                         '_signed_box_yaw). Least-squares fit from 3 measured points: '
                         'box yaw 0/+32.52/-58.51 deg -> roll -0.33/-23.54/+54.82 deg '
-                        '(residuals ~1-3 deg). The -58.51 deg point arrived as a raw '
-                        '~124 deg detection and needed the 180 deg flip correction '
-                        'above before use. Steepened twice on 2026-07-30 (was '
-                        '-0.870624840566106, then -0.9218981271837782): real-robot '
-                        'testing found counter-clockwise boxes (negative box_yaw) '
-                        'needed ~3 deg more roll than the fit predicted at the -58.51 '
-                        'deg sample, then another ~3 deg on top of that -- box_yaw=0 '
-                        'is untouched, but clockwise (positive box_yaw) grasps roll '
-                        'proportionally more too since the scale is shared across '
-                        'both signs.',
+                        '(residuals ~1-3 deg).',
         ),
         DeclareLaunchArgument(
             'grasp_roll_offset',
@@ -195,10 +172,8 @@ def generate_launch_description():
             'roll_clamp_min_deg',
             default_value='-60.0',
             description='Gripper roll (deg) is clamped to [roll_clamp_min_deg, '
-                        'roll_clamp_max_deg]. Widened to +/-60 deg (was -32/+38) -- '
-                        'real-robot testing confirmed the gripper can safely go this '
-                        'far. Past either bound the gripper holds at that bound '
-                        'instead of following the raw fit further.',
+                        'roll_clamp_max_deg]; past either bound the gripper holds '
+                        'there instead of following the raw fit further.',
         ),
         DeclareLaunchArgument('roll_clamp_max_deg', default_value='60.0'),
 
@@ -209,10 +184,7 @@ def generate_launch_description():
             default_value='0.11',
             description='Back off along the gripper approach axis to this pregrasp '
                         'point before inserting straight in, so the gripper body does '
-                        'not clip the box on approach. 2026-07-30: raising this '
-                        '(0.13 -> 0.15) moved the pregrasp pose forward on the real '
-                        'robot instead of back; lowered below the original value '
-                        '(0.13 -> 0.11) to get an actual 2cm-further-back pregrasp.',
+                        'not clip the box on approach.',
         ),
         DeclareLaunchArgument('pregrasp_duration', default_value='4.0'),
         DeclareLaunchArgument('insertion_duration', default_value='3.0'),
@@ -222,9 +194,7 @@ def generate_launch_description():
             description='Detected surface position is an estimate; push this much '
                         'further along the approach axis than the raw detection before '
                         'closing the gripper, so it actually makes contact instead of '
-                        'stopping right at the estimate. Pulled back 2cm, 1cm, 2cm, '
-                        '2cm, then pushed 2cm back in (was 0.01) -- was not deep '
-                        'enough.',
+                        'stopping right at the estimate.',
         ),
         DeclareLaunchArgument('settle_time', default_value='0.5'),
         DeclareLaunchArgument(
@@ -240,7 +210,7 @@ def generate_launch_description():
             default_value='[0.4098847508430481, 0.3597005009651184, 0.9550905227661133]',
             description='Hover pose above the drop location, moved to right after '
                         'lifting. Measured via `ros2 topic echo --once /l_goal_pose` '
-                        'during a manual demo with the arm holding a box (2026-07-30).',
+                        'during a manual demo with the arm holding a box.',
         ),
         DeclareLaunchArgument(
             'place_hover_orientation_xyzw',
@@ -252,11 +222,7 @@ def generate_launch_description():
             'place_position_xyz',
             default_value='[0.6282518005371094, 0.3551318049430847, 0.8419253444671631]',
             description='Actual release pose, moved to slowly from place_hover. Same '
-                        'measurement method. Z lowered 2cm, then another 2cm (was '
-                        '0.8819253444671631, then 0.8619253444671631) on 2026-07-30, '
-                        'real-robot testing wanted the box placed lower. X pushed 1cm '
-                        'further forward (was 0.6182518005371094) same day, wanted '
-                        'the box placed 1cm further out.',
+                        'measurement method.',
         ),
         DeclareLaunchArgument(
             'place_orientation_xyzw',
@@ -269,8 +235,7 @@ def generate_launch_description():
             default_value='[0.5029386687278748, 0.3570454716682434, 0.847183346748352]',
             description='Backed-off pose moved to right after releasing (gripper still '
                         'fully open), before reclosing and pushing the box the rest of '
-                        'the way in. Pulled 2cm further toward the robot (base_link '
-                        '-X, was 0.5229386687278748) on 2026-07-30.',
+                        'the way in.',
         ),
         DeclareLaunchArgument(
             'place_retreat_orientation_xyzw',
