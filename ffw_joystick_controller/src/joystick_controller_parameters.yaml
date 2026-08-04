@@ -116,3 +116,165 @@ joystick_controller:
     description: "Duration in seconds to trigger long press event",
     read_only: true
   }
+  enable_random_base_reposition: {
+    type: bool,
+    default_value: false,
+    description: "Enable right-long-triggered random base repositioning.",
+    read_only: true
+  }
+  random_base_odom_topic: {
+    type: string,
+    default_value: "/odom",
+    description: "Odometry topic used for random base closed-loop control.",
+    read_only: true
+  }
+  random_base_odom_frame: {
+    type: string,
+    default_value: "odom",
+    description: "Required odometry parent frame.",
+    read_only: true
+  }
+  random_base_child_frame: {
+    type: string,
+    default_value: "base_link",
+    description: "Required odometry child frame.",
+    read_only: true
+  }
+  random_base_radius: {
+    type: double,
+    default_value: 0.03,
+    description: "Maximum sampled translation radius around the fixed anchor [m].",
+    read_only: true
+  }
+  random_base_yaw_range: {
+    type: double,
+    default_value: 0.087,
+    description: "Sampled yaw half-range around the fixed anchor [rad].",
+    read_only: true
+  }
+  random_base_linear_gain: {
+    type: double,
+    default_value: 2.0,
+    description: "Proportional gain for body-frame translation error.",
+    read_only: true
+  }
+  random_base_angular_gain: {
+    type: double,
+    default_value: 2.0,
+    description: "Proportional gain for yaw error.",
+    read_only: true
+  }
+  random_base_min_linear_speed: {
+    type: double,
+    default_value: 0.04,
+    description: "Minimum nonzero desired translation speed before slew limiting [m/s].",
+    read_only: true
+  }
+  random_base_max_linear_speed: {
+    type: double,
+    default_value: 0.15,
+    description: "Maximum automatic translation command norm [m/s].",
+    read_only: true
+  }
+  random_base_min_angular_speed: {
+    type: double,
+    default_value: 0.06,
+    description: "Minimum nonzero desired yaw speed before slew limiting [rad/s].",
+    read_only: true
+  }
+  random_base_max_angular_speed: {
+    type: double,
+    default_value: 0.30,
+    description: "Maximum automatic yaw command [rad/s].",
+    read_only: true
+  }
+  random_base_max_linear_acceleration: {
+    type: double,
+    default_value: 0.20,
+    description: "Maximum automatic translation command slew rate [m/s^2].",
+    read_only: true
+  }
+  random_base_max_angular_acceleration: {
+    type: double,
+    default_value: 0.40,
+    description: "Maximum automatic yaw command slew rate [rad/s^2].",
+    read_only: true
+  }
+  random_base_position_tolerance: {
+    type: double,
+    default_value: 0.004,
+    description: "Target translation tolerance [m].",
+    read_only: true
+  }
+  random_base_yaw_tolerance: {
+    type: double,
+    default_value: 0.009,
+    description: "Target yaw tolerance [rad].",
+    read_only: true
+  }
+  random_base_settle_linear_velocity: {
+    type: double,
+    default_value: 0.01,
+    description: "Maximum measured translation speed while settling [m/s].",
+    read_only: true
+  }
+  random_base_settle_angular_velocity: {
+    type: double,
+    default_value: 0.02,
+    description: "Maximum measured yaw speed while settling [rad/s].",
+    read_only: true
+  }
+  random_base_settle_duration: {
+    type: double,
+    default_value: 0.2,
+    description: "Continuous in-tolerance duration required for success [s].",
+    read_only: true
+  }
+  random_base_odom_stale_timeout: {
+    type: double,
+    default_value: 0.2,
+    description: "Maximum local odometry age and sample gap accepted by random base control [s].",
+    read_only: true
+  }
+  random_base_motion_timeout: {
+    type: double,
+    default_value: 5.0,
+    description: "Maximum duration of one automatic movement [s].",
+    read_only: true
+  }
+  random_base_anchor_position_limit: {
+    type: double,
+    default_value: 0.05,
+    description: "Maximum distance from the fixed anchor where an automatic move is allowed [m].",
+    read_only: true
+  }
+  random_base_anchor_yaw_limit: {
+    type: double,
+    default_value: 0.105,
+    description: "Maximum yaw difference from the fixed anchor where an automatic move is allowed [rad].",
+    read_only: true
+  }
+  random_base_reanchor_distance: {
+    type: double,
+    default_value: 0.20,
+    description: "Distance from the fixed anchor at which a stationary robot may automatically re-anchor [m].",
+    read_only: true
+  }
+  random_base_reanchor_stationary_duration: {
+    type: double,
+    default_value: 0.2,
+    description: "Continuous low-velocity odometry duration required before automatic re-anchoring [s].",
+    read_only: true
+  }
+  random_base_odom_jump_position: {
+    type: double,
+    default_value: 0.05,
+    description: "Single-sample position jump that resets the fixed anchor [m].",
+    read_only: true
+  }
+  random_base_odom_jump_yaw: {
+    type: double,
+    default_value: 0.175,
+    description: "Single-sample yaw jump that resets the fixed anchor [rad].",
+    read_only: true
+  }

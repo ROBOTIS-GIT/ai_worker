@@ -16,6 +16,9 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
+#include <cstdint>
+#include <limits>
 #include <string>
 #include <stdexcept>
 
@@ -39,12 +42,19 @@ constexpr double DEFAULT_JOG_SCALE = 0.1;
 constexpr double LINEAR_X_SCALE = 3.0;
 constexpr double LINEAR_Y_SCALE = 3.0;
 constexpr double ANGULAR_Z_SCALE = 2.0;
+constexpr double RADIANS_TO_DEGREES = 180.0 / 3.14159265358979323846;
 
   // Sensor names
 const char LEFT_JOYSTICK_NAME[] = "sensorxel_l_joy";
 const char RIGHT_JOYSTICK_NAME[] = "sensorxel_r_joy";
 
 }  // namespace constants
+
+int64_t steady_time_nanoseconds()
+{
+  return std::chrono::duration_cast<std::chrono::nanoseconds>(
+    std::chrono::steady_clock::now().time_since_epoch()).count();
+}
 
 JoystickController::JoystickController()
 : controller_interface::ControllerInterface()
@@ -250,13 +260,406 @@ void JoystickController::publish_joint_state(
   }
 }
 
-void JoystickController::publish_cmd_vel(const JoystickValues & joystick_values)
+geometry_msgs::msg::Twist JoystickController::create_manual_cmd_vel(
+  const JoystickValues & joystick_values) const
 {
   geometry_msgs::msg::Twist twist_msg;
   twist_msg.linear.x = -joystick_values.left_x / constants::LINEAR_X_SCALE;
   twist_msg.linear.y = joystick_values.left_y / constants::LINEAR_Y_SCALE;
   twist_msg.angular.z = -joystick_values.right_y / constants::ANGULAR_Z_SCALE;
-  cmd_vel_pub_->publish(twist_msg);
+  return twist_msg;
+}
+
+void JoystickController::publish_zero_cmd_vel()
+{
+  if (cmd_vel_pub_) {
+    cmd_vel_pub_->publish(geometry_msgs::msg::Twist{});
+  }
+}
+
+bool JoystickController::read_fresh_odometry(OdometrySnapshot & snapshot) const
+{
+  if (!latest_odometry_available_ || !latest_odometry_.valid) {
+    return false;
+  }
+
+  const int64_t age_ns = steady_time_nanoseconds() - latest_odometry_.received_steady_time_ns;
+  const int64_t stale_timeout_ns = static_cast<int64_t>(
+    params_.random_base_odom_stale_timeout * 1e9);
+  if (age_ns < 0 || age_ns > stale_timeout_ns) {
+    return false;
+  }
+
+  snapshot = latest_odometry_;
+  return true;
+}
+
+bool JoystickController::process_odometry_snapshot(const OdometrySnapshot & snapshot)
+{
+  if (snapshot.sequence == 0 || snapshot.sequence == last_processed_odometry_sequence_) {
+    return false;
+  }
+
+  last_processed_odometry_sequence_ = snapshot.sequence;
+  bool discontinuity_detected = !snapshot.valid;
+  if (snapshot.valid && previous_odometry_available_) {
+    const bool stamp_went_backwards =
+      previous_odometry_stamp_ns_ != 0 &&
+      (snapshot.source_stamp_ns == 0 ||
+      snapshot.source_stamp_ns < previous_odometry_stamp_ns_);
+    const double position_jump = std::hypot(
+      snapshot.pose.x - previous_odometry_pose_.x,
+      snapshot.pose.y - previous_odometry_pose_.y);
+    const double yaw_jump = std::abs(RandomBaseController::normalize_angle(
+        snapshot.pose.yaw - previous_odometry_pose_.yaw));
+    discontinuity_detected =
+      stamp_went_backwards || position_jump > params_.random_base_odom_jump_position ||
+      yaw_jump > params_.random_base_odom_jump_yaw;
+  }
+
+  const bool motion_was_active = random_base_controller_.is_active();
+  const bool anchor_was_set = random_base_controller_.has_anchor();
+  if (discontinuity_detected) {
+    reset_random_base_runtime(true);
+    if (anchor_was_set) {
+      RCLCPP_WARN(
+        get_node()->get_logger(),
+        "Odometry discontinuity detected; random base anchor was reset.");
+    }
+  }
+
+  if (snapshot.valid) {
+    latest_odometry_ = snapshot;
+    latest_odometry_available_ = true;
+    previous_odometry_pose_ = snapshot.pose;
+    previous_odometry_stamp_ns_ = snapshot.source_stamp_ns;
+    previous_odometry_available_ = true;
+    random_base_stationary_window_.observe(
+      snapshot.twist, snapshot.received_steady_time_ns,
+      params_.random_base_settle_linear_velocity,
+      params_.random_base_settle_angular_velocity,
+      static_cast<int64_t>(params_.random_base_odom_stale_timeout * 1e9));
+  } else {
+    latest_odometry_available_ = false;
+    previous_odometry_available_ = false;
+    previous_odometry_stamp_ns_ = 0;
+    random_base_stationary_window_.reset();
+  }
+
+  return discontinuity_detected && motion_was_active;
+}
+
+void JoystickController::reset_random_base_runtime(bool reset_anchor)
+{
+  if (reset_anchor) {
+    random_base_controller_.reset();
+    random_base_stationary_window_.reset();
+    last_random_base_auto_failed_ = false;
+  } else {
+    random_base_controller_.cancel();
+  }
+}
+
+bool JoystickController::request_random_base_move(const rclcpp::Time & current_time)
+{
+  if (!params_.enable_random_base_reposition || middle_pedal_held_.load()) {
+    return false;
+  }
+
+  if (random_base_controller_.is_active()) {
+    RCLCPP_INFO(
+      get_node()->get_logger(),
+      "Random base move request ignored because a move is already active.");
+    return false;
+  }
+
+  const auto * buffered_odometry = odometry_buffer_.readFromRT();
+  if (buffered_odometry != nullptr) {
+    process_odometry_snapshot(*buffered_odometry);
+  }
+
+  OdometrySnapshot snapshot;
+  if (!read_fresh_odometry(snapshot)) {
+    RCLCPP_WARN(
+      get_node()->get_logger(),
+      "Random base move request ignored because fresh valid odometry is unavailable.");
+    return false;
+  }
+
+  if (std::hypot(snapshot.twist.linear_x, snapshot.twist.linear_y) >
+    params_.random_base_settle_linear_velocity ||
+    std::abs(snapshot.twist.angular_z) > params_.random_base_settle_angular_velocity)
+  {
+    RCLCPP_WARN(
+      get_node()->get_logger(),
+      "Random base move request ignored because the base is still moving.");
+    return false;
+  }
+
+  double anchor_distance = 0.0;
+  double anchor_yaw_error = 0.0;
+  if (random_base_controller_.has_anchor()) {
+    const auto & anchor = random_base_controller_.anchor();
+    anchor_distance = std::hypot(snapshot.pose.x - anchor.x, snapshot.pose.y - anchor.y);
+    anchor_yaw_error = std::abs(RandomBaseController::normalize_angle(
+        snapshot.pose.yaw - anchor.yaw));
+  }
+
+  RandomBaseStartOptions start_options;
+  start_options.allow_reanchor = true;
+  start_options.previous_auto_failed = last_random_base_auto_failed_;
+  start_options.reanchor_stationary = random_base_stationary_window_.satisfies(
+    static_cast<int64_t>(params_.random_base_reanchor_stationary_duration * 1e9));
+  const auto start_status = random_base_controller_.start_with_policy(
+    snapshot.pose, current_time.seconds(), start_options);
+
+  const bool started =
+    start_status == RandomBaseStartStatus::STARTED_WITH_NEW_ANCHOR ||
+    start_status == RandomBaseStartStatus::STARTED_WITH_EXISTING_ANCHOR ||
+    start_status == RandomBaseStartStatus::STARTED_WITH_REANCHORED_POSE;
+  if (!started) {
+    switch (start_status) {
+      case RandomBaseStartStatus::OUTSIDE_ANCHOR_ENVELOPE:
+        if (anchor_distance <= params_.random_base_anchor_position_limit) {
+          RCLCPP_WARN(
+            get_node()->get_logger(),
+            "Random base move rejected: yaw difference %.2f deg exceeds the %.2f deg "
+            "anchor reuse limit.",
+            anchor_yaw_error * constants::RADIANS_TO_DEGREES,
+            params_.random_base_anchor_yaw_limit * constants::RADIANS_TO_DEGREES);
+        } else {
+          RCLCPP_WARN(
+            get_node()->get_logger(),
+            "Random base move rejected: anchor distance %.3f m is in the blocked gap "
+            "above %.3f m and below %.3f m; use an explicit anchor reset.",
+            anchor_distance, params_.random_base_anchor_position_limit,
+            params_.random_base_reanchor_distance);
+        }
+        break;
+      case RandomBaseStartStatus::REANCHOR_REQUIRES_STATIONARY_ODOMETRY:
+        RCLCPP_WARN(
+          get_node()->get_logger(),
+          "Automatic re-anchor at %.3f m rejected: odometry must remain stationary for "
+          "%.3f s continuously.",
+          anchor_distance, params_.random_base_reanchor_stationary_duration);
+        break;
+      case RandomBaseStartStatus::REANCHOR_BLOCKED_AFTER_AUTO_FAILURE:
+        RCLCPP_WARN(
+          get_node()->get_logger(),
+          "Automatic re-anchor at %.3f m blocked because the previous AUTO move failed; "
+          "call the reset_random_anchor service or restart the controller.",
+          anchor_distance);
+        break;
+      case RandomBaseStartStatus::BUSY:
+        RCLCPP_INFO(
+          get_node()->get_logger(),
+          "Random base move request ignored because a move is already active.");
+        break;
+      case RandomBaseStartStatus::INVALID_INPUT:
+      default:
+        RCLCPP_WARN(
+          get_node()->get_logger(), "Random base move request contained invalid input.");
+        break;
+    }
+    return false;
+  }
+
+  const auto & anchor = random_base_controller_.anchor();
+  const auto & target = random_base_controller_.target();
+  const char * anchor_mode =
+    start_status == RandomBaseStartStatus::STARTED_WITH_NEW_ANCHOR ? "new anchor" :
+    start_status == RandomBaseStartStatus::STARTED_WITH_REANCHORED_POSE ?
+    "automatically re-anchored pose" : "existing anchor";
+  RCLCPP_INFO(
+    get_node()->get_logger(),
+    "Random base move started with %s: anchor=(%.4f, %.4f, %.2f deg), "
+    "target=(%.4f, %.4f, %.2f deg).",
+    anchor_mode,
+    anchor.x, anchor.y, anchor.yaw * constants::RADIANS_TO_DEGREES,
+    target.x, target.y, target.yaw * constants::RADIANS_TO_DEGREES);
+  return true;
+}
+
+bool JoystickController::request_random_base_return(const rclcpp::Time & current_time)
+{
+  if (!params_.enable_random_base_reposition || middle_pedal_held_.load()) {
+    return false;
+  }
+
+  if (random_base_controller_.is_active()) {
+    RCLCPP_INFO(
+      get_node()->get_logger(),
+      "Return-to-anchor request ignored because a random base move is already active.");
+    return false;
+  }
+
+  const auto * buffered_odometry = odometry_buffer_.readFromRT();
+  if (buffered_odometry != nullptr) {
+    process_odometry_snapshot(*buffered_odometry);
+  }
+
+  OdometrySnapshot snapshot;
+  if (!read_fresh_odometry(snapshot)) {
+    RCLCPP_WARN(
+      get_node()->get_logger(),
+      "Return-to-anchor request ignored because fresh valid odometry is unavailable.");
+    return false;
+  }
+  if (!random_base_controller_.has_anchor()) {
+    RCLCPP_WARN(
+      get_node()->get_logger(),
+      "Return-to-anchor request ignored because no random base anchor is available.");
+    return false;
+  }
+  if (last_random_base_auto_failed_) {
+    RCLCPP_WARN(
+      get_node()->get_logger(),
+      "Return-to-anchor request blocked because the previous AUTO move failed; "
+      "reset the anchor or restart the controller.");
+    return false;
+  }
+  if (!random_base_stationary_window_.satisfies(
+      static_cast<int64_t>(params_.random_base_reanchor_stationary_duration * 1e9)))
+  {
+    RCLCPP_WARN(
+      get_node()->get_logger(),
+      "Return-to-anchor request ignored because odometry has not remained stationary for "
+      "%.3f s.",
+      params_.random_base_reanchor_stationary_duration);
+    return false;
+  }
+
+  const auto start_status = random_base_controller_.start_return_to_anchor(
+    snapshot.pose, current_time.seconds());
+  if (start_status != RandomBaseStartStatus::STARTED_RETURN_TO_ANCHOR) {
+    if (start_status == RandomBaseStartStatus::OUTSIDE_ANCHOR_ENVELOPE) {
+      RCLCPP_WARN(
+        get_node()->get_logger(),
+        "Return-to-anchor request rejected because the base is outside the anchor envelope.");
+    } else {
+      RCLCPP_WARN(
+        get_node()->get_logger(), "Return-to-anchor request contained invalid input.");
+    }
+    return false;
+  }
+
+  const auto & anchor = random_base_controller_.anchor();
+  RCLCPP_INFO(
+    get_node()->get_logger(),
+    "Random base return started: anchor=(%.4f, %.4f, %.2f deg).",
+    anchor.x, anchor.y, anchor.yaw * constants::RADIANS_TO_DEGREES);
+  return true;
+}
+
+void JoystickController::publish_cmd_vel(
+  const JoystickValues & joystick_values, const rclcpp::Time & current_time)
+{
+  const auto manual_twist = create_manual_cmd_vel(joystick_values);
+  if (!params_.enable_random_base_reposition) {
+    cmd_vel_pub_->publish(manual_twist);
+    return;
+  }
+
+  bool force_zero = false;
+  const int64_t current_time_ns = current_time.nanoseconds();
+  if (last_update_time_ns_ != 0 && current_time_ns < last_update_time_ns_) {
+    const bool motion_was_active = random_base_controller_.is_active();
+    const bool anchor_was_set = random_base_controller_.has_anchor();
+    reset_random_base_runtime(true);
+    force_zero = motion_was_active;
+    if (anchor_was_set) {
+      RCLCPP_WARN(
+        get_node()->get_logger(),
+        "Controller time moved backwards; random base anchor was reset.");
+    }
+  }
+  last_update_time_ns_ = current_time_ns;
+
+  if (reset_random_anchor_requested_.exchange(false)) {
+    const bool motion_was_active = random_base_controller_.is_active();
+    reset_random_base_runtime(true);
+    force_zero = force_zero || motion_was_active;
+    RCLCPP_INFO(get_node()->get_logger(), "Random base anchor reset completed.");
+  }
+
+  const auto * odometry = odometry_buffer_.readFromRT();
+  if (odometry != nullptr) {
+    force_zero = process_odometry_snapshot(*odometry) || force_zero;
+  }
+
+  const bool manual_mobile_requested =
+    manual_twist.linear.x != 0.0 || manual_twist.linear.y != 0.0 ||
+    manual_twist.angular.z != 0.0;
+  if (random_base_controller_.is_active() &&
+    (middle_pedal_held_.load() || manual_mobile_requested))
+  {
+    random_base_controller_.cancel();
+    last_random_base_auto_failed_ = true;
+    force_zero = true;
+    RCLCPP_INFO(
+      get_node()->get_logger(),
+      "Random base movement cancelled by manual override.");
+  }
+
+  if (force_zero) {
+    publish_zero_cmd_vel();
+    return;
+  }
+
+  if (!random_base_controller_.is_active()) {
+    cmd_vel_pub_->publish(manual_twist);
+    return;
+  }
+
+  OdometrySnapshot snapshot;
+  if (!read_fresh_odometry(snapshot)) {
+    random_base_controller_.cancel();
+    last_random_base_auto_failed_ = true;
+    publish_zero_cmd_vel();
+    RCLCPP_WARN(
+      get_node()->get_logger(),
+      "Random base movement cancelled because odometry became stale or unavailable.");
+    return;
+  }
+
+  const auto result = random_base_controller_.update(
+    snapshot.pose, snapshot.twist, current_time.seconds());
+  geometry_msgs::msg::Twist auto_twist;
+  auto_twist.linear.x = result.command.linear_x;
+  auto_twist.linear.y = result.command.linear_y;
+  auto_twist.angular.z = result.command.angular_z;
+
+  switch (result.status) {
+    case RandomBaseStepStatus::ACTIVE:
+      cmd_vel_pub_->publish(auto_twist);
+      break;
+    case RandomBaseStepStatus::SUCCEEDED:
+      last_random_base_auto_failed_ = false;
+      publish_zero_cmd_vel();
+      RCLCPP_INFO(get_node()->get_logger(), "Random base movement completed.");
+      break;
+    case RandomBaseStepStatus::TIMED_OUT:
+      last_random_base_auto_failed_ = true;
+      publish_zero_cmd_vel();
+      RCLCPP_WARN(get_node()->get_logger(), "Random base movement timed out.");
+      break;
+    case RandomBaseStepStatus::INVALID_INPUT:
+      last_random_base_auto_failed_ = true;
+      publish_zero_cmd_vel();
+      RCLCPP_ERROR(get_node()->get_logger(), "Random base movement received invalid input.");
+      break;
+    case RandomBaseStepStatus::OUTSIDE_ANCHOR_ENVELOPE:
+      last_random_base_auto_failed_ = true;
+      publish_zero_cmd_vel();
+      RCLCPP_WARN(
+        get_node()->get_logger(),
+        "Random base movement left the anchor envelope and was cancelled.");
+      break;
+    case RandomBaseStepStatus::IDLE:
+    default:
+      publish_zero_cmd_vel();
+      break;
+  }
 }
 
 void JoystickController::publish_joystick_values()
@@ -303,6 +706,9 @@ void JoystickController::handle_tact_switches(
       trigger_msg.data = "left_long_time";
       tact_trigger_pub_->publish(trigger_msg);
       RCLCPP_INFO(get_node()->get_logger(), "Left tact switch long press triggered!");
+      if (!middle_pedal_held_.load() && !right_tact_pressed) {
+        request_random_base_return(current_time);
+      }
       left_tact_long_press_triggered_ = true;
     }
   }
@@ -311,12 +717,16 @@ void JoystickController::handle_tact_switches(
   if (right_tact_pressed && !right_tact_long_press_triggered_) {
     auto press_duration = current_time - right_tact_press_start_time_;
     if (press_duration.seconds() >= params_.long_press_duration) {
+      const bool middle_pedal_held = middle_pedal_held_.load();
       std_msgs::msg::String trigger_msg;
-      trigger_msg.data = middle_pedal_held_ ? "right_long_time_middle" : "right_long_time";
+      trigger_msg.data = middle_pedal_held ? "right_long_time_middle" : "right_long_time";
       tact_trigger_pub_->publish(trigger_msg);
       RCLCPP_INFO(
         get_node()->get_logger(), "Right tact switch long press triggered! (middle: %s)",
-        middle_pedal_held_ ? "held" : "not held");
+        middle_pedal_held ? "held" : "not held");
+      if (!middle_pedal_held && !left_tact_pressed) {
+        request_random_base_move(current_time);
+      }
       right_tact_long_press_triggered_ = true;
     }
   }
@@ -326,7 +736,7 @@ void JoystickController::handle_tact_switches(
     switch (prev_state) {
       case 1:  // 01 -> 00 (right button only was pressed)
         if (!right_tact_long_press_triggered_) {
-          if (middle_pedal_held_) {
+          if (middle_pedal_held_.load()) {
             std_msgs::msg::String trigger_msg;
             trigger_msg.data = "right";
             tact_trigger_pub_->publish(trigger_msg);
@@ -342,7 +752,7 @@ void JoystickController::handle_tact_switches(
 
       case 2:  // 10 -> 00 (left button only was pressed)
         if (!left_tact_long_press_triggered_) {
-          if (middle_pedal_held_) {
+          if (middle_pedal_held_.load()) {
             std_msgs::msg::String trigger_msg;
             trigger_msg.data = "left";
             tact_trigger_pub_->publish(trigger_msg);
@@ -428,6 +838,53 @@ void JoystickController::joint_states_callback(const sensor_msgs::msg::JointStat
   }
 
   has_joint_states_ = true;
+}
+
+void JoystickController::odometry_callback(const nav_msgs::msg::Odometry::SharedPtr msg)
+{
+  OdometrySnapshot snapshot;
+  snapshot.sequence = odometry_sequence_.fetch_add(1, std::memory_order_relaxed) + 1;
+  snapshot.received_steady_time_ns = steady_time_nanoseconds();
+  snapshot.source_stamp_ns =
+    static_cast<int64_t>(msg->header.stamp.sec) * 1000000000LL +
+    static_cast<int64_t>(msg->header.stamp.nanosec);
+
+  const auto & position = msg->pose.pose.position;
+  const auto & orientation = msg->pose.pose.orientation;
+  const auto & twist = msg->twist.twist;
+  const double quaternion_norm_squared =
+    orientation.x * orientation.x + orientation.y * orientation.y +
+    orientation.z * orientation.z + orientation.w * orientation.w;
+
+  snapshot.valid =
+    msg->header.frame_id == random_base_odom_frame_ &&
+    msg->child_frame_id == random_base_child_frame_ &&
+    std::isfinite(position.x) && std::isfinite(position.y) &&
+    std::isfinite(orientation.x) && std::isfinite(orientation.y) &&
+    std::isfinite(orientation.z) && std::isfinite(orientation.w) &&
+    std::isfinite(quaternion_norm_squared) &&
+    quaternion_norm_squared > std::numeric_limits<double>::epsilon() &&
+    std::isfinite(twist.linear.x) && std::isfinite(twist.linear.y) &&
+    std::isfinite(twist.angular.z);
+
+  if (snapshot.valid) {
+    const double inverse_norm = 1.0 / std::sqrt(quaternion_norm_squared);
+    const double qx = orientation.x * inverse_norm;
+    const double qy = orientation.y * inverse_norm;
+    const double qz = orientation.z * inverse_norm;
+    const double qw = orientation.w * inverse_norm;
+    const double sin_yaw = 2.0 * (qw * qz + qx * qy);
+    const double cos_yaw = 1.0 - 2.0 * (qy * qy + qz * qz);
+
+    snapshot.pose.x = position.x;
+    snapshot.pose.y = position.y;
+    snapshot.pose.yaw = std::atan2(sin_yaw, cos_yaw);
+    snapshot.twist.linear_x = twist.linear.x;
+    snapshot.twist.linear_y = twist.linear.y;
+    snapshot.twist.angular_z = twist.angular.z;
+  }
+
+  odometry_buffer_.writeFromNonRT(snapshot);
 }
 
 controller_interface::return_type JoystickController::update(
@@ -526,7 +983,7 @@ controller_interface::return_type JoystickController::update(
   }
 
   // Publish cmd_vel
-  publish_cmd_vel(joystick_values);
+  publish_cmd_vel(joystick_values, time);
 
   // Publish joystick values
   publish_joystick_values();
@@ -579,6 +1036,62 @@ controller_interface::CallbackReturn JoystickController::on_configure(
   if (!params_.enable_joystick_update) {
     RCLCPP_INFO(logger, "Joystick updates are disabled by parameter.");
   }
+
+  RandomBaseControllerConfig random_base_config;
+  random_base_config.radius = params_.random_base_radius;
+  random_base_config.yaw_range = params_.random_base_yaw_range;
+  random_base_config.linear_gain = params_.random_base_linear_gain;
+  random_base_config.angular_gain = params_.random_base_angular_gain;
+  random_base_config.min_linear_speed = params_.random_base_min_linear_speed;
+  random_base_config.max_linear_speed = params_.random_base_max_linear_speed;
+  random_base_config.min_angular_speed = params_.random_base_min_angular_speed;
+  random_base_config.max_angular_speed = params_.random_base_max_angular_speed;
+  random_base_config.max_linear_acceleration =
+    params_.random_base_max_linear_acceleration;
+  random_base_config.max_angular_acceleration =
+    params_.random_base_max_angular_acceleration;
+  random_base_config.position_tolerance = params_.random_base_position_tolerance;
+  random_base_config.yaw_tolerance = params_.random_base_yaw_tolerance;
+  random_base_config.settle_linear_velocity =
+    params_.random_base_settle_linear_velocity;
+  random_base_config.settle_angular_velocity =
+    params_.random_base_settle_angular_velocity;
+  random_base_config.settle_duration = params_.random_base_settle_duration;
+  random_base_config.motion_timeout = params_.random_base_motion_timeout;
+  random_base_config.anchor_position_limit = params_.random_base_anchor_position_limit;
+  random_base_config.anchor_yaw_limit = params_.random_base_anchor_yaw_limit;
+  random_base_config.reanchor_distance = params_.random_base_reanchor_distance;
+
+  const bool random_base_io_config_valid =
+    !params_.random_base_odom_topic.empty() && !params_.random_base_odom_frame.empty() &&
+    !params_.random_base_child_frame.empty() &&
+    std::isfinite(params_.random_base_odom_stale_timeout) &&
+    params_.random_base_odom_stale_timeout > 0.0 &&
+    std::isfinite(params_.random_base_odom_jump_position) &&
+    params_.random_base_odom_jump_position > 0.0 &&
+    std::isfinite(params_.random_base_odom_jump_yaw) &&
+    params_.random_base_odom_jump_yaw > 0.0 &&
+    std::isfinite(params_.random_base_reanchor_stationary_duration) &&
+    params_.random_base_reanchor_stationary_duration >= 0.0;
+  if (!random_base_controller_.set_config(random_base_config) || !random_base_io_config_valid) {
+    RCLCPP_ERROR(logger, "Invalid random base reposition parameters.");
+    return controller_interface::CallbackReturn::ERROR;
+  }
+
+  random_base_odom_frame_ = params_.random_base_odom_frame;
+  random_base_child_frame_ = params_.random_base_child_frame;
+  odometry_buffer_.initRT(OdometrySnapshot{});
+  odometry_sequence_.store(0, std::memory_order_relaxed);
+  reset_random_anchor_requested_.store(false);
+  latest_odometry_ = OdometrySnapshot{};
+  previous_odometry_pose_ = PlanarPose{};
+  last_processed_odometry_sequence_ = 0;
+  previous_odometry_stamp_ns_ = 0;
+  last_update_time_ns_ = 0;
+  latest_odometry_available_ = false;
+  previous_odometry_available_ = false;
+  random_base_stationary_window_.reset();
+  last_random_base_auto_failed_ = false;
 
   // Get sensorxel_joy sensor names from parameters
   sensorxel_joy_names_ = params_.joystick_sensors;
@@ -683,6 +1196,28 @@ controller_interface::CallbackReturn JoystickController::on_configure(
     params_.joint_states_topic, rclcpp::SystemDefaultsQoS(),
     std::bind(&JoystickController::joint_states_callback, this, std::placeholders::_1));
 
+  if (params_.enable_random_base_reposition) {
+    odometry_subscriber_ = get_node()->create_subscription<nav_msgs::msg::Odometry>(
+      params_.random_base_odom_topic, rclcpp::SensorDataQoS(),
+      std::bind(&JoystickController::odometry_callback, this, std::placeholders::_1));
+    reset_random_anchor_service_ = get_node()->create_service<std_srvs::srv::Trigger>(
+      "/leader/joystick_controller/reset_random_anchor",
+      [this](
+        const std::shared_ptr<std_srvs::srv::Trigger::Request>,
+        std::shared_ptr<std_srvs::srv::Trigger::Response> response)
+      {
+        reset_random_anchor_requested_.store(true);
+        response->success = true;
+        response->message = "Random base anchor reset queued.";
+      });
+    RCLCPP_INFO(
+      logger, "Random base reposition enabled with odometry topic '%s'.",
+      params_.random_base_odom_topic.c_str());
+  } else {
+    odometry_subscriber_.reset();
+    reset_random_anchor_service_.reset();
+  }
+
   // Create publisher for right tact switch trigger
   tact_trigger_pub_ = get_node()->create_publisher<std_msgs::msg::String>(
     "/leader/joystick_controller/tact_trigger", 10);
@@ -709,7 +1244,7 @@ controller_interface::CallbackReturn JoystickController::on_configure(
   middle_pedal_sub_ = get_node()->create_subscription<std_msgs::msg::Bool>(
     "/leader/foot_switch/middle_pedal", 10,
     [this](const std_msgs::msg::Bool::SharedPtr msg) {
-      middle_pedal_held_ = msg->data;
+      middle_pedal_held_.store(msg->data);
     });
 
   RCLCPP_INFO(get_node()->get_logger(), "JoystickController configured successfully.");
@@ -723,6 +1258,13 @@ controller_interface::CallbackReturn JoystickController::on_activate(
 
   param_listener_->refresh_dynamic_parameters();
   params_ = param_listener_->get_params();
+  reset_random_base_runtime(true);
+  reset_random_anchor_requested_.store(false);
+  last_processed_odometry_sequence_ = 0;
+  previous_odometry_stamp_ns_ = 0;
+  last_update_time_ns_ = 0;
+  latest_odometry_available_ = false;
+  previous_odometry_available_ = false;
 
   // Initialize state interface vector
   joint_state_interface_.resize(state_interface_types_.size());
@@ -750,6 +1292,8 @@ controller_interface::CallbackReturn JoystickController::on_activate(
 controller_interface::CallbackReturn JoystickController::on_deactivate(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
+  publish_zero_cmd_vel();
+  reset_random_base_runtime(true);
   RCLCPP_INFO(get_node()->get_logger(), "JoystickController deactivated successfully.");
   return CallbackReturn::SUCCESS;
 }
@@ -757,18 +1301,26 @@ controller_interface::CallbackReturn JoystickController::on_deactivate(
 controller_interface::CallbackReturn JoystickController::on_cleanup(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
+  publish_zero_cmd_vel();
+  reset_random_base_runtime(true);
+  odometry_subscriber_.reset();
+  reset_random_anchor_service_.reset();
   return CallbackReturn::SUCCESS;
 }
 
 controller_interface::CallbackReturn JoystickController::on_error(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
+  publish_zero_cmd_vel();
+  reset_random_base_runtime(true);
   return CallbackReturn::SUCCESS;
 }
 
 controller_interface::CallbackReturn JoystickController::on_shutdown(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
+  publish_zero_cmd_vel();
+  reset_random_base_runtime(true);
   return CallbackReturn::SUCCESS;
 }
 }  // namespace joystick_controller

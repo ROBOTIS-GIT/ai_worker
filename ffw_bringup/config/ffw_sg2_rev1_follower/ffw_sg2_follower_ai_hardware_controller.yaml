@@ -121,6 +121,9 @@
 
       wheel_radius: 0.0825 # [m]
       cmd_vel_timeout: 1.0  # [sec]
+      # Accept low-speed random reposition commands. Exact zero commands remain stopped.
+      linear_vel_deadband: 0.01  # [m/s]
+      angular_vel_deadband: 0.02  # [rad/s]
 
       module_x_offsets: [ 0.1371,  0.1371, -0.2899] # x-distance between base_link and steering angle joint [m]  =>
       module_y_offsets: [ 0.2554, -0.2554,  0.0] # y-distance between base_link and steering angle joint [m]

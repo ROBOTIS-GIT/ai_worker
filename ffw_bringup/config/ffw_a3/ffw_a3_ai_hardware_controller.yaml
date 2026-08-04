@@ -114,3 +114,31 @@
       sensorxel_r_joy_jog_scale: 0.01
       deadzone: 1.0
       enable_joystick_update: true
+      # SG2-only random base repositioning; disable when paired with another follower.
+      enable_random_base_reposition: false
+      random_base_odom_topic: "/odom"
+      random_base_odom_frame: "odom"
+      random_base_child_frame: "base_link"
+      random_base_radius: 0.03
+      random_base_yaw_range: 0.087
+      random_base_linear_gain: 2.0
+      random_base_angular_gain: 2.0
+      random_base_min_linear_speed: 0.04
+      random_base_max_linear_speed: 0.15
+      random_base_min_angular_speed: 0.06
+      random_base_max_angular_speed: 0.30
+      random_base_max_linear_acceleration: 0.20
+      random_base_max_angular_acceleration: 0.40
+      random_base_position_tolerance: 0.004
+      random_base_yaw_tolerance: 0.009
+      random_base_settle_linear_velocity: 0.01
+      random_base_settle_angular_velocity: 0.02
+      random_base_settle_duration: 0.2
+      random_base_odom_stale_timeout: 0.2
+      random_base_motion_timeout: 5.0
+      random_base_anchor_position_limit: 0.05
+      random_base_anchor_yaw_limit: 0.105
+      random_base_reanchor_distance: 0.20
+      random_base_reanchor_stationary_duration: 0.2
+      random_base_odom_jump_position: 0.05
+      random_base_odom_jump_yaw: 0.175

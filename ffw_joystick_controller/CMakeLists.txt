@@ -13,11 +13,15 @@ endif()
 set(THIS_PACKAGE_INCLUDE_DEPENDS
   controller_interface
   generate_parameter_library
+  geometry_msgs
   hardware_interface
+  nav_msgs
   pluginlib
   rclcpp
   rclcpp_lifecycle
+  realtime_tools
   std_msgs
+  std_srvs
 )
 
 ################################################################################
@@ -37,6 +41,7 @@ generate_parameter_library(joystick_controller_parameters
 
 add_library(joystick_controller SHARED
   src/joystick_controller.cpp
+  src/random_base_controller.cpp
 )
 target_compile_features(joystick_controller PUBLIC cxx_std_17)
 target_include_directories(joystick_controller PUBLIC
@@ -44,13 +49,17 @@ target_include_directories(joystick_controller PUBLIC
   $<INSTALL_INTERFACE:include/joystick_controller>
 )
 target_link_libraries(joystick_controller PUBLIC
+  ${geometry_msgs_TARGETS}
+  ${nav_msgs_TARGETS}
   ${std_msgs_TARGETS}
+  ${std_srvs_TARGETS}
   controller_interface::controller_interface
   hardware_interface::mock_components
   joystick_controller_parameters
   pluginlib::pluginlib
   rclcpp::rclcpp
   rclcpp_lifecycle::rclcpp_lifecycle
+  realtime_tools::realtime_tools
 )
 
 # Causes the visibility macros to use dllexport rather than dllimport,

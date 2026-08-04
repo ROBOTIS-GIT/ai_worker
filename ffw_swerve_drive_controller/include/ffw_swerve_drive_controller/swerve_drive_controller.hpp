@@ -162,6 +162,8 @@ protected:
   double steering_alignment_angle_error_threshold_;
   double steering_alignment_start_angle_error_threshold_;
   double steering_alignment_start_speed_error_threshold_;
+  double linear_vel_deadband_;
+  double angular_vel_deadband_;
   std::string odom_solver_method_str_;
 
   std::string cmd_vel_topic_;

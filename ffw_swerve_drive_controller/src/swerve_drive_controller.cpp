@@ -89,6 +89,8 @@ CallbackReturn SwerveDriveController::on_init()
     auto_declare<double>("steering_alignment_angle_error_threshold", 0.1);
     auto_declare<double>("steering_alignment_start_angle_error_threshold", 0.1);
     auto_declare<double>("steering_alignment_start_speed_error_threshold", 0.1);
+    auto_declare<double>("linear_vel_deadband", 0.0);
+    auto_declare<double>("angular_vel_deadband", 0.0);
 
     auto_declare<std::string>("cmd_vel_topic", "/cmd_vel");
     auto_declare<bool>("use_stamped_cmd_vel", false);
@@ -256,6 +258,8 @@ CallbackReturn SwerveDriveController::on_configure(
       "steering_alignment_start_angle_error_threshold").as_double();
     steering_alignment_start_speed_error_threshold_ = get_node()->get_parameter(
       "steering_alignment_start_speed_error_threshold").as_double();
+    linear_vel_deadband_ = get_node()->get_parameter("linear_vel_deadband").as_double();
+    angular_vel_deadband_ = get_node()->get_parameter("angular_vel_deadband").as_double();
 
     cmd_vel_topic_ = get_node()->get_parameter("cmd_vel_topic").as_string();
     use_stamped_cmd_vel_ = get_node()->get_parameter("use_stamped_cmd_vel").as_bool();
@@ -765,11 +769,24 @@ controller_interface::return_type SwerveDriveController::update(
   } else if (current_cmd_vel_ptr && *current_cmd_vel_ptr) {
     // Valid command pointer received
     const auto & current_cmd_vel = **current_cmd_vel_ptr;
+    double new_vx = current_cmd_vel.linear.x;
+    double new_vy = current_cmd_vel.linear.y;
+    double new_wz = current_cmd_vel.angular.z;
+
+    if (std::abs(new_vx) < linear_vel_deadband_) {
+      new_vx = 0.0;
+    }
+    if (std::abs(new_vy) < linear_vel_deadband_) {
+      new_vy = 0.0;
+    }
+    if (std::abs(new_wz) < angular_vel_deadband_) {
+      new_wz = 0.0;
+    }
 
     // Receive the new command velocity
-    if (target_vx_ != current_cmd_vel.linear.x ||
-      target_vy_ != current_cmd_vel.linear.y ||
-      target_wz_ != current_cmd_vel.angular.z)
+    if (target_vx_ != new_vx ||
+      target_vy_ != new_vy ||
+      target_wz_ != new_wz)
     {
       RCLCPP_DEBUG(
         get_node()->get_logger(),
@@ -777,9 +794,9 @@ controller_interface::return_type SwerveDriveController::update(
         current_cmd_vel.linear.x, current_cmd_vel.linear.y, current_cmd_vel.angular.z);
       is_rotation_direction_ = Rotation::STOP;
     }
-    target_vx_ = current_cmd_vel.linear.x;
-    target_vy_ = current_cmd_vel.linear.y;
-    target_wz_ = current_cmd_vel.angular.z;
+    target_vx_ = new_vx;
+    target_vy_ = new_vy;
+    target_wz_ = new_wz;
 
 
     // last_cmd_vel_time_ is updated in the callback
