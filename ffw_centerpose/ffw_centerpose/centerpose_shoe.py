@@ -14,6 +14,7 @@ from ffw_centerpose.pick_place_base import PickPlaceNodeBase
 class CenterposeShoe(PickPlaceNodeBase):
     # DRAFT: uncalibrated placeholders below.
     _OBJECT_LABEL_PLURAL = 'shoe(s)'
+    _LOCAL_Y_180_FLIP = np.array([0.0, 1.0, 0.0, 0.0])
 
     def __init__(self):
         super().__init__('centerpose_shoe')
@@ -369,7 +370,7 @@ class CenterposeShoe(PickPlaceNodeBase):
         )
         pose.pose.position.x = float(point[0] + self.grasp_position_offset[0])
         pose.pose.position.y = float(point[1] + y_offset)
-        pose.pose.position.z = fixed_z
+        pose.pose.position.z = fixed_z + self.grasp_position_offset[2]
         pose.pose.orientation = self._quaternion_message(orientation)
 
         self.object_pose_pub.publish(pose)
@@ -511,7 +512,7 @@ class CenterposeShoe(PickPlaceNodeBase):
 
         object_yaw, raw_angle = self._signed_shoe_yaw(object_q)
         if math.degrees(raw_angle) > self.shoe_yaw_flip_threshold_deg:
-            object_q = self._quaternion_multiply(object_q, np.array([0.0, 1.0, 0.0, 0.0]))
+            object_q = self._quaternion_multiply(object_q, self._LOCAL_Y_180_FLIP)
             object_yaw, _ = self._signed_shoe_yaw(object_q)
 
         raw_yaw_deg = math.degrees(
@@ -534,56 +535,6 @@ class CenterposeShoe(PickPlaceNodeBase):
         axis, angle = self._quaternion_axis_angle(relative_q)
         sign = 1.0 if np.dot(axis, self.shoe_yaw_axis) >= 0.0 else -1.0
         return sign * angle, angle
-
-    # --- Quaternion/angle helpers (same as centerpose_box.py) ---
-    @staticmethod
-    def _quaternion_multiply(a, b):
-        ax, ay, az, aw = a
-        bx, by, bz, bw = b
-        return np.array(
-            [
-                aw * bx + ax * bw + ay * bz - az * by,
-                aw * by - ax * bz + ay * bw + az * bx,
-                aw * bz + ax * by - ay * bx + az * bw,
-                aw * bw - ax * bx - ay * by - az * bz,
-            ],
-            dtype=np.float64,
-        )
-
-    @staticmethod
-    def _quaternion_conjugate(q):
-        x, y, z, w = q
-        return np.array([-x, -y, -z, w], dtype=np.float64)
-
-    @staticmethod
-    def _quaternion_axis_angle(q):
-        q = q / np.linalg.norm(q)
-        x, y, z, w = q
-        if w < 0.0:
-            x, y, z, w = -x, -y, -z, -w
-        angle = 2.0 * math.acos(max(-1.0, min(1.0, w)))
-        s = math.sqrt(max(0.0, 1.0 - w * w))
-        axis = np.zeros(3) if s < 1e-8 else np.array([x, y, z]) / s
-        return axis, angle
-
-    @staticmethod
-    def _wrap_angle(angle):
-        return math.atan2(math.sin(angle), math.cos(angle))
-
-    @staticmethod
-    def _quaternion_from_euler(roll, pitch, yaw):
-        cr, sr = math.cos(roll * 0.5), math.sin(roll * 0.5)
-        cp, sp = math.cos(pitch * 0.5), math.sin(pitch * 0.5)
-        cy, sy = math.cos(yaw * 0.5), math.sin(yaw * 0.5)
-        return np.array(
-            [
-                sr * cp * cy - cr * sp * sy,
-                cr * sp * cy + sr * cp * sy,
-                cr * cp * sy - sr * sp * cy,
-                cr * cp * cy + sr * sp * sy,
-            ],
-            dtype=np.float64,
-        )
 
 
 def main(args=None):

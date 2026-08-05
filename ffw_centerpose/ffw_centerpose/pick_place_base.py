@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import ast
+import math
 import threading
 import time
 
@@ -435,6 +436,55 @@ class PickPlaceNodeBase(Node):
         pose.pose.orientation.y = float(xyzw[1])
         pose.pose.orientation.z = float(xyzw[2])
         pose.pose.orientation.w = float(xyzw[3])
+
+    @staticmethod
+    def _quaternion_multiply(a, b):
+        ax, ay, az, aw = a
+        bx, by, bz, bw = b
+        return np.array(
+            [
+                aw * bx + ax * bw + ay * bz - az * by,
+                aw * by - ax * bz + ay * bw + az * bx,
+                aw * bz + ax * by - ay * bx + az * bw,
+                aw * bw - ax * bx - ay * by - az * bz,
+            ],
+            dtype=np.float64,
+        )
+
+    @staticmethod
+    def _quaternion_conjugate(q):
+        x, y, z, w = q
+        return np.array([-x, -y, -z, w], dtype=np.float64)
+
+    @staticmethod
+    def _quaternion_axis_angle(q):
+        q = q / np.linalg.norm(q)
+        x, y, z, w = q
+        if w < 0.0:
+            x, y, z, w = -x, -y, -z, -w
+        angle = 2.0 * math.acos(max(-1.0, min(1.0, w)))
+        s = math.sqrt(max(0.0, 1.0 - w * w))
+        axis = np.zeros(3) if s < 1e-8 else np.array([x, y, z]) / s
+        return axis, angle
+
+    @staticmethod
+    def _wrap_angle(angle):
+        return math.atan2(math.sin(angle), math.cos(angle))
+
+    @staticmethod
+    def _quaternion_from_euler(roll, pitch, yaw):
+        cr, sr = math.cos(roll * 0.5), math.sin(roll * 0.5)
+        cp, sp = math.cos(pitch * 0.5), math.sin(pitch * 0.5)
+        cy, sy = math.cos(yaw * 0.5), math.sin(yaw * 0.5)
+        return np.array(
+            [
+                sr * cp * cy - cr * sp * sy,
+                cr * sp * cy + sr * cp * sy,
+                cr * cp * sy - sr * sp * cy,
+                cr * cp * cy + sr * sp * sy,
+            ],
+            dtype=np.float64,
+        )
 
     @staticmethod
     def _duration(seconds):

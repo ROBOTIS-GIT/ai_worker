@@ -220,7 +220,7 @@ class CenterposeBottle(PickPlaceNodeBase):
         pose.header.frame_id = self.target_frame
         pose.pose.position.x = float(point[0] + self.grasp_position_offset[0])
         pose.pose.position.y = float(point[1] + self.grasp_position_offset[1])
-        pose.pose.position.z = fixed_z
+        pose.pose.position.z = fixed_z + self.grasp_position_offset[2]
         pose.pose.orientation = self._quaternion_message(self.grasp_orientation)
 
         self.object_pose_pub.publish(pose)
