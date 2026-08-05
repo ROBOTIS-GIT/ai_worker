@@ -9,13 +9,6 @@ from sensor_msgs.msg import CameraInfo, Image
 
 
 class CenterposeCamera(Node):
-    """ZED 카메라의 BGRA8(또는 RGBA8/RGB8) 이미지를 BGR8로 변환해서 재발행하고,
-    CameraInfo도 이름만 바꿔서 같이 릴레이하는 노드.
-    (topic_tools relay를 따로 안 띄워도 되게 하나로 합침)
-    """
-
-    # BGRA(ZED 카메라 원본) -> BGR 이미지 토픽 이름들 + CameraInfo 릴레이 토픽 이름들
-    # 파라미터로 선언하고 퍼블리셔/구독을 연결.
     def __init__(self):
         super().__init__('centerpose_camera')
 
@@ -31,12 +24,10 @@ class CenterposeCamera(Node):
 
         self.bridge = CvBridge()
 
-        # BGRA -> BGR 변환 이미지 발행/구독
         self.pub = self.create_publisher(Image, self.output_topic, 10)
         self.sub = self.create_subscription(
             Image, self.input_topic, self.image_callback, 10)
 
-        # CameraInfo는 변환 없이 이름만 바꿔서 그대로 릴레이
         self.camera_info_pub = self.create_publisher(
             CameraInfo, self.camera_info_output_topic, 10)
         self.camera_info_sub = self.create_subscription(
@@ -46,7 +37,6 @@ class CenterposeCamera(Node):
         self.get_logger().info(
             f'Relaying {self.camera_info_input_topic} -> {self.camera_info_output_topic}')
 
-    # 들어온 이미지의 인코딩(bgra8/rgba8/rgb8)에 맞춰 BGR8로 변환해서 재발행.
     def image_callback(self, msg):
         try:
             frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
@@ -66,14 +56,13 @@ class CenterposeCamera(Node):
         out.header = msg.header
         self.pub.publish(out)
 
-    # 받은 CameraInfo를 변환 없이 그대로 다시 발행 (토픽 이름만 바뀜).
     def camera_info_callback(self, msg):
         self.camera_info_pub.publish(msg)
 
 
 def main(args=None):
     rclpy.init(args=args)
-    node = CenterposeCamera()  # 노드 실행 진입점 (ros2 run에서 호출됨)
+    node = CenterposeCamera()
     try:
         rclpy.spin(node)
     except (KeyboardInterrupt, ExternalShutdownException):

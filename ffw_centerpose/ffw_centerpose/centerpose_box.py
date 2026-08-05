@@ -11,91 +11,77 @@ from ffw_centerpose.pick_place_base import PickPlaceNodeBase
 
 
 class CenterposeBox(PickPlaceNodeBase):
-    """CenterPose로 검출한 박스를 왼팔로 집어서 정해진 위치에 놓는 노드.
-
-    centerpose_bottle과 달리 그리퍼 roll이 박스의 yaw를 따라가고(pitch/yaw는 고정),
-    놓을 때도 release -> 후퇴 -> 밀어넣기까지 여러 단계를 거친다. 공통 로직은
-    PickPlaceNodeBase 참고.
-    """
-
     _OBJECT_LABEL_PLURAL = 'box(es)'
 
-    # CenterPose가 가끔 앞뒤 180도 뒤집어 인식하는 걸 보정 (box_yaw_flip_threshold_deg 참고).
+    # CenterPose occasionally reports the box front/back-flipped 180 deg; see
+    # box_yaw_flip_threshold_deg.
     _LOCAL_Y_180_FLIP = np.array([0.0, 1.0, 0.0, 0.0])
 
-    # 파라미터 선언/읽기 후 공통 초기화(_setup_common) 호출까지 한 번에 처리.
     def __init__(self):
         super().__init__('centerpose_box')
 
-        # --- 파라미터 선언 (기본값들) ---
+        # --- Parameters ---
         self.declare_parameter('detections_topic', '/centerpose/detections')
         self.declare_parameter('camera_info_topic', '/camera_info')
-        # CenterPose depth는 부정확해서 x/y는 픽셀 투영 + 실측 depth로 구하고,
-        # z는 항상 고정값(fixed_grasp_z)을 씀.
+        # x/y from pixel projection + measured depth; z always fixed_grasp_z.
         self.declare_parameter('depth_topic', '/zedm/zed_node/depth/depth_registered')
         self.declare_parameter('depth_window', 5)
         self.declare_parameter('joint_states_topic', '/joint_states')
         self.declare_parameter('target_frame', 'base_link')
         self.declare_parameter('projection_frame', '')
         self.declare_parameter('detection_timeout', 10.0)
-        # 안전장치: 이 값보다 x가 크면 depth 오독으로 보고 ~/execute가 동작을 거부.
+        # Reject captures with x beyond this -- likely a depth misread.
         self.declare_parameter('max_grasp_x', 0.7)
         self.declare_parameter('execute_motion', False)
         self.declare_parameter('movel_topic', '/l_goal_move')
         self.declare_parameter('movel_duration', 10.0)
-        # 바로 직진해서 잡으면 그리퍼가 박스에 부딪힐 수 있어서, 진입축(그리퍼별
-        # roll에 따라 매번 달라짐)을 따라 이만큼 뒤로 뺀 pregrasp를 거쳐서 들어감.
+        # Back off along the approach axis (varies with roll) before inserting straight in.
         self.declare_parameter('pregrasp_distance', 0.11)
         self.declare_parameter('pregrasp_duration', 4.0)
         self.declare_parameter('insertion_duration', 3.0)
-        # 감지된 표면 위치는 추정값이라, 실제로 접촉하도록 이만큼 더 밀고 들어간 뒤
-        # 그리퍼를 닫음.
+        # Push this much further than the raw detection before closing, since the
+        # detected surface position is only an estimate.
         self.declare_parameter('insertion_overshoot_distance', -0.04)
         self.declare_parameter('movel_subscriber_timeout', 2.0)
         self.declare_parameter('settle_time', 0.5)
         self.declare_parameter('eef_link', 'end_effector_l_link')
-        # 박스 높이도 안 믿고 z는 항상 이 고정값 사용 (centerpose_bottle과 동일).
-        # 음수면 캡처 시점의 현재 엔드이펙터 z를 대신 사용.
+        # Fixed grasp height (same as centerpose_bottle); negative falls back to
+        # current EEF z at capture.
         self.declare_parameter('fixed_grasp_z', 0.8241714239120483)
-        # [x, y, z] 위치 보정값. grasp_position_y_reference_pixel 위치에서 정확하고,
-        # 다른 픽셀 위치에서는 grasp_position_x/y_slope로 추가 보정됨.
+        # [x, y, z] offset, exact at grasp_position_y_reference_pixel; corrected
+        # elsewhere by grasp_position_x/y_slope.
         self.declare_parameter('grasp_position_offset', [0.01, -0.02, 0.0])
-        # 화면 위치에 따라 y 보정량이 달라져서(카메라 장착 각도 오차로 추정) 픽셀
-        # 위치 기반으로 추가 보정하는 기울기. y_offset = grasp_position_offset[1]
-        # + grasp_position_y_slope * (pixel_u - grasp_position_y_reference_pixel)
+        # Pixel-based y correction slope (camera mounting angle error).
+        # y_offset = grasp_position_offset[1] + slope * (pixel_u - reference_pixel).
         self.declare_parameter('grasp_position_y_slope', 0.0)
         self.declare_parameter('grasp_position_y_reference_pixel', 288.0)
-        # grasp_position_y_slope와 같은 방식의 전후(x) 방향 보정 기울기.
+        # Same idea as grasp_position_y_slope, for forward/backward (x).
         self.declare_parameter('grasp_position_x_slope', -3.472222222222222e-05)
-        # depth는 박스 앞면을 읽는데 실제 중심은 그보다 더 안쪽이라, 이만큼 depth에
-        # 더해서 중심 위치를 추정.
+        # Depth reads the box's front face, not its center; added to sampled depth.
         self.declare_parameter('box_depth_center_offset', 0.08)
         self.declare_parameter('tool_orientation_offset_xyzw', [0.0, 0.0, 0.0, 1.0])
-        # object_yaw는 단순 오일러 yaw가 아니라, 박스가 로봇 정면을 보는 기준 자세
-        # 대비 쿼터니언 axis-angle로 구한 signed 각도 (카메라 장착 회전에 영향
-        # 안 받음). 실측 3개 지점(0/+32.5/-58.5도)으로 roll과의 선형관계를 피팅.
+        # Reference orientation (box facing the robot, yaw=0) that object_yaw is
+        # measured against via quaternion axis-angle. Roll fit from 3 measured points.
         self.declare_parameter(
             'box_yaw_reference_orientation_xyzw',
             [-0.6272754451461677, 0.2145960107465087, -0.6681762105760168, 0.33766050954862303],
         )
-        # 박스가 실제로 회전하는 축 (카메라 Z축이 아님 -- 실측으로 구한 값).
+        # Calibrated rotation axis (camera frame) the box actually turns about.
         self.declare_parameter(
             'box_yaw_axis_xyz',
             [0.15517196976367656, -0.9264099543820705, 0.3430543050618564],
         )
-        # CenterPose가 가끔 박스를 앞뒤 180도 뒤집어 인식함 (크기값엔 안 나타남).
-        # 기준 자세와의 각도차가 이 값을 넘으면 뒤집힌 걸로 보고 보정함.
+        # Angle from the reference beyond which a 180 deg front/back flip is assumed.
         self.declare_parameter('box_yaw_flip_threshold_deg', 90.0)
-        # pitch/yaw는 고정하고 roll만 박스 yaw를 따라감. 기준 샘플의 오일러각을
-        # 그대로 사용.
+        # Fixed pitch/yaw; only roll follows box yaw. From the reference sample's Euler angles.
         self.declare_parameter('grasp_fixed_pitch', -1.5016251715681637)
         self.declare_parameter('grasp_fixed_yaw', -0.052366725449585025)
-        # roll = scale * box_yaw + offset의 선형 피팅 기울기 (실측 기반).
+        # Linear fit: roll = scale * box_yaw + offset.
         self.declare_parameter('grasp_roll_from_yaw_scale', -0.9731714138014503)
         self.declare_parameter('grasp_roll_offset', 0.04845972067574276)
-        # 표시용: 박스가 로봇 정면을 볼 때 0도로 보이게 하는 오프셋.
+        # Display-only offset so a box facing the robot reads ~0 deg.
         self.declare_parameter('box_yaw_zero_offset_deg', 0.0)
-        # 위 선형 피팅은 실측한 각도 범위 안에서만 유효해서, 그 밖은 이 범위로 clamp.
+        # Clamp range for the roll fit above, valid only within the measured angles.
         self.declare_parameter('roll_clamp_min_deg', -60.0)
         self.declare_parameter('roll_clamp_max_deg', 60.0)
         self.declare_parameter(
@@ -117,17 +103,13 @@ class CenterposeBox(PickPlaceNodeBase):
             ],
         )
         self.declare_parameter('gripper_open_position', 0.0)
-        # 박스는 그리퍼와 크기가 비슷해서 병보다 덜 오므려도 됨.
         self.declare_parameter('gripper_closed_position', 0.57)
         self.declare_parameter('gripper_duration', 1.0)
         self.declare_parameter('gripper_settle_time', 0.2)
-        # MoveL 컨트롤러가 같은 토픽에 계속 스트리밍하므로, 그리퍼 명령도 이 주기로
-        # 계속 재전송해야 밀려나지 않음.
+        # Re-sent at this rate so it stays competitive with MoveL streaming to the same topic.
         self.declare_parameter('command_rate_hz', 300.0)
         self.declare_parameter('lift_height', 0.1)
         self.declare_parameter('lift_duration', 2.0)
-        # 들어올린 후: hover 위치로 이동 -> 내려놓기 -> release -> 살짝 오므려서
-        # 후퇴 -> 다시 밀어넣기 -> (설정 시) 원위치. 전부 실제 로봇에서 측정한 값.
         self.declare_parameter(
             'place_hover_position_xyz',
             [0.4098847508430481, 0.3597005009651184, 0.9550905227661133],
@@ -138,7 +120,6 @@ class CenterposeBox(PickPlaceNodeBase):
              0.7210924029350281],
         )
         self.declare_parameter('place_hover_duration', 4.0)
-        # 실제로 놓는 위치 (hover에서 천천히 내려감).
         self.declare_parameter(
             'place_position_xyz',
             [0.6282518005371094, 0.3551318049430847, 0.8419253444671631],
@@ -149,9 +130,7 @@ class CenterposeBox(PickPlaceNodeBase):
              0.7210924029350281],
         )
         self.declare_parameter('place_duration', 6.0)
-        # 완전히 열지는 않고, 박스 옆면만 스칠 정도로 살짝만 오므림.
         self.declare_parameter('place_release_gripper_position', 0.9)
-        # release 직후 후퇴하는 위치.
         self.declare_parameter(
             'place_retreat_position_xyz',
             [0.5029386687278748, 0.3570454716682434, 0.847183346748352],
@@ -173,7 +152,7 @@ class CenterposeBox(PickPlaceNodeBase):
         )
         self.declare_parameter('place_push_duration', 2.0)
         self.declare_parameter('return_to_initial', True)
-        # bottle_ready 초기 자세에서 tf2_echo로 측정한 원위치.
+        # Measured via tf2_echo in the bottle_ready initial pose.
         self.declare_parameter(
             'home_position_xyz',
             [0.13451801240444183, 0.2999741733074188, 0.9742214239120483],
@@ -184,7 +163,7 @@ class CenterposeBox(PickPlaceNodeBase):
         )
         self.declare_parameter('home_duration', 6.0)
 
-        # --- 위에서 선언한 파라미터들을 실제 self.xxx 값으로 읽어들임 ---
+        # --- Read parameters ---
         self.detections_topic = self.get_parameter('detections_topic').value
         self.camera_info_topic = self.get_parameter('camera_info_topic').value
         self.depth_topic = self.get_parameter('depth_topic').value
@@ -342,7 +321,6 @@ class CenterposeBox(PickPlaceNodeBase):
         self.home_orientation_xyzw = home_orientation_xyzw
         self.home_duration = float(self.get_parameter('home_duration').value)
 
-        # TF/락/퍼블리셔/구독/서비스 등 공통 초기화는 PickPlaceNodeBase에 위임
         self._setup_common()
 
         self.get_logger().info('CenterposeBox (left arm, roll follows box yaw) ready')
@@ -351,14 +329,10 @@ class CenterposeBox(PickPlaceNodeBase):
         self.get_logger().info(f'  camera info: {self.camera_info_topic}')
         self.get_logger().info(f'  depth (x/y only): {self.depth_topic}')
 
-    # ~/capture 응답에 박스 yaw까지 같이 보여주도록 오버라이드 (centerpose_bottle는 위치만).
     def _format_capture_line(self, item):
         p = item['pose'].pose.position
         return f'({p.x:.3f}, {p.y:.3f}, {p.z:.3f}), yaw={item["box_yaw_deg"]:.1f} deg'
 
-    # 검출 하나(픽셀 좌표 + depth + 박스 orientation)를 실제 목표 그립 자세로 변환.
-    # centerpose_bottle와 달리 방향(roll)이 박스 yaw를 따라가는 게 핵심 차이
-    # (_transform_centerpose에서 계산).
     def _process_single_detection(
         self, detection, camera_info, depth_image, depth_msg,
         camera_transform, fixed_z, log, index
@@ -402,8 +376,6 @@ class CenterposeBox(PickPlaceNodeBase):
         self.object_pose_pub.publish(pose)
         self.grasp_pose_pub.publish(pose)
 
-        # object_yaw는 box_yaw_reference_orientation_xyzw 기준 signed 각도
-        # (_transform_centerpose 참고); box_yaw_zero_offset_deg는 표시용 오프셋.
         box_yaw_deg = self._wrap_degrees(
             math.degrees(object_yaw) - self.box_yaw_zero_offset_deg
         )
@@ -420,8 +392,6 @@ class CenterposeBox(PickPlaceNodeBase):
             )
         return {'pose': pose, 'pixel_u': u, 'box_yaw_deg': box_yaw_deg}
 
-    # 픽셀(u,v) + 그 지점의 실제 depth로 카메라 좌표계에서의 3D 점(x,y,z)을 역투영.
-    # centerpose_bottle와 달리 표면-중심 보정(box_depth_center_offset)이 추가로 들어감.
     def _real_camera_point(self, camera_info, u, v, depth_image, depth_msg, log):
         fx = camera_info.k[0]
         fy = camera_info.k[4]
@@ -439,15 +409,13 @@ class CenterposeBox(PickPlaceNodeBase):
                 )
             return None
 
-        # depth는 박스 앞면까지 거리라 중심까지는 더 멀어서 이만큼 보정. x/y도
-        # depth로부터 역투영되므로 z만 따로 고치면 안 되고 depth 자체를 고쳐야 함.
+        # Correct depth itself (not x/y/z separately) since x/y also back-project from it.
         depth += self.box_depth_center_offset
 
         return np.array(
             [(u - cx) * depth / fx, (v - cy) * depth / fy, depth], dtype=np.float64
         )
 
-    # ~/execute로 캡처해둔 박스들을 한 번에 하나씩 순서대로 집어서 놓는다.
     def _execute_queue(self, queue):
         with self.execution_lock:
             try:
@@ -464,9 +432,6 @@ class CenterposeBox(PickPlaceNodeBase):
             finally:
                 self.execution_step = 'idle'
 
-    # 박스 하나를 실제로 집어서(pregrasp->insert->close->lift) 지정 위치에
-    # 놓고(hover->내려놓기->release->retreat(open)->reclose->push->home->open) 오는
-    # 전체 동작 시퀀스.
     def _pick_and_place(self, grasp_pose, label='box'):
         grasp_q = np.array([
             grasp_pose.pose.orientation.x,
@@ -474,11 +439,11 @@ class CenterposeBox(PickPlaceNodeBase):
             grasp_pose.pose.orientation.z,
             grasp_pose.pose.orientation.w,
         ], dtype=np.float64)
-        # grasp 방향 기준 진입축(local -Z가 대략 물체 쪽) -- roll이 박스 yaw마다
-        # 달라지므로 centerpose_bottle과 달리 매번 다시 계산.
+        # Approach axis from grasp orientation's local -Z; recomputed every call since
+        # roll varies with box yaw (unlike centerpose_bottle's fixed direction).
         approach_dir = self._rotate_vector(np.array([0.0, 0.0, -1.0]), grasp_q)
 
-        # 감지된 표면은 추정값이라, 실제로 접촉하도록 조금 더 밀고 들어간 뒤 닫음.
+        # Push in further than the detected surface before closing, since it's an estimate.
         insert_pose = self._copy_pose(grasp_pose)
         insert_pose.pose.position.x += approach_dir[0] * self.insertion_overshoot_distance
         insert_pose.pose.position.y += approach_dir[1] * self.insertion_overshoot_distance
@@ -553,9 +518,6 @@ class CenterposeBox(PickPlaceNodeBase):
         self.get_logger().info(f'{label} finished; holding pose')
         return True
 
-    # 카메라 좌표계의 점+박스 orientation을 base_link 기준 (위치, 목표 그리퍼
-    # orientation, 박스 yaw, roll)로 변환. pitch/yaw는 고정, roll만 박스 yaw에
-    # 맞춰 선형식(grasp_roll_from_yaw_scale/offset)으로 계산.
     def _transform_centerpose(self, camera_transform, position_cam, orientation):
         transform_q, t = camera_transform
         object_q = np.array(
@@ -569,18 +531,15 @@ class CenterposeBox(PickPlaceNodeBase):
 
         point = self._rotate_vector(np.asarray(position_cam, dtype=np.float64), transform_q) + t
 
-        # roll만 박스 방향을 따라가고 pitch/yaw는 고정. object_yaw는 기준 자세
-        # 대비 signed 각도 (쿼터니언 axis-angle 방식, TF 오차에 영향 안 받음).
         object_yaw, raw_angle = self._signed_box_yaw(object_q)
         if math.degrees(raw_angle) > self.box_yaw_flip_threshold_deg:
-            # CenterPose가 가끔 앞뒤를 180도 뒤집어 인식하는 경우 -- 보정 후 재계산.
+            # Assume a 180 deg front/back flip and recompute.
             object_q = self._quaternion_multiply(object_q, self._LOCAL_Y_180_FLIP)
             object_yaw, _ = self._signed_box_yaw(object_q)
 
         raw_roll_deg = math.degrees(
             self.grasp_roll_from_yaw_scale * object_yaw + self.grasp_roll_offset
         )
-        # 선형 피팅은 실측 범위 안에서만 유효해서, 그 밖은 이 범위로 clamp.
         clamped_roll_deg = min(
             max(raw_roll_deg, self.roll_clamp_min_deg), self.roll_clamp_max_deg
         )
@@ -589,15 +548,7 @@ class CenterposeBox(PickPlaceNodeBase):
         target_q = self._quaternion_multiply(base_q, self.tool_orientation_offset)
         return point, target_q, object_yaw, roll
 
-    # box_yaw_reference_orientation 대비 object_q가 얼마나(signed) 돌아가 있는지 계산.
     def _signed_box_yaw(self, object_q):
-        """Signed angle (rad) of object_q relative to box_yaw_reference_orientation.
-
-        Returns (signed_angle, unsigned_angle) -- the unsigned angle is always in
-        [0, pi] and is what box_yaw_flip_threshold_deg is compared against, since a
-        180 deg front/back mislabel always shows up as an unusually large angle here
-        regardless of which way the box actually turned.
-        """
         relative_q = self._quaternion_multiply(
             self._quaternion_conjugate(self.box_yaw_reference_orientation), object_q
         )
@@ -605,7 +556,7 @@ class CenterposeBox(PickPlaceNodeBase):
         sign = 1.0 if np.dot(axis, self.box_yaw_axis) >= 0.0 else -1.0
         return sign * angle, angle
 
-    # --- 아래는 전부 순수 쿼터니언/각도 계산용 정적 헬퍼 (centerpose_box 전용) ---
+    # --- Quaternion/angle helpers ---
     @staticmethod
     def _quaternion_multiply(a, b):
         ax, ay, az, aw = a
@@ -620,16 +571,13 @@ class CenterposeBox(PickPlaceNodeBase):
             dtype=np.float64,
         )
 
-    # 쿼터니언의 역회전(켤레) 계산.
     @staticmethod
     def _quaternion_conjugate(q):
         x, y, z, w = q
         return np.array([-x, -y, -z, w], dtype=np.float64)
 
-    # 쿼터니언을 "회전축 + 회전각"으로 분해.
     @staticmethod
     def _quaternion_axis_angle(q):
-        """Angle in [0, pi] and its unit rotation axis, forcing w >= 0 for uniqueness."""
         q = q / np.linalg.norm(q)
         x, y, z, w = q
         if w < 0.0:
@@ -639,17 +587,14 @@ class CenterposeBox(PickPlaceNodeBase):
         axis = np.zeros(3) if s < 1e-8 else np.array([x, y, z]) / s
         return axis, angle
 
-    # 각도(라디안)를 -pi ~ +pi 범위로 정규화.
     @staticmethod
     def _wrap_angle(angle):
         return math.atan2(math.sin(angle), math.cos(angle))
 
-    # 각도(도)를 -180 ~ +180 범위로 정규화.
     @staticmethod
     def _wrap_degrees(degrees):
         return (degrees + 180.0) % 360.0 - 180.0
 
-    # roll/pitch/yaw(오일러각)를 쿼터니언으로 변환.
     @staticmethod
     def _quaternion_from_euler(roll, pitch, yaw):
         cr, sr = math.cos(roll * 0.5), math.sin(roll * 0.5)
@@ -668,7 +613,7 @@ class CenterposeBox(PickPlaceNodeBase):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = CenterposeBox()  # 노드 실행 진입점 (ros2 run/launch에서 호출됨)
+    node = CenterposeBox()
     try:
         rclpy.spin(node)
     except (KeyboardInterrupt, ExternalShutdownException):

@@ -126,7 +126,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'grasp_position_y_slope',
             default_value='-6.944444444444444e-05',
-            description='centerpose_box와 같은 방식의 픽셀 위치 기반 y 보정 기울기.',
+            description='Pixel-based y correction slope, same idea as centerpose_box.py.',
         ),
         DeclareLaunchArgument('grasp_position_y_reference_pixel', default_value='288.0'),
         DeclareLaunchArgument(

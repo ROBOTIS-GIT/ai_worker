@@ -25,14 +25,6 @@ from trajectory_msgs.msg import JointTrajectoryPoint
 
 
 class JointTrajectoryTopicExecutor(Node):
-    """관절 그룹 하나를 미리 정해둔 자세(step)들로 순서대로 부드럽게 이동시키는 노드.
-
-    ffw_bringup의 joint_trajectory_executor와 달리 FollowJointTrajectory 액션
-    서버가 필요 없음 -- 그냥 토픽에 궤적을 직접 publish한다 (leader의
-    joint_trajectory_command_broadcaster처럼 액션 서버가 없는 경우를 위함).
-    """
-
-    # 관절 이름/목표 자세(step)/토픽 등 파라미터를 읽고, 퍼블리셔/구독을 연결.
     def __init__(self):
         super().__init__('joint_trajectory_topic_executor')
 
@@ -103,11 +95,9 @@ class JointTrajectoryTopicExecutor(Node):
         self.get_logger().info(f'Using trajectory topic: {self.trajectory_topic}')
         self.get_logger().info(f'Using joint states topic: {self.joint_states_topic}')
 
-    # 지금 진행 중인 step(current_step)의 목표 관절 위치 배열을 반환.
     def get_step_target_positions(self):
         return self.positions_list[self.current_step]
 
-    # 현재 위치/속도가 목표 위치와 tolerance 안으로 들어왔는지(=도착했는지) 판단.
     def check_step_completion(self):
         target_positions = self.get_step_target_positions()
         positions_ok = all(
@@ -119,8 +109,6 @@ class JointTrajectoryTopicExecutor(Node):
         )
         return positions_ok and velocities_ok
 
-    # /joint_states 수신마다: 현재 위치 갱신 -> (아직 안 보냈으면) 목표 궤적 publish
-    # -> 도착했으면 다음 step으로 넘어가고, 마지막 step까지 다 끝나면 노드 종료.
     def joint_state_callback(self, msg):
         if set(self.joint_names).issubset(set(msg.name)):
             self.current_positions = [
@@ -156,14 +144,11 @@ class JointTrajectoryTopicExecutor(Node):
                         self.shutdown_node()
                         return
 
-    # 모든 step이 끝났을 때 노드를 스스로 종료.
     def shutdown_node(self):
         self.destroy_node()
         rclpy.shutdown()
         sys.exit(0)
 
-    # 현재 위치(start_pos)에서 목표 위치(end_pos)까지 5차 다항식(quintic)으로
-    # 부드럽게(가속/감속 있게) 이동하는 궤적(위치/속도/가속도 점들)을 생성.
     def create_smooth_trajectory(self, start_pos, end_pos):
         traj = JointTrajectory()
         traj.joint_names = self.joint_names
@@ -174,7 +159,6 @@ class JointTrajectoryTopicExecutor(Node):
             point = JointTrajectoryPoint()
             t = times[i]
 
-            # 5차 다항식(quintic) 계수
             t_norm = t / self.duration
             t_norm2 = t_norm * t_norm
             t_norm3 = t_norm2 * t_norm
@@ -213,7 +197,7 @@ class JointTrajectoryTopicExecutor(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = JointTrajectoryTopicExecutor()  # 노드 실행 진입점 (ros2 run/launch에서 호출됨)
+    node = JointTrajectoryTopicExecutor()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()

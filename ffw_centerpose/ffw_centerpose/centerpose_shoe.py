@@ -12,45 +12,35 @@ from ffw_centerpose.pick_place_base import PickPlaceNodeBase
 
 
 class CenterposeShoe(PickPlaceNodeBase):
-    """[초안/DRAFT] CenterPose로 검출한 신발을 왼팔로 집는 노드.
-
-    신발을 위에서 내려다보며 잡으므로, 그리퍼는 roll이 아니라 yaw로 신발 방향을
-    따라간다 (centerpose_box는 옆에서 잡아서 roll로 따라감). 잡은 후에는
-    centerpose_bottle과 같은 2슬롯 방식으로 놓는다.
-
-    TODO(미조정): grasp_position_offset은 아직 [0, 0, 0], place_lower_distance는
-    잡을 때 하강 거리를 임시로 재사용 중 -- 둘 다 실기 캘리브레이션 필요.
-    """
+    # DRAFT: grasp_position_offset and place_lower_distance are still placeholders
+    # pending real-robot calibration.
 
     _OBJECT_LABEL_PLURAL = 'shoe(s)'
 
-    # 파라미터 선언/읽기 후 공통 초기화(_setup_common) 호출까지 한 번에 처리.
     def __init__(self):
         super().__init__('centerpose_shoe')
 
-        # --- 파라미터 선언 (기본값들) ---
+        # --- Parameters ---
         self.declare_parameter('detections_topic', '/centerpose/detections')
         self.declare_parameter('camera_info_topic', '/camera_info')
-        # CenterPose의 depth는 부정확 -- x/y는 CenterPose 방향(픽셀)만 빌리고
-        # 실제 metric depth는 이 토픽에서 읽는다. z는 fixed_grasp_z로 항상 고정.
+        # x/y direction from CenterPose pixels, real metric depth from this topic;
+        # z always fixed_grasp_z.
         self.declare_parameter('depth_topic', '/zedm/zed_node/depth/depth_registered')
         self.declare_parameter('depth_window', 5)
         self.declare_parameter('joint_states_topic', '/joint_states')
         self.declare_parameter('target_frame', 'base_link')
         self.declare_parameter('projection_frame', '')
         self.declare_parameter('detection_timeout', 10.0)
-        # 안전장치: 이보다 먼 x는 실제 작업 범위 밖 -- depth 오독일 가능성이 높아
-        # ~/execute가 아예 움직이지 않고 거부한다. centerpose_box/centerpose_bottle(0.7)보다
-        # 넓게 잡음 -- 신발 작업 범위가 더 멀리까지 나감 (실측 x=0.87 확인됨).
+        # Reject captures with x beyond this. Wider than centerpose_box/bottle (0.7)
+        # since shoes are worked on further out (measured x=0.87).
         self.declare_parameter('max_grasp_x', 0.9)
         self.declare_parameter('execute_motion', False)
         self.declare_parameter('movel_topic', '/l_goal_move')
         self.declare_parameter('movel_duration', 10.0)
 
-        # --- 노드 시작 시 한 번만: 왼팔을 startup_pose -> start_pose 순서로 아주
-        # 천천히 이동 (execute_motion=true일 때만, __init__ 끝에서 백그라운드
-        # 스레드로 실행 -- see _startup_sequence). ~/execute의 pick 시퀀스에는
-        # 더 이상 포함되지 않는다.
+        # --- Startup sequence, run once at node startup (execute_motion=true only,
+        # backgrounded so it doesn't block init/spin -- see _startup_sequence):
+        # startup_pose (slow) -> start_pose (very slow). No longer part of each pick.
         self.declare_parameter(
             'startup_position_xyz',
             [0.17088773846626282, 0.48100942373275757, 0.9724668264389038],
@@ -60,12 +50,10 @@ class CenterposeShoe(PickPlaceNodeBase):
             [-0.06572848558425903, -0.6882247924804688, -0.06251275539398193,
              0.7198045253753662],
         )
-        # start_duration과 동일하게 아주 천천히.
         self.declare_parameter('startup_duration', 10.0)
 
-        # --- 신발잡기 시작 자세 (실측값, 팔이 크게 돌아가므로 아주 느리게) ---
-        # `ros2 topic echo --once /l_goal_pose`로 측정한 값. 노드 시작 시
-        # startup_pose 다음으로 이동하고, 놓은 뒤 복귀 지점으로도 쓰인다.
+        # --- Shoe-pick start pose; measured via `ros2 topic echo --once /l_goal_pose`.
+        # Moved to after startup_pose on node startup, and reused as the return pose. ---
         self.declare_parameter(
             'start_position_xyz',
             [0.23394590616226196, 0.3340926766395569, 0.9377147555351257],
@@ -75,57 +63,46 @@ class CenterposeShoe(PickPlaceNodeBase):
             [-0.002594258636236191, 0.008345617912709713, -0.00505678029730916,
              0.9999490976333618],
         )
-        # 팔이 거의 완전히 돌아가는 동작이라 기본값을 크게 잡음 -- 실기 테스트하며 조정.
+        # This move rotates the arm almost all the way around, so it defaults slow.
         self.declare_parameter('start_duration', 10.0)
-        # 큐에 담긴 신발을 전부 처리한 뒤 마지막으로 시작 자세로 돌아올 때만 쓰는
-        # 속도 -- start_duration(10초)보다 대략 1.5배 빠르게, 깔끔하게 6초로.
+        # Used only for the final return to start pose after the whole queue is
+        # placed -- roughly 1.5x faster than start_duration (10.0).
         self.declare_parameter('return_duration', 6.0)
 
-        # --- 접근/삽입 ---
+        # --- Approach / insertion ---
         self.declare_parameter('pregrasp_distance', 0.1)
         self.declare_parameter('pregrasp_duration', 4.0)
         self.declare_parameter('insertion_duration', 2.0)
-        # 잡기 전(hover, fixed_grasp_z)에서 실제로 잡는 높이(min_grasp_z)까지
-        # 접근축(대략 수직 아래) 방향으로 내려가는 거리 -- 둘 다 실측값이라 그
-        # 차이로 계산됨: 0.9377147555351257(시작 자세 높이) - 0.7938926219940186
-        # (실측된 "이 이하로 내려가면 안 되는" 한계) = 0.1438221335411271.
+        # How far to lower from the hover height (fixed_grasp_z) to the actual grab
+        # height, along the approach axis. Measured: fixed_grasp_z - min_grasp_z.
         self.declare_parameter('insertion_overshoot_distance', 0.1438221335411271)
         self.declare_parameter('movel_subscriber_timeout', 2.0)
         self.declare_parameter('settle_time', 0.5)
         self.declare_parameter('eef_link', 'end_effector_l_link')
-        # 잡기 전(hover) 높이는 항상 이 값으로 고정 -- 시작 자세(start_position_xyz)와
-        # 같은 높이를 그대로 재사용 (실측: `ros2 topic echo --once /l_goal_pose`).
+        # Hover height before lowering to grab -- always fixed, same height as
+        # start_position_xyz's z.
         self.declare_parameter('fixed_grasp_z', 0.9377147555351257)
-        # 실제로 신발을 잡을 때(내려간 자세) 절대 이 아래로 내려가면 안 되는 높이
-        # -- 실측값. _pick_and_place에서 insert_pose.z를 이 값 아래로 못 내려가게
-        # 직접 clamp한다 (근사 계산에 기대지 않고 안전하게).
+        # Measured hard floor -- the arm must never descend below this when grabbing
+        # a shoe. insert_pose.z is clamped to this in code, not just via arithmetic.
         self.declare_parameter('min_grasp_z', 0.7938926219940186)
 
-        # --- 신발 구멍(잡는 지점) x/y 오프셋 ---
-        # x: 로봇 몸쪽(-X)으로 3cm 당겨서 잡음 (1cm -> 추가로 2cm 더).
+        # --- Shoe hole offset from detected center ---
+        # x pulled 3cm toward the robot (-X, 1cm then +2cm more).
         self.declare_parameter('grasp_position_offset', [-0.03, 0.0, 0.0])
-        # centerpose_box.py와 동일한 위치 기반 y 보정: 화면 중앙에 가까워질수록 왼쪽으로
-        # 더 잡아야 함. grasp_position_offset[1]은 grasp_position_y_reference_pixel
-        # (u=288, 화면 왼쪽 부근)에서 정확히 맞는 값이고, 여기서 화면 중앙(u=576)
-        # 방향으로 갈수록 이 기울기만큼 더해짐. 실측: 중앙에서 2cm 더 왼쪽 필요 --
-        # 처음에 부호를 반대로 넣어서(+) 오른쪽으로 잡혔던 걸 확인 후 뒤집음(-).
+        # Pixel-based y correction, same idea as centerpose_box.py.
         self.declare_parameter('grasp_position_y_slope', -6.944444444444444e-05)
         self.declare_parameter('grasp_position_y_reference_pixel', 288.0)
-        # 캡처 순서상 두 번째 신발(항상 오른쪽에 있던 신발)만 잡을 때 추가로
-        # 오른쪽(-Y)으로 더 당겨 잡음 -- 화면 위치 기반 보정과는 별개로, 캡처
-        # 순번(큐 index==1)에만 적용.
+        # Extra right (-Y) pull applied only to the second-captured shoe (queue index 1),
+        # separate from the position-based correction above.
         self.declare_parameter('second_shoe_grasp_y_offset', -0.02)
         self.declare_parameter('shoe_depth_center_offset', 0.0)
         self.declare_parameter('tool_orientation_offset_xyzw', [0.0, 0.0, 0.0, 1.0])
 
-        # --- 신발 각도(yaw) -> 그리퍼 yaw 캘리브레이션 ---
-        # centerpose_box.py와 달리 그리퍼가 신발을 위에서 내려다보며 잡으므로, 신발이
-        # 회전하면 그리퍼는 roll이 아니라 yaw가 따라가야 한다 (실측 확인: roll로
-        # 맞추면 오차 46도, yaw로 맞추면 오차 1도 미만). object_yaw = 이 reference
-        # orientation 대비 신발 orientation의 signed 각도(쿼터니언 axis-angle),
-        # gripper_yaw = scale*object_yaw + offset. roll/pitch는 고정.
-        # 실측 3점(기준/시계 35.75도/반시계 -69.38도) 최소자승 피팅, 잔차 2~6도,
-        # 별도 4번째 샘플로 검증 시 오차 약 4.4도.
+        # --- Shoe yaw -> gripper yaw calibration ---
+        # Grasped from directly above, so gripper yaw (not roll, unlike
+        # centerpose_box.py) follows shoe rotation; roll/pitch stay fixed.
+        # Least-squares fit from 3 measured points, residuals 2-6 deg, validated
+        # against a 4th independent sample (~4.4 deg error).
         self.declare_parameter(
             'shoe_yaw_reference_orientation_xyzw',
             [0.04132861537025957, -0.3549227920668959, 0.9339735266150585,
@@ -161,10 +138,10 @@ class CenterposeShoe(PickPlaceNodeBase):
             ],
         )
         self.declare_parameter('gripper_open_position', 0.0)
-        # centerpose_bottle.py는 0.7이지만 신발은 더 세게 쥐어야 해서 늘림 (0.9 -> 1.1).
+        # Higher than centerpose_bottle.py's 0.7 -- shoes need a firmer grip.
         self.declare_parameter('gripper_closed_position', 1.1)
-        # 신발을 놓을 때(release)만 쓰는 값 -- gripper_open_position(완전히 열기)
-        # 만큼 벌리면 옆 슬롯에 이미 놓인 신발을 건드려서, 놓을 때는 이만큼만 벌림.
+        # Only used when releasing a shoe -- opening fully knocks into an
+        # already-placed shoe in the neighboring slot.
         self.declare_parameter('gripper_release_position', 0.7)
         self.declare_parameter('gripper_duration', 1.0)
         self.declare_parameter('gripper_settle_time', 0.2)
@@ -172,10 +149,7 @@ class CenterposeShoe(PickPlaceNodeBase):
         self.declare_parameter('lift_height', 0.1)
         self.declare_parameter('lift_duration', 2.0)
 
-        # --- 놓는 위치 (centerpose_bottle.py와 동일 패턴: 슬롯 2개, 캡처 순서대로 왼쪽부터
-        # 채움 -- 왼쪽 검출 -> 슬롯1, 다음 -> 슬롯2). 둘 다 hover(공중) 자세이고,
-        # 실제로 놓을 땐 place_lower_distance만큼 더 내려간 뒤 놓는다.
-        # `ros2 topic echo --once /l_goal_pose`로 hover 상태에서 실측.
+        # --- Place sequence (2 slots, same pattern as centerpose_bottle.py) ---
         self.declare_parameter(
             'place_slot_1_position_xyz',
             [0.47151222825050354, 0.42120254039764404, 0.9456136226654053],
@@ -185,8 +159,7 @@ class CenterposeShoe(PickPlaceNodeBase):
             [-0.0023092320188879967, 0.008429071865975857, 0.028931625187397003,
              0.9995430707931519],
         )
-        # y를 슬롯1에서 더 멀어지는(오른쪽) 방향으로 이동 -- 두 신발이 서로 안
-        # 닿게 간격을 벌림.
+        # y shifted from slot 1 (right) so the two placed shoes do not touch.
         self.declare_parameter(
             'place_slot_2_position_xyz',
             [0.45977485179901123, 0.22981253385543823, 0.9466336965560913],
@@ -197,14 +170,13 @@ class CenterposeShoe(PickPlaceNodeBase):
              0.9995430707931519],
         )
         self.declare_parameter('place_hover_duration', 4.0)
-        # TODO: hover에서 실제로 놓는 높이까지 얼마나 내려가는지 아직 정확히 측정
-        # 안 됨 -- 잡을 때의 하강 거리(insertion_overshoot_distance)에서 1cm 덜
-        # 내려가게(더 높은 곳에서 놓게) 뺌.
+        # TODO: not independently measured yet -- insertion_overshoot_distance
+        # minus 1cm (release 1cm higher).
         self.declare_parameter('place_lower_distance', 0.1338221335411271)
         self.declare_parameter('place_lower_duration', 2.0)
         self.declare_parameter('place_duration', 1.0)
 
-        # --- 위에서 선언한 파라미터들을 실제 self.xxx 값으로 읽어들임 ---
+        # --- Read parameters ---
         self.detections_topic = self.get_parameter('detections_topic').value
         self.camera_info_topic = self.get_parameter('camera_info_topic').value
         self.depth_topic = self.get_parameter('depth_topic').value
@@ -334,7 +306,6 @@ class CenterposeShoe(PickPlaceNodeBase):
         self.place_lower_duration = float(self.get_parameter('place_lower_duration').value)
         self.place_duration = float(self.get_parameter('place_duration').value)
 
-        # TF/락/퍼블리셔/구독/서비스 등 공통 초기화는 PickPlaceNodeBase에 위임
         self._setup_common()
 
         self.get_logger().warn(
@@ -350,14 +321,10 @@ class CenterposeShoe(PickPlaceNodeBase):
         for index, slot in enumerate(self.place_slots, start=1):
             self.get_logger().info(f'  place slot {index} hover: {slot["position"]}')
 
-        # 노드 시작 시 한 번만: startup_pose -> start_pose 둘 다 아주 천천히
-        # 왼팔을 이동. execute_motion=true일 때만 실행하고, 블로킹 이동이라
-        # 백그라운드 스레드로 돌려서 노드 초기화/spin을 막지 않게 한다.
+        # Backgrounded since it's a blocking move and would otherwise block init/spin.
         if self.execute_motion:
             threading.Thread(target=self._startup_sequence, daemon=True).start()
 
-    # 노드가 막 시작됐을 때 왼팔을 안전하게 신발 시작 자세로 데려가는 시퀀스.
-    # ~/execute의 pick 시퀀스에는 더 이상 이 이동이 포함되지 않는다.
     def _startup_sequence(self):
         startup_pose = PoseStamped()
         startup_pose.header.frame_id = self.target_frame
@@ -386,8 +353,6 @@ class CenterposeShoe(PickPlaceNodeBase):
             self.get_logger().info('Startup sequence finished; holding start pose')
             self.execution_step = 'idle'
 
-    # place_slot_{index}_position_xyz / orientation_xyzw 파라미터를 읽어서
-    # {'position', 'orientation'} 딕셔너리 하나로 묶어준다 (슬롯 1, 2 각각 호출).
     def _build_place_slot(self, index):
         position = self._list_parameter(f'place_slot_{index}_position_xyz')
         if len(position) != 3:
@@ -404,9 +369,6 @@ class CenterposeShoe(PickPlaceNodeBase):
 
         return {'position': position, 'orientation': orientation / norm}
 
-    # 검출 하나(픽셀 좌표 + depth + 신발 orientation)를 실제 목표 그립 자세로 변환.
-    # centerpose_box.py와 달리 그리퍼 yaw만 신발 yaw를 따라가고 roll/pitch는 고정
-    # (위에서 내려다보며 잡는 자세라서).
     def _process_single_detection(
         self, detection, camera_info, depth_image, depth_msg,
         camera_transform, fixed_z, log, index
@@ -436,9 +398,6 @@ class CenterposeShoe(PickPlaceNodeBase):
         pose = PoseStamped()
         pose.header.stamp = self.get_clock().now().to_msg()
         pose.header.frame_id = self.target_frame
-        # centerpose_box.py와 동일한 위치 기반 y 보정: 화면 중앙에 가까워질수록 왼쪽으로
-        # 더 잡음 (grasp_position_y_reference_pixel에서 정확히
-        # grasp_position_offset[1], 거기서 벗어난 만큼 slope로 보정).
         y_offset = self.grasp_position_offset[1] + self.grasp_position_y_slope * (
             u - self.grasp_position_y_reference_pixel
         )
@@ -462,9 +421,8 @@ class CenterposeShoe(PickPlaceNodeBase):
             )
         return {'pose': pose, 'pixel_u': u}
 
-    # 픽셀(u,v) + 그 지점의 실제 depth로 카메라 좌표계에서의 3D 점(x,y,z)을 역투영.
-    # TODO: shoe_depth_center_offset(신발 표면->실제 잡는 지점 깊이 보정)은 아직 0.
     def _real_camera_point(self, camera_info, u, v, depth_image, depth_msg, log):
+        # TODO: shoe_depth_center_offset (surface-to-grab-point correction) still 0, unmeasured.
         fx = camera_info.k[0]
         fy = camera_info.k[4]
         cx = camera_info.k[2]
@@ -487,11 +445,8 @@ class CenterposeShoe(PickPlaceNodeBase):
             [(u - cx) * depth / fx, (v - cy) * depth / fy, depth], dtype=np.float64
         )
 
-    # ~/execute로 캡처해둔 신발들을 한 번에 하나씩 순서대로 집어서 놓는다.
-    # centerpose_bottle.py와 동일: 슬롯 수보다 신발이 많으면 남는 신발은 마지막 슬롯 재사용.
-    # 신발과 신발 사이에는 시작 자세로 돌아가지 않고, 놓고 나서 바로 다음 신발의
-    # pregrasp로 향한다 -- 시작 자세 복귀는 큐 전체가 끝난 뒤 한 번만.
     def _execute_queue(self, queue):
+        # Does not return to the start pose between shoes -- only once after the whole queue.
         with self.execution_lock:
             try:
                 for index, item in enumerate(queue):
@@ -501,7 +456,6 @@ class CenterposeShoe(PickPlaceNodeBase):
                     slot = self.place_slots[min(index, len(self.place_slots) - 1)]
                     grasp_pose = item['pose']
                     if index == 1:
-                        # 두 번째로 캡처된(오른쪽) 신발만 추가로 오른쪽으로 더 당겨 잡음.
                         grasp_pose.pose.position.y += self.second_shoe_grasp_y_offset
                     if not self._pick_and_place(grasp_pose, slot, label):
                         if self.cancel_event.is_set():
@@ -523,10 +477,6 @@ class CenterposeShoe(PickPlaceNodeBase):
             finally:
                 self.execution_step = 'idle'
 
-    # 신발 하나를 집어서(pregrasp -> insert -> close -> lift) 지정된 슬롯에
-    # 놓는(hover -> 내려서 놓기 -> release -> 다시 hover) 동작 시퀀스. 팔은 이미
-    # start_pose 근처에 있다고 가정 (첫 신발은 _startup_sequence, 다음 신발부터는
-    # 이전 신발을 놓고 hover에 있는 상태 그대로 이어서 진행).
     def _pick_and_place(self, grasp_pose, slot, label='shoe'):
         grasp_q = np.array([
             grasp_pose.pose.orientation.x,
@@ -534,16 +484,13 @@ class CenterposeShoe(PickPlaceNodeBase):
             grasp_pose.pose.orientation.z,
             grasp_pose.pose.orientation.w,
         ], dtype=np.float64)
-        # centerpose_box.py와 동일: local -Z가 접근 방향(신발은 대략 수직 아래), 검출마다
-        # 방향이 조금씩 다르므로 매번 재계산.
         approach_dir = self._rotate_vector(np.array([0.0, 0.0, -1.0]), grasp_q)
 
         insert_pose = self._copy_pose(grasp_pose)
         insert_pose.pose.position.x += approach_dir[0] * self.insertion_overshoot_distance
         insert_pose.pose.position.y += approach_dir[1] * self.insertion_overshoot_distance
         insert_pose.pose.position.z += approach_dir[2] * self.insertion_overshoot_distance
-        # 안전장치: 근사 계산에 기대지 않고, 절대로 min_grasp_z보다 아래로 내려가지
-        # 않도록 직접 clamp (실측된 "여기보다 아래로 내려가면 안 됨" 한계).
+        # Hard floor clamp, not just relied on via arithmetic.
         insert_pose.pose.position.z = max(insert_pose.pose.position.z, self.min_grasp_z)
 
         pregrasp_pose = self._copy_pose(insert_pose)
@@ -562,9 +509,6 @@ class CenterposeShoe(PickPlaceNodeBase):
         place_lower_pose.pose.position.z -= self.place_lower_distance
 
         steps = [
-            # startup_pose -> start_pose 이동은 이제 노드 시작 시 한 번만
-            # (_startup_sequence)이라 여기서는 안 함 -- 팔은 이미 start_pose에 있다고
-            # 가정.
             ('open gripper', lambda: self._move_gripper(self.gripper_open_position)),
             ('move to pregrasp', lambda: self._move_l(pregrasp_pose, duration=self.pregrasp_duration)),
             ('insert to shoe', lambda: self._move_l(insert_pose, duration=self.insertion_duration)),
@@ -573,8 +517,6 @@ class CenterposeShoe(PickPlaceNodeBase):
             ('move to place hover', lambda: self._move_l(place_hover_pose, duration=self.place_hover_duration)),
             ('lower into place', lambda: self._move_l(place_lower_pose, duration=self.place_lower_duration)),
             ('release shoe', lambda: self._move_gripper(self.gripper_release_position)),
-            # 다음 신발이 있으면 여기서 바로 그 pregrasp로 이어감 (시작 자세를
-            # 거치지 않음) -- _execute_queue 참고.
             ('back to place hover', lambda: self._move_l(place_hover_pose, duration=self.place_duration)),
         ]
 
@@ -589,10 +531,6 @@ class CenterposeShoe(PickPlaceNodeBase):
         self.get_logger().info(f'{label} finished; holding pose')
         return True
 
-    # 카메라 좌표계의 점 + 신발 orientation을 base_link 기준 (위치, 목표 그리퍼
-    # orientation, 신발 yaw, 그리퍼 yaw)로 변환. centerpose_box.py의 _transform_centerpose와
-    # 같은 구조지만, 신발은 위에서 내려다보며 잡으므로 roll이 아니라 그리퍼 yaw가
-    # 신발 yaw를 따라간다 (roll/pitch는 고정).
     def _transform_centerpose(self, camera_transform, position_cam, orientation):
         transform_q, t = camera_transform
         object_q = np.array(
@@ -625,10 +563,6 @@ class CenterposeShoe(PickPlaceNodeBase):
         return point, target_q, object_yaw, gripper_yaw
 
     def _signed_shoe_yaw(self, object_q):
-        """shoe_yaw_reference_orientation 대비 object_q의 signed 각도(rad).
-
-        (signed_angle, unsigned_angle) 반환 -- centerpose_box.py의 _signed_box_yaw와 동일.
-        """
         relative_q = self._quaternion_multiply(
             self._quaternion_conjugate(self.shoe_yaw_reference_orientation), object_q
         )
@@ -636,7 +570,7 @@ class CenterposeShoe(PickPlaceNodeBase):
         sign = 1.0 if np.dot(axis, self.shoe_yaw_axis) >= 0.0 else -1.0
         return sign * angle, angle
 
-    # --- 아래는 전부 순수 쿼터니언/각도 계산용 정적 헬퍼 (centerpose_box.py와 동일) ---
+    # --- Quaternion/angle helpers (same as centerpose_box.py) ---
     @staticmethod
     def _quaternion_multiply(a, b):
         ax, ay, az, aw = a
@@ -651,16 +585,13 @@ class CenterposeShoe(PickPlaceNodeBase):
             dtype=np.float64,
         )
 
-    # 쿼터니언의 역회전(켤레) 계산.
     @staticmethod
     def _quaternion_conjugate(q):
         x, y, z, w = q
         return np.array([-x, -y, -z, w], dtype=np.float64)
 
-    # 쿼터니언을 "회전축 + 회전각"으로 분해.
     @staticmethod
     def _quaternion_axis_angle(q):
-        """Angle in [0, pi] and its unit rotation axis, forcing w >= 0 for uniqueness."""
         q = q / np.linalg.norm(q)
         x, y, z, w = q
         if w < 0.0:
@@ -670,12 +601,10 @@ class CenterposeShoe(PickPlaceNodeBase):
         axis = np.zeros(3) if s < 1e-8 else np.array([x, y, z]) / s
         return axis, angle
 
-    # 각도(라디안)를 -pi ~ +pi 범위로 정규화.
     @staticmethod
     def _wrap_angle(angle):
         return math.atan2(math.sin(angle), math.cos(angle))
 
-    # roll/pitch/yaw(오일러각)를 쿼터니언으로 변환.
     @staticmethod
     def _quaternion_from_euler(roll, pitch, yaw):
         cr, sr = math.cos(roll * 0.5), math.sin(roll * 0.5)
@@ -694,7 +623,7 @@ class CenterposeShoe(PickPlaceNodeBase):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = CenterposeShoe()  # 노드 실행 진입점 (ros2 run/launch에서 호출됨)
+    node = CenterposeShoe()
     try:
         rclpy.spin(node)
     except (KeyboardInterrupt, ExternalShutdownException):
