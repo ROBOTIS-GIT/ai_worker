@@ -25,6 +25,7 @@ from sensor_msgs.msg import CameraInfo, Image
 
 
 class CenterposeCamera(Node):
+    # Converts ZED BGRA8/RGBA8/RGB8 images to BGR8 and relays CameraInfo under a new name.
     def __init__(self):
         super().__init__('centerpose_camera')
 
@@ -54,6 +55,7 @@ class CenterposeCamera(Node):
             f'Relaying {self.camera_info_input_topic} -> {self.camera_info_output_topic}')
 
     def image_callback(self, msg):
+        # Convert the incoming image to BGR8 based on its encoding and republish.
         try:
             frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
         except CvBridgeError as exc:
@@ -73,6 +75,7 @@ class CenterposeCamera(Node):
         self.pub.publish(out)
 
     def camera_info_callback(self, msg):
+        # Republish CameraInfo unchanged under the output topic name.
         self.camera_info_pub.publish(msg)
 
 

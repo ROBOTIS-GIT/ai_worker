@@ -51,12 +51,10 @@ class CenterposeBottle(PickPlaceNodeBase):
         self.declare_parameter('movel_subscriber_timeout', 2.0)
         self.declare_parameter('settle_time', 0.5)
         self.declare_parameter('eef_link', 'end_effector_l_link')
-        self.declare_parameter('fixed_grasp_z', 0.8241714239120483)
-        self.declare_parameter('grasp_position_offset', [0.01, -0.04, 0.0])
-        self.declare_parameter(
-            'grasp_orientation_xyzw',
-            [-0.0657237321138382, -0.6881383657455444, -0.06250208616256714, 0.7198885083198547],
-        )
+        # Real values for this group come from centerpose_bottle_calibration.yaml.
+        self.declare_parameter('fixed_grasp_z', 0.0)
+        self.declare_parameter('grasp_position_offset', [0.0, 0.0, 0.0])
+        self.declare_parameter('grasp_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
         self.declare_parameter(
             'left_arm_joint_trajectory_topic',
             '/leader/joint_trajectory_command_broadcaster_left/joint_trajectory',
@@ -82,31 +80,16 @@ class CenterposeBottle(PickPlaceNodeBase):
         self.declare_parameter('command_rate_hz', 300.0)
         self.declare_parameter('lift_height', 0.1)
         self.declare_parameter('lift_duration', 1.0)
-        # --- Box slot positions ---
-        self.declare_parameter(
-            'box_slot_1_position_xyz',
-            [0.6468760967254639, 0.36483344435691833, 0.9507306218147278],
-        )
-        self.declare_parameter(
-            'box_slot_1_orientation_xyzw',
-            [-0.06588234007358551, -0.68890780210495, -0.06271106004714966, 0.7191194891929626],
-        )
-        self.declare_parameter(
-            'box_slot_2_position_xyz',
-            [0.6272304654121399, 0.2589269280433655, 0.9516366720199585],
-        )
-        self.declare_parameter(
-            'box_slot_2_orientation_xyzw',
-            [0.13866588473320007, -0.6788055896759033, 0.13322767615318298, 0.7086924910545349],
-        )
+        # --- Box slot positions (values from centerpose_bottle_calibration.yaml) ---
+        self.declare_parameter('box_slot_1_position_xyz', [0.0, 0.0, 0.0])
+        self.declare_parameter('box_slot_1_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
+        self.declare_parameter('box_slot_2_position_xyz', [0.0, 0.0, 0.0])
+        self.declare_parameter('box_slot_2_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
         self.declare_parameter('box_duration', 1.5)
-        self.declare_parameter('box_place_z_offset', 0.1093128323554992)
+        self.declare_parameter('box_place_z_offset', 0.0)
         self.declare_parameter('box_place_duration', 1.0)
         self.declare_parameter('return_to_initial', True)
-        self.declare_parameter(
-            'home_position_xyz',
-            [0.13451801240444183, 0.2999741733074188, 0.9742214239120483],
-        )
+        self.declare_parameter('home_position_xyz', [0.0, 0.0, 0.0])
         self.declare_parameter('home_duration', 3.0)
 
         # --- Read parameters ---
@@ -193,6 +176,7 @@ class CenterposeBottle(PickPlaceNodeBase):
             self.get_logger().info(f'  box slot {index} hover: {slot["position"]}')
 
     def _build_box_slot(self, index):
+        # Read box_slot_{index}_position/orientation into one slot dict.
         position = self._list_parameter(f'box_slot_{index}_position_xyz')
         if len(position) != 3:
             raise ValueError(f'box_slot_{index}_position_xyz must contain [x, y, z]')
@@ -213,6 +197,7 @@ class CenterposeBottle(PickPlaceNodeBase):
         self, detection, camera_info, depth_image, depth_msg,
         camera_transform, fixed_z, log, index
     ):
+        # Convert one CenterPose detection into a grasp pose in base_link.
         center = detection.bbox.center.position
         if not all(math.isfinite(value) for value in (center.x, center.y, center.z)):
             return None
@@ -253,6 +238,7 @@ class CenterposeBottle(PickPlaceNodeBase):
         return {'pose': pose, 'pixel_u': u}
 
     def _real_camera_point(self, camera_info, u, v, depth_image, depth_msg, log):
+        # Back-project pixel (u, v) + sampled depth into a camera-frame 3D point.
         fx = camera_info.k[0]
         fy = camera_info.k[4]
         cx = camera_info.k[2]
@@ -274,6 +260,7 @@ class CenterposeBottle(PickPlaceNodeBase):
         )
 
     def _execute_queue(self, queue):
+        # Pick and place every captured bottle in order.
         with self.execution_lock:
             try:
                 for index, item in enumerate(queue):
@@ -292,6 +279,7 @@ class CenterposeBottle(PickPlaceNodeBase):
 
     # --- Pick/place motion ---
     def _pick_and_place(self, grasp_pose, slot, label='bottle'):
+        # Run the full pick (insert->close->lift) then place (hover->lower->release) sequence.
         pregrasp_pose = self._copy_pose(grasp_pose)
         pregrasp_pose.pose.position.x -= self.approach_dir[0] * self.pregrasp_distance
         pregrasp_pose.pose.position.y -= self.approach_dir[1] * self.pregrasp_distance

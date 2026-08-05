@@ -42,6 +42,7 @@ class PickPlaceNodeBase(Node):
 
     # --- Setup ---
     def _setup_common(self):
+        # Set up TF, locks, sensor subscriptions, and the capture/execute/cancel services.
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
 
@@ -94,10 +95,12 @@ class PickPlaceNodeBase(Node):
 
     # --- Subscription callbacks ---
     def _camera_info_callback(self, msg):
+        # Keep only the latest CameraInfo.
         with self.data_lock:
             self.latest_camera_info = msg
 
     def _depth_callback(self, msg):
+        # Convert and keep only the latest depth image.
         try:
             image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
         except CvBridgeError as exc:
@@ -110,17 +113,20 @@ class PickPlaceNodeBase(Node):
             self.latest_depth_msg = msg
 
     def _detections_callback(self, msg):
+        # Store the latest CenterPose detections and their receive time.
         with self.data_lock:
             self.latest_detection_msg = msg
             self.latest_detection_time = self.get_clock().now()
 
     def _joint_state_callback(self, msg):
+        # Keep a name -> position map updated from /joint_states.
         with self.joint_lock:
             for name, position in zip(msg.name, msg.position):
                 self.current_joint_positions[name] = float(position)
 
     # --- Service callbacks ---
     def _capture_callback(self, _request, response):
+        # ~/capture: snapshot currently visible detections into a queue.
         results = self._process_detections(log=True)
         if not results:
             response.success = False
@@ -136,10 +142,12 @@ class PickPlaceNodeBase(Node):
         return response
 
     def _format_capture_line(self, item):
+        # One summary line per captured item; overridable by subclasses.
         p = item['pose'].pose.position
         return f'({p.x:.3f}, {p.y:.3f}, {p.z:.3f})'
 
     def _execute_callback(self, _request, response):
+        # ~/execute: start picking/placing the captured queue in the background.
         if not self.execute_motion:
             response.success = False
             response.message = 'set execute_motion:=true to enable robot motion'
@@ -179,6 +187,7 @@ class PickPlaceNodeBase(Node):
         return response
 
     def _cancel_callback(self, _request, response):
+        # ~/cancel: signal cancel_event to stop mid-execution.
         self.cancel_event.set()
         response.success = True
         response.message = 'cancel requested' if self.execution_lock.locked() else 'idle'
@@ -186,6 +195,7 @@ class PickPlaceNodeBase(Node):
 
     # --- Detection -> pose conversion ---
     def _process_detections(self, log):
+        # Convert every currently detected object into a target pose.
         with self.data_lock:
             detections = self.latest_detection_msg
             detection_time = self.latest_detection_time
@@ -232,6 +242,7 @@ class PickPlaceNodeBase(Node):
         return results
 
     def _project_to_pixel(self, camera_info, position, log):
+        # Project a camera-frame 3D position to pixel (u, v).
         if abs(position.z) < 1e-6:
             if log:
                 self.get_logger().warn(
@@ -248,6 +259,7 @@ class PickPlaceNodeBase(Node):
         return u, v
 
     def _sample_depth(self, depth_image, depth_msg, u, v):
+        # Median depth in a small window around pixel (u, v).
         height, width = depth_image.shape[:2]
         half_window = max(0, self.depth_window // 2)
         u_min = max(0, u - half_window)
@@ -268,6 +280,7 @@ class PickPlaceNodeBase(Node):
         return depth
 
     def _lookup_camera_transform(self, camera_frame, log):
+        # Look up camera_frame -> target_frame as (quaternion, translation).
         if not camera_frame:
             self.get_logger().warn(
                 'CameraInfo frame_id is empty; set projection_frame explicitly',
@@ -298,6 +311,7 @@ class PickPlaceNodeBase(Node):
         return transform_q, np.array([t.x, t.y, t.z], dtype=np.float64)
 
     def _current_eef_z(self):
+        # Grasp height: fixed_grasp_z if set, else the current eef_link z.
         if self.fixed_grasp_z >= 0.0:
             return self.fixed_grasp_z
 
@@ -315,6 +329,7 @@ class PickPlaceNodeBase(Node):
 
     # --- Motion execution ---
     def _move_l(self, pose, duration=None):
+        # Send one MoveL command and wait for it to finish.
         if not self._wait_for_subscriber(self.movel_pub, self.movel_topic):
             return False
 
@@ -326,6 +341,7 @@ class PickPlaceNodeBase(Node):
         return self._cancelable_sleep(duration + self.settle_time)
 
     def _move_gripper(self, target):
+        # Move only the gripper joint, holding all other joints at their current position.
         deadline = time.monotonic() + 2.0
         positions = None
         while time.monotonic() < deadline and positions is None:
@@ -367,7 +383,7 @@ class PickPlaceNodeBase(Node):
         )
 
     def _stream_trajectory(self, publisher, joint_names, position_fn, rate_hz, total_duration):
-        # Continuous re-send.
+        # Repeatedly publish position_fn's output until total_duration elapses (continuous re-send).
         period = 1.0 / rate_hz
         point_time = max(period * 2.0, 0.05)
         point_duration = self._duration(point_time)
@@ -388,6 +404,7 @@ class PickPlaceNodeBase(Node):
         return True
 
     def _wait_for_subscriber(self, publisher, topic):
+        # Wait until a subscriber is listening on publisher.
         deadline = time.monotonic() + self.movel_subscriber_timeout
         while time.monotonic() < deadline:
             if self.cancel_event.is_set():
@@ -399,6 +416,7 @@ class PickPlaceNodeBase(Node):
         return False
 
     def _cancelable_sleep(self, seconds):
+        # Sleep, but return early (False) if cancel_event is set.
         deadline = time.monotonic() + max(0.0, seconds)
         while time.monotonic() < deadline:
             if self.cancel_event.is_set():
@@ -408,12 +426,14 @@ class PickPlaceNodeBase(Node):
 
     # --- Parameter / quaternion / pose utilities ---
     def _list_parameter(self, name):
+        # Read a parameter as a list, whether it arrived as a real list or a string.
         value = self.get_parameter(name).value
         if isinstance(value, str):
             return list(ast.literal_eval(value))
         return list(value)
 
     def _bool_parameter(self, name):
+        # Read a parameter as a bool, whether it arrived as a real bool or a string.
         value = self.get_parameter(name).value
         if isinstance(value, str):
             return value.lower() in ('1', 'true', 'yes', 'on')
@@ -421,6 +441,7 @@ class PickPlaceNodeBase(Node):
 
     @staticmethod
     def _quaternion_message(q):
+        # Normalize a [x, y, z, w] array into a ROS Quaternion message.
         msg = PoseStamped().pose.orientation
         norm = np.linalg.norm(q)
         msg.x, msg.y, msg.z, msg.w = [float(value / norm) for value in q]
@@ -428,6 +449,7 @@ class PickPlaceNodeBase(Node):
 
     @staticmethod
     def _rotate_vector(vector, q):
+        # Rotate a vector by quaternion q.
         q_vector = q[:3]
         uv = np.cross(q_vector, vector)
         uuv = np.cross(q_vector, uv)
@@ -435,6 +457,7 @@ class PickPlaceNodeBase(Node):
 
     @staticmethod
     def _copy_pose(source):
+        # Deep-copy a PoseStamped's values into a new instance.
         pose = PoseStamped()
         pose.header = source.header
         pose.pose.position.x = source.pose.position.x
@@ -445,6 +468,7 @@ class PickPlaceNodeBase(Node):
 
     @staticmethod
     def _set_pose_from_arrays(pose, xyz, xyzw):
+        # Fill a PoseStamped's position/orientation from xyz and xyzw arrays.
         pose.pose.position.x = float(xyz[0])
         pose.pose.position.y = float(xyz[1])
         pose.pose.position.z = float(xyz[2])
@@ -455,6 +479,7 @@ class PickPlaceNodeBase(Node):
 
     @staticmethod
     def _quaternion_multiply(a, b):
+        # Hamilton product of two [x, y, z, w] quaternions.
         ax, ay, az, aw = a
         bx, by, bz, bw = b
         return np.array(
@@ -469,11 +494,13 @@ class PickPlaceNodeBase(Node):
 
     @staticmethod
     def _quaternion_conjugate(q):
+        # Inverse rotation of a unit quaternion.
         x, y, z, w = q
         return np.array([-x, -y, -z, w], dtype=np.float64)
 
     @staticmethod
     def _quaternion_axis_angle(q):
+        # Decompose a quaternion into a unit rotation axis and angle (rad).
         q = q / np.linalg.norm(q)
         x, y, z, w = q
         if w < 0.0:
@@ -485,10 +512,12 @@ class PickPlaceNodeBase(Node):
 
     @staticmethod
     def _wrap_angle(angle):
+        # Normalize an angle (rad) to [-pi, pi].
         return math.atan2(math.sin(angle), math.cos(angle))
 
     @staticmethod
     def _quaternion_from_euler(roll, pitch, yaw):
+        # Build a [x, y, z, w] quaternion from roll/pitch/yaw (rad).
         cr, sr = math.cos(roll * 0.5), math.sin(roll * 0.5)
         cp, sp = math.cos(pitch * 0.5), math.sin(pitch * 0.5)
         cy, sy = math.cos(yaw * 0.5), math.sin(yaw * 0.5)
@@ -504,6 +533,7 @@ class PickPlaceNodeBase(Node):
 
     @staticmethod
     def _duration(seconds):
+        # Convert a float number of seconds into a ROS Duration.
         duration = MoveL().time_from_start
         duration.sec = int(seconds)
         duration.nanosec = int(seconds % 1.0 * 1000000000.0)

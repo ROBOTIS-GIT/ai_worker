@@ -50,31 +50,26 @@ class CenterposeBox(PickPlaceNodeBase):
         self.declare_parameter('pregrasp_distance', 0.11)
         self.declare_parameter('pregrasp_duration', 4.0)
         self.declare_parameter('insertion_duration', 3.0)
-        self.declare_parameter('insertion_overshoot_distance', -0.04)
+        # Real values for this group come from centerpose_box_calibration.yaml.
+        self.declare_parameter('insertion_overshoot_distance', 0.0)
         self.declare_parameter('movel_subscriber_timeout', 2.0)
         self.declare_parameter('settle_time', 0.5)
         self.declare_parameter('eef_link', 'end_effector_l_link')
-        self.declare_parameter('fixed_grasp_z', 0.8241714239120483)
+        self.declare_parameter('fixed_grasp_z', 0.0)
         # --- Grasp position/yaw calibration ---
-        self.declare_parameter('grasp_position_offset', [0.01, -0.02, 0.0])
+        self.declare_parameter('grasp_position_offset', [0.0, 0.0, 0.0])
         self.declare_parameter('grasp_position_y_slope', 0.0)
-        self.declare_parameter('grasp_position_y_reference_pixel', 288.0)
-        self.declare_parameter('grasp_position_x_slope', -3.472222222222222e-05)
-        self.declare_parameter('box_depth_center_offset', 0.08)
+        self.declare_parameter('grasp_position_y_reference_pixel', 0.0)
+        self.declare_parameter('grasp_position_x_slope', 0.0)
+        self.declare_parameter('box_depth_center_offset', 0.0)
         self.declare_parameter('tool_orientation_offset_xyzw', [0.0, 0.0, 0.0, 1.0])
-        self.declare_parameter(
-            'box_yaw_reference_orientation_xyzw',
-            [-0.6272754451461677, 0.2145960107465087, -0.6681762105760168, 0.33766050954862303],
-        )
-        self.declare_parameter(
-            'box_yaw_axis_xyz',
-            [0.15517196976367656, -0.9264099543820705, 0.3430543050618564],
-        )
+        self.declare_parameter('box_yaw_reference_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
+        self.declare_parameter('box_yaw_axis_xyz', [0.0, 0.0, 1.0])
         self.declare_parameter('box_yaw_flip_threshold_deg', 90.0)
-        self.declare_parameter('grasp_fixed_pitch', -1.5016251715681637)
-        self.declare_parameter('grasp_fixed_yaw', -0.052366725449585025)
-        self.declare_parameter('grasp_roll_from_yaw_scale', -0.9731714138014503)
-        self.declare_parameter('grasp_roll_offset', 0.04845972067574276)
+        self.declare_parameter('grasp_fixed_pitch', 0.0)
+        self.declare_parameter('grasp_fixed_yaw', 0.0)
+        self.declare_parameter('grasp_roll_from_yaw_scale', 0.0)
+        self.declare_parameter('grasp_roll_offset', 0.0)
         self.declare_parameter('box_yaw_zero_offset_deg', 0.0)
         self.declare_parameter('roll_clamp_min_deg', -60.0)
         self.declare_parameter('roll_clamp_max_deg', 60.0)
@@ -103,57 +98,23 @@ class CenterposeBox(PickPlaceNodeBase):
         self.declare_parameter('command_rate_hz', 300.0)
         self.declare_parameter('lift_height', 0.1)
         self.declare_parameter('lift_duration', 2.0)
-        # --- Place sequence ---
-        self.declare_parameter(
-            'place_hover_position_xyz',
-            [0.4098847508430481, 0.3597005009651184, 0.9550905227661133],
-        )
-        self.declare_parameter(
-            'place_hover_orientation_xyzw',
-            [-0.007772511336952448, -0.692754328250885, -0.007550723850727081,
-             0.7210924029350281],
-        )
+        # --- Place sequence (values from centerpose_box_calibration.yaml) ---
+        self.declare_parameter('place_hover_position_xyz', [0.0, 0.0, 0.0])
+        self.declare_parameter('place_hover_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
         self.declare_parameter('place_hover_duration', 4.0)
-        self.declare_parameter(
-            'place_position_xyz',
-            [0.6282518005371094, 0.3551318049430847, 0.8419253444671631],
-        )
-        self.declare_parameter(
-            'place_orientation_xyzw',
-            [-0.007772511336952448, -0.692754328250885, -0.007550723850727081,
-             0.7210924029350281],
-        )
+        self.declare_parameter('place_position_xyz', [0.0, 0.0, 0.0])
+        self.declare_parameter('place_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
         self.declare_parameter('place_duration', 6.0)
         self.declare_parameter('place_release_gripper_position', 0.9)
-        self.declare_parameter(
-            'place_retreat_position_xyz',
-            [0.5029386687278748, 0.3570454716682434, 0.847183346748352],
-        )
-        self.declare_parameter(
-            'place_retreat_orientation_xyzw',
-            [-0.00785414595156908, -0.6926011443138123, -0.007563420571386814,
-             0.721238374710083],
-        )
+        self.declare_parameter('place_retreat_position_xyz', [0.0, 0.0, 0.0])
+        self.declare_parameter('place_retreat_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
         self.declare_parameter('place_retreat_duration', 2.0)
-        self.declare_parameter(
-            'place_push_position_xyz',
-            [0.6187779307365417, 0.3549533486366272, 0.8432992696762085],
-        )
-        self.declare_parameter(
-            'place_push_orientation_xyzw',
-            [-0.00785414595156908, -0.6926011443138123, -0.007563420571386814,
-             0.721238374710083],
-        )
+        self.declare_parameter('place_push_position_xyz', [0.0, 0.0, 0.0])
+        self.declare_parameter('place_push_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
         self.declare_parameter('place_push_duration', 2.0)
         self.declare_parameter('return_to_initial', True)
-        self.declare_parameter(
-            'home_position_xyz',
-            [0.13451801240444183, 0.2999741733074188, 0.9742214239120483],
-        )
-        self.declare_parameter(
-            'home_orientation_xyzw',
-            [-0.0657237321138382, -0.6881383657455444, -0.06250208616256714, 0.7198885083198547],
-        )
+        self.declare_parameter('home_position_xyz', [0.0, 0.0, 0.0])
+        self.declare_parameter('home_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
         self.declare_parameter('home_duration', 6.0)
 
         # --- Read parameters ---
@@ -323,6 +284,7 @@ class CenterposeBox(PickPlaceNodeBase):
         self.get_logger().info(f'  depth (x/y only): {self.depth_topic}')
 
     def _format_capture_line(self, item):
+        # Override to also show box yaw (base class only shows position).
         p = item['pose'].pose.position
         return f'({p.x:.3f}, {p.y:.3f}, {p.z:.3f}), yaw={item["box_yaw_deg"]:.1f} deg'
 
@@ -331,6 +293,7 @@ class CenterposeBox(PickPlaceNodeBase):
         self, detection, camera_info, depth_image, depth_msg,
         camera_transform, fixed_z, log, index
     ):
+        # Convert one CenterPose detection into a grasp pose in base_link.
         center = detection.bbox.center.position
         if not all(math.isfinite(value) for value in (center.x, center.y, center.z)):
             return None
@@ -389,6 +352,7 @@ class CenterposeBox(PickPlaceNodeBase):
         return {'pose': pose, 'pixel_u': u, 'box_yaw_deg': box_yaw_deg}
 
     def _real_camera_point(self, camera_info, u, v, depth_image, depth_msg, log):
+        # Back-project pixel (u, v) + sampled depth into a camera-frame 3D point.
         fx = camera_info.k[0]
         fy = camera_info.k[4]
         cx = camera_info.k[2]
@@ -412,6 +376,7 @@ class CenterposeBox(PickPlaceNodeBase):
         )
 
     def _execute_queue(self, queue):
+        # Pick and place every captured box in order.
         with self.execution_lock:
             try:
                 for index, item in enumerate(queue):
@@ -429,6 +394,7 @@ class CenterposeBox(PickPlaceNodeBase):
 
     # --- Pick/place motion ---
     def _pick_and_place(self, grasp_pose, label='box'):
+        # Run the full pick (insert->close->lift) then place (hover->release->retreat->push) sequence.
         grasp_q = np.array([
             grasp_pose.pose.orientation.x,
             grasp_pose.pose.orientation.y,
@@ -512,6 +478,8 @@ class CenterposeBox(PickPlaceNodeBase):
         return True
 
     def _transform_centerpose(self, camera_transform, position_cam, orientation):
+        # Convert a camera-frame point+orientation into a base_link grasp pose
+        # (gripper roll follows the box's yaw; pitch/yaw stay fixed).
         transform_q, t = camera_transform
         object_q = np.array(
             [orientation.x, orientation.y, orientation.z, orientation.w], dtype=np.float64
@@ -541,6 +509,7 @@ class CenterposeBox(PickPlaceNodeBase):
         return point, target_q, object_yaw, roll
 
     def _signed_box_yaw(self, object_q):
+        # Signed angle of the box's orientation relative to the calibrated reference.
         relative_q = self._quaternion_multiply(
             self._quaternion_conjugate(self.box_yaw_reference_orientation), object_q
         )
@@ -550,6 +519,7 @@ class CenterposeBox(PickPlaceNodeBase):
 
     @staticmethod
     def _wrap_degrees(degrees):
+        # Normalize an angle in degrees to [-180, 180].
         return (degrees + 180.0) % 360.0 - 180.0
 
 

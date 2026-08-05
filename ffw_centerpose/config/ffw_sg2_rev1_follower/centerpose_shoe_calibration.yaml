@@ -1,0 +1,35 @@
+centerpose_shoe:
+  ros__parameters:
+    startup_position_xyz: [0.17088773846626282, 0.48100942373275757, 0.9724668264389038]
+    startup_orientation_xyzw:
+      [-0.06572848558425903, -0.6882247924804688, -0.06251275539398193, 0.7198045253753662]
+    start_position_xyz: [0.23394590616226196, 0.3340926766395569, 0.9377147555351257]
+    start_orientation_xyzw:
+      [-0.002594258636236191, 0.008345617912709713, -0.00505678029730916, 0.9999490976333618]
+
+    insertion_overshoot_distance: 0.1438221335411271
+    fixed_grasp_z: 0.9377147555351257
+    min_grasp_z: 0.7938926219940186
+
+    grasp_position_offset: [-0.03, 0.0, 0.0]
+    grasp_position_y_slope: -6.944444444444444e-05
+    grasp_position_y_reference_pixel: 288.0
+    second_shoe_grasp_y_offset: -0.02
+    shoe_depth_center_offset: 0.0
+    tool_orientation_offset_xyzw: [0.0, 0.0, 0.0, 1.0]
+    shoe_yaw_reference_orientation_xyzw:
+      [0.04132861537025957, -0.3549227920668959, 0.9339735266150585, -0.003899846823498184]
+    shoe_yaw_axis_xyz: [0.13999845344725156, -0.9872268603133045, 0.07604971603046785]
+    shoe_yaw_flip_threshold_deg: 90.0
+    grasp_fixed_roll: -0.005273412980347409
+    grasp_fixed_pitch: 0.01666491788848952
+    grasp_yaw_from_shoe_yaw_scale: -1.016908340135941
+    grasp_yaw_offset: -0.12016636998914268
+
+    place_slot_1_position_xyz: [0.47151222825050354, 0.42120254039764404, 0.9456136226654053]
+    place_slot_1_orientation_xyzw:
+      [-0.0023092320188879967, 0.008429071865975857, 0.028931625187397003, 0.9995430707931519]
+    place_slot_2_position_xyz: [0.45977485179901123, 0.22981253385543823, 0.9466336965560913]
+    place_slot_2_orientation_xyzw:
+      [-0.0023092320188879967, 0.008429071865975857, 0.028931625187397003, 0.9995430707931519]
+    place_lower_distance: 0.1338221335411271

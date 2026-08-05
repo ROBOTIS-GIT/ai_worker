@@ -49,26 +49,12 @@ class CenterposeShoe(PickPlaceNodeBase):
         self.declare_parameter('movel_topic', '/l_goal_move')
         self.declare_parameter('movel_duration', 10.0)
 
-        # --- Startup sequence ---
-        self.declare_parameter(
-            'startup_position_xyz',
-            [0.17088773846626282, 0.48100942373275757, 0.9724668264389038],
-        )
-        self.declare_parameter(
-            'startup_orientation_xyzw',
-            [-0.06572848558425903, -0.6882247924804688, -0.06251275539398193,
-             0.7198045253753662],
-        )
+        # --- Startup sequence (values from centerpose_shoe_calibration.yaml) ---
+        self.declare_parameter('startup_position_xyz', [0.0, 0.0, 0.0])
+        self.declare_parameter('startup_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
         self.declare_parameter('startup_duration', 10.0)
-        self.declare_parameter(
-            'start_position_xyz',
-            [0.23394590616226196, 0.3340926766395569, 0.9377147555351257],
-        )
-        self.declare_parameter(
-            'start_orientation_xyzw',
-            [-0.002594258636236191, 0.008345617912709713, -0.00505678029730916,
-             0.9999490976333618],
-        )
+        self.declare_parameter('start_position_xyz', [0.0, 0.0, 0.0])
+        self.declare_parameter('start_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
         self.declare_parameter('start_duration', 10.0)
         self.declare_parameter('return_duration', 6.0)
 
@@ -76,35 +62,29 @@ class CenterposeShoe(PickPlaceNodeBase):
         self.declare_parameter('pregrasp_distance', 0.1)
         self.declare_parameter('pregrasp_duration', 4.0)
         self.declare_parameter('insertion_duration', 2.0)
-        self.declare_parameter('insertion_overshoot_distance', 0.1438221335411271)
+        self.declare_parameter('insertion_overshoot_distance', 0.0)
         self.declare_parameter('movel_subscriber_timeout', 2.0)
         self.declare_parameter('settle_time', 0.5)
         self.declare_parameter('eef_link', 'end_effector_l_link')
-        self.declare_parameter('fixed_grasp_z', 0.9377147555351257)
-        self.declare_parameter('min_grasp_z', 0.7938926219940186)
+        self.declare_parameter('fixed_grasp_z', 0.0)
+        self.declare_parameter('min_grasp_z', 0.0)
 
         # --- Shoe hole offset ---
-        self.declare_parameter('grasp_position_offset', [-0.03, 0.0, 0.0])
-        self.declare_parameter('grasp_position_y_slope', -6.944444444444444e-05)
-        self.declare_parameter('grasp_position_y_reference_pixel', 288.0)
-        self.declare_parameter('second_shoe_grasp_y_offset', -0.02)
+        self.declare_parameter('grasp_position_offset', [0.0, 0.0, 0.0])
+        self.declare_parameter('grasp_position_y_slope', 0.0)
+        self.declare_parameter('grasp_position_y_reference_pixel', 0.0)
+        self.declare_parameter('second_shoe_grasp_y_offset', 0.0)
         self.declare_parameter('shoe_depth_center_offset', 0.0)
         self.declare_parameter('tool_orientation_offset_xyzw', [0.0, 0.0, 0.0, 1.0])
 
         # --- Shoe yaw -> gripper yaw calibration ---
-        self.declare_parameter(
-            'shoe_yaw_reference_orientation_xyzw',
-            [0.04132861537025957, -0.3549227920668959, 0.9339735266150585,
-             -0.003899846823498184],
-        )
-        self.declare_parameter(
-            'shoe_yaw_axis_xyz', [0.13999845344725156, -0.9872268603133045, 0.07604971603046785]
-        )
+        self.declare_parameter('shoe_yaw_reference_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
+        self.declare_parameter('shoe_yaw_axis_xyz', [0.0, 0.0, 1.0])
         self.declare_parameter('shoe_yaw_flip_threshold_deg', 90.0)
-        self.declare_parameter('grasp_fixed_roll', -0.005273412980347409)
-        self.declare_parameter('grasp_fixed_pitch', 0.01666491788848952)
-        self.declare_parameter('grasp_yaw_from_shoe_yaw_scale', -1.016908340135941)
-        self.declare_parameter('grasp_yaw_offset', -0.12016636998914268)
+        self.declare_parameter('grasp_fixed_roll', 0.0)
+        self.declare_parameter('grasp_fixed_pitch', 0.0)
+        self.declare_parameter('grasp_yaw_from_shoe_yaw_scale', 0.0)
+        self.declare_parameter('grasp_yaw_offset', 0.0)
         self.declare_parameter('yaw_clamp_min_deg', -90.0)
         self.declare_parameter('yaw_clamp_max_deg', 90.0)
 
@@ -135,27 +115,13 @@ class CenterposeShoe(PickPlaceNodeBase):
         self.declare_parameter('lift_height', 0.1)
         self.declare_parameter('lift_duration', 2.0)
 
-        # --- Place sequence ---
-        self.declare_parameter(
-            'place_slot_1_position_xyz',
-            [0.47151222825050354, 0.42120254039764404, 0.9456136226654053],
-        )
-        self.declare_parameter(
-            'place_slot_1_orientation_xyzw',
-            [-0.0023092320188879967, 0.008429071865975857, 0.028931625187397003,
-             0.9995430707931519],
-        )
-        self.declare_parameter(
-            'place_slot_2_position_xyz',
-            [0.45977485179901123, 0.22981253385543823, 0.9466336965560913],
-        )
-        self.declare_parameter(
-            'place_slot_2_orientation_xyzw',
-            [-0.0023092320188879967, 0.008429071865975857, 0.028931625187397003,
-             0.9995430707931519],
-        )
+        # --- Place sequence (values from centerpose_shoe_calibration.yaml) ---
+        self.declare_parameter('place_slot_1_position_xyz', [0.0, 0.0, 0.0])
+        self.declare_parameter('place_slot_1_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
+        self.declare_parameter('place_slot_2_position_xyz', [0.0, 0.0, 0.0])
+        self.declare_parameter('place_slot_2_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
         self.declare_parameter('place_hover_duration', 4.0)
-        self.declare_parameter('place_lower_distance', 0.1338221335411271)
+        self.declare_parameter('place_lower_distance', 0.0)
         self.declare_parameter('place_lower_duration', 2.0)
         self.declare_parameter('place_duration', 1.0)
 
@@ -308,6 +274,7 @@ class CenterposeShoe(PickPlaceNodeBase):
             threading.Thread(target=self._startup_sequence, daemon=True).start()
 
     def _startup_sequence(self):
+        # Move the arm through startup_pose -> start_pose once, at node startup.
         startup_pose = PoseStamped()
         startup_pose.header.frame_id = self.target_frame
         self._set_pose_from_arrays(
@@ -336,6 +303,7 @@ class CenterposeShoe(PickPlaceNodeBase):
             self.execution_step = 'idle'
 
     def _build_place_slot(self, index):
+        # Read place_slot_{index}_position/orientation into one slot dict.
         position = self._list_parameter(f'place_slot_{index}_position_xyz')
         if len(position) != 3:
             raise ValueError(f'place_slot_{index}_position_xyz must contain [x, y, z]')
@@ -356,6 +324,7 @@ class CenterposeShoe(PickPlaceNodeBase):
         self, detection, camera_info, depth_image, depth_msg,
         camera_transform, fixed_z, log, index
     ):
+        # Convert one CenterPose detection into a grasp pose in base_link.
         center = detection.bbox.center.position
         if not all(math.isfinite(value) for value in (center.x, center.y, center.z)):
             return None
@@ -405,6 +374,7 @@ class CenterposeShoe(PickPlaceNodeBase):
         return {'pose': pose, 'pixel_u': u}
 
     def _real_camera_point(self, camera_info, u, v, depth_image, depth_msg, log):
+        # Back-project pixel (u, v) + sampled depth into a camera-frame 3D point.
         # TODO: shoe_depth_center_offset unmeasured.
         fx = camera_info.k[0]
         fy = camera_info.k[4]
@@ -429,6 +399,7 @@ class CenterposeShoe(PickPlaceNodeBase):
         )
 
     def _execute_queue(self, queue):
+        # Pick and place every captured shoe in order, then return to start pose.
         with self.execution_lock:
             try:
                 for index, item in enumerate(queue):
@@ -461,6 +432,7 @@ class CenterposeShoe(PickPlaceNodeBase):
 
     # --- Pick/place motion ---
     def _pick_and_place(self, grasp_pose, slot, label='shoe'):
+        # Run the full pick (insert->close->lift) then place (hover->lower->release) sequence.
         grasp_q = np.array([
             grasp_pose.pose.orientation.x,
             grasp_pose.pose.orientation.y,
@@ -514,6 +486,8 @@ class CenterposeShoe(PickPlaceNodeBase):
         return True
 
     def _transform_centerpose(self, camera_transform, position_cam, orientation):
+        # Convert a camera-frame point+orientation into a base_link grasp pose
+        # (gripper yaw follows the shoe's yaw; roll/pitch stay fixed).
         transform_q, t = camera_transform
         object_q = np.array(
             [orientation.x, orientation.y, orientation.z, orientation.w], dtype=np.float64
@@ -545,6 +519,7 @@ class CenterposeShoe(PickPlaceNodeBase):
         return point, target_q, object_yaw, gripper_yaw
 
     def _signed_shoe_yaw(self, object_q):
+        # Signed angle of the shoe's orientation relative to the calibrated reference.
         relative_q = self._quaternion_multiply(
             self._quaternion_conjugate(self.shoe_yaw_reference_orientation), object_q
         )

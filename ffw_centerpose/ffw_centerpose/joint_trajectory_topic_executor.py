@@ -25,6 +25,8 @@ from trajectory_msgs.msg import JointTrajectoryPoint
 
 
 class JointTrajectoryTopicExecutor(Node):
+    # Moves one joint group through a sequence of predefined poses (steps),
+    # publishing smooth trajectories directly to a topic (no action server needed).
     def __init__(self):
         super().__init__('joint_trajectory_topic_executor')
 
@@ -96,9 +98,11 @@ class JointTrajectoryTopicExecutor(Node):
         self.get_logger().info(f'Using joint states topic: {self.joint_states_topic}')
 
     def get_step_target_positions(self):
+        # Target joint positions for the current step.
         return self.positions_list[self.current_step]
 
     def check_step_completion(self):
+        # Check whether current position/velocity are within tolerance of the target.
         target_positions = self.get_step_target_positions()
         positions_ok = all(
             abs(curr - target) < self.position_tolerance
@@ -110,6 +114,7 @@ class JointTrajectoryTopicExecutor(Node):
         return positions_ok and velocities_ok
 
     def joint_state_callback(self, msg):
+        # Publish the current step's trajectory once, advance on arrival, shut down when done.
         if set(self.joint_names).issubset(set(msg.name)):
             self.current_positions = [
                 msg.position[msg.name.index(j)] for j in self.joint_names
@@ -145,11 +150,13 @@ class JointTrajectoryTopicExecutor(Node):
                         return
 
     def shutdown_node(self):
+        # Shut the node down once all steps are complete.
         self.destroy_node()
         rclpy.shutdown()
         sys.exit(0)
 
     def create_smooth_trajectory(self, start_pos, end_pos):
+        # Generate a quintic (5th-order) trajectory from start_pos to end_pos.
         traj = JointTrajectory()
         traj.joint_names = self.joint_names
 

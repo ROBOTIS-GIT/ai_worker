@@ -214,6 +214,7 @@ class CenterposePointcloud(Node):
     # --- Point cloud crop + table plane detection/texturing ---
 
     def _lookup_rotation_translation(self, target_frame, source_frame):
+        # Look up target_frame <- source_frame TF as a (rotation matrix, translation) pair.
         try:
             transform = self.tf_buffer.lookup_transform(
                 target_frame, source_frame, rclpy.time.Time()
@@ -232,6 +233,7 @@ class CenterposePointcloud(Node):
         return rotation, translation
 
     def _cloud_callback(self, msg):
+        # Crop the raw cloud to the target_frame box, drop below-table points, republish.
         if msg.width * msg.height == 0:
             return
 
@@ -276,6 +278,7 @@ class CenterposePointcloud(Node):
         self._publish(msg, kept)
 
     def _update_table_plane_state(self, kept_target_xyz):
+        # Fit the table plane via RANSAC and smooth its pose/footprint over frames (EMA).
         plane = self._fit_plane_ransac(kept_target_xyz)
         if plane is None:
             return
@@ -309,6 +312,7 @@ class CenterposePointcloud(Node):
             self._table_extent_ema = (1.0 - alpha) * self._table_extent_ema + alpha * extent
 
     def _color_callback(self, msg):
+        # Rasterize the table plane, texture it from the color image, and publish.
         if self.freeze_table_plane and self._frozen_table_cloud is not None:
             self._frozen_table_cloud.header.stamp = msg.header.stamp
             self.table_plane_pub.publish(self._frozen_table_cloud)
@@ -411,6 +415,7 @@ class CenterposePointcloud(Node):
 
     @staticmethod
     def _scaled_intrinsics(camera_info, image_shape):
+        # Rescale fx/fy/cx/cy to the actually-received image size.
         orig_height, orig_width = image_shape[:2]
         scale_x = orig_width / camera_info.width if camera_info.width else 1.0
         scale_y = orig_height / camera_info.height if camera_info.height else 1.0
@@ -423,6 +428,7 @@ class CenterposePointcloud(Node):
 
     @staticmethod
     def _reproject_and_sample_color(positions_target, rotation, translation, intrinsics, bgr):
+        # Project target-frame points into the camera and sample their pixel color.
         fx, fy, cx, cy = intrinsics
         orig_height, orig_width = bgr.shape[:2]
 
@@ -455,6 +461,7 @@ class CenterposePointcloud(Node):
         self, centroid, normal, u_hat, v_hat, pu_min, pu_max, pv_min, pv_max,
         rotation, translation, intrinsics,
     ):
+        # Build a grid standing up from the table's far edge, tall enough to fill the frame.
         wall_normal = normal if normal[2] >= 0.0 else -normal
 
         u_dot = float(u_hat[0])
@@ -507,6 +514,7 @@ class CenterposePointcloud(Node):
 
     @staticmethod
     def _plane_basis(normal):
+        # Build two in-plane axes (u_hat, v_hat) perpendicular to a plane normal.
         reference = (
             np.array([0.0, 0.0, 1.0]) if abs(normal[2]) < 0.9 else np.array([1.0, 0.0, 0.0])
         )
@@ -516,6 +524,7 @@ class CenterposePointcloud(Node):
         return u_hat, v_hat
 
     def _fit_plane_ransac(self, points):
+        # Find the dominant plane (the table) via RANSAC; return normal, centroid, inlier mask.
         n_points = points.shape[0]
         if n_points < self.table_plane_min_inliers:
             return None
@@ -571,6 +580,7 @@ class CenterposePointcloud(Node):
         return refined_normal, centroid, inlier_mask
 
     def _build_dtype(self, msg):
+        # Build a numpy dtype mirroring the source PointCloud2's field layout.
         names = []
         formats = []
         offsets = []
@@ -598,6 +608,7 @@ class CenterposePointcloud(Node):
         })
 
     def _publish(self, source_msg, points):
+        # Publish the cropped point array as a PointCloud2 with the source's field layout.
         cloud = PointCloud2()
         cloud.header = source_msg.header
         cloud.height = 1
@@ -612,6 +623,7 @@ class CenterposePointcloud(Node):
 
     @staticmethod
     def _quaternion_to_matrix(q):
+        # Convert a [x, y, z, w] quaternion into a 3x3 rotation matrix.
         x, y, z, w = q
         return np.array([
             [1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
@@ -622,10 +634,12 @@ class CenterposePointcloud(Node):
     # --- Bbox markers ---
 
     def _camera_info_callback(self, msg):
+        # Keep only the latest CameraInfo, used to correct marker position/size.
         with self.data_lock:
             self.latest_camera_info = msg
 
     def _depth_callback(self, msg):
+        # Convert and keep only the latest depth image, used to correct marker position/size.
         try:
             image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
         except CvBridgeError as exc:
@@ -638,6 +652,7 @@ class CenterposePointcloud(Node):
             self.latest_depth_msg = msg
 
     def _detections_callback(self, msg):
+        # Correct each detection's position/size and (re)draw it as an RViz bbox marker.
         with self.data_lock:
             camera_info = self.latest_camera_info
             depth_image = self.latest_depth_image
@@ -747,6 +762,7 @@ class CenterposePointcloud(Node):
         self.marker_pub.publish(markers)
 
     def _correct_bbox(self, detection, camera_info, depth_image, depth_msg):
+        # Re-derive bbox position from real depth and rescale size by bbox_size_scale.
         center = detection.bbox.center.position
         if not all(math.isfinite(value) for value in (center.x, center.y, center.z)):
             return None
@@ -781,6 +797,7 @@ class CenterposePointcloud(Node):
         return position, size
 
     def _sample_depth(self, depth_image, depth_msg, u, v):
+        # Median depth in a small window around pixel (u, v).
         height, width = depth_image.shape[:2]
         half_window = max(0, self.depth_window // 2)
         u_min = max(0, u - half_window)
@@ -802,6 +819,7 @@ class CenterposePointcloud(Node):
 
     @staticmethod
     def _duration(seconds):
+        # Convert a float number of seconds into a ROS Duration.
         duration = Duration()
         duration.sec = int(seconds)
         duration.nanosec = int((seconds % 1.0) * 1e9)
