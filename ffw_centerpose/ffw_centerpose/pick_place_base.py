@@ -23,6 +23,7 @@ class PickPlaceNodeBase(Node):
     # Overridden by subclasses, e.g. 'bottle(s)', 'box(es)'.
     _OBJECT_LABEL_PLURAL = 'object(s)'
 
+    # --- Setup ---
     def _setup_common(self):
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
@@ -74,6 +75,7 @@ class PickPlaceNodeBase(Node):
         self.create_service(Trigger, '~/execute', self._execute_callback)
         self.create_service(Trigger, '~/cancel', self._cancel_callback)
 
+    # --- Subscription callbacks ---
     def _camera_info_callback(self, msg):
         with self.data_lock:
             self.latest_camera_info = msg
@@ -100,6 +102,7 @@ class PickPlaceNodeBase(Node):
             for name, position in zip(msg.name, msg.position):
                 self.current_joint_positions[name] = float(position)
 
+    # --- Service callbacks ---
     def _capture_callback(self, _request, response):
         results = self._process_detections(log=True)
         if not results:
@@ -164,6 +167,7 @@ class PickPlaceNodeBase(Node):
         response.message = 'cancel requested' if self.execution_lock.locked() else 'idle'
         return response
 
+    # --- Detection -> pose conversion ---
     def _process_detections(self, log):
         with self.data_lock:
             detections = self.latest_detection_msg
@@ -292,6 +296,7 @@ class PickPlaceNodeBase(Node):
             return None
         return float(transform.transform.translation.z)
 
+    # --- Motion execution ---
     def _move_l(self, pose, duration=None):
         if not self._wait_for_subscriber(self.movel_pub, self.movel_topic):
             return False
@@ -384,6 +389,7 @@ class PickPlaceNodeBase(Node):
             time.sleep(max(0.0, min(0.05, deadline - time.monotonic())))
         return True
 
+    # --- Parameter / quaternion / pose utilities ---
     def _list_parameter(self, name):
         value = self.get_parameter(name).value
         if isinstance(value, str):
