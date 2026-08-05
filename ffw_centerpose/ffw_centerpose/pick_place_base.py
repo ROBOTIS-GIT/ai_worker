@@ -206,8 +206,7 @@ class PickPlaceNodeBase(Node):
             )
             if result is not None:
                 results.append(result)
-        # Sort left-to-right on screen (not detector output order), for stable
-        # slot-filling / one-at-a-time pick order.
+        # Sort left-to-right on screen.
         results.sort(key=lambda item: item['pixel_u'])
         return results
 
@@ -346,8 +345,7 @@ class PickPlaceNodeBase(Node):
         )
 
     def _stream_trajectory(self, publisher, joint_names, position_fn, rate_hz, total_duration):
-        # Re-sent continuously since the MoveL/MoveJ controller streams to the
-        # same topic at ~100Hz and would overwrite a single command immediately.
+        # Continuous re-send.
         period = 1.0 / rate_hz
         point_time = max(period * 2.0, 0.05)
         point_duration = self._duration(point_time)

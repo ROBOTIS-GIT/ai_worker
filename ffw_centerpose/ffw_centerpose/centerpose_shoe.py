@@ -12,9 +12,7 @@ from ffw_centerpose.pick_place_base import PickPlaceNodeBase
 
 
 class CenterposeShoe(PickPlaceNodeBase):
-    # DRAFT: grasp_position_offset and place_lower_distance are still placeholders
-    # pending real-robot calibration.
-
+    # DRAFT: uncalibrated placeholders below.
     _OBJECT_LABEL_PLURAL = 'shoe(s)'
 
     def __init__(self):
@@ -23,24 +21,18 @@ class CenterposeShoe(PickPlaceNodeBase):
         # --- Parameters ---
         self.declare_parameter('detections_topic', '/centerpose/detections')
         self.declare_parameter('camera_info_topic', '/camera_info')
-        # x/y direction from CenterPose pixels, real metric depth from this topic;
-        # z always fixed_grasp_z.
         self.declare_parameter('depth_topic', '/zedm/zed_node/depth/depth_registered')
         self.declare_parameter('depth_window', 5)
         self.declare_parameter('joint_states_topic', '/joint_states')
         self.declare_parameter('target_frame', 'base_link')
         self.declare_parameter('projection_frame', '')
         self.declare_parameter('detection_timeout', 10.0)
-        # Reject captures with x beyond this. Wider than centerpose_box/bottle (0.7)
-        # since shoes are worked on further out (measured x=0.87).
         self.declare_parameter('max_grasp_x', 0.9)
         self.declare_parameter('execute_motion', False)
         self.declare_parameter('movel_topic', '/l_goal_move')
         self.declare_parameter('movel_duration', 10.0)
 
-        # --- Startup sequence, run once at node startup (execute_motion=true only,
-        # backgrounded so it doesn't block init/spin -- see _startup_sequence):
-        # startup_pose (slow) -> start_pose (very slow). No longer part of each pick.
+        # --- Startup sequence ---
         self.declare_parameter(
             'startup_position_xyz',
             [0.17088773846626282, 0.48100942373275757, 0.9724668264389038],
@@ -51,9 +43,6 @@ class CenterposeShoe(PickPlaceNodeBase):
              0.7198045253753662],
         )
         self.declare_parameter('startup_duration', 10.0)
-
-        # --- Shoe-pick start pose; measured via `ros2 topic echo --once /l_goal_pose`.
-        # Moved to after startup_pose on node startup, and reused as the return pose. ---
         self.declare_parameter(
             'start_position_xyz',
             [0.23394590616226196, 0.3340926766395569, 0.9377147555351257],
@@ -63,46 +52,29 @@ class CenterposeShoe(PickPlaceNodeBase):
             [-0.002594258636236191, 0.008345617912709713, -0.00505678029730916,
              0.9999490976333618],
         )
-        # This move rotates the arm almost all the way around, so it defaults slow.
         self.declare_parameter('start_duration', 10.0)
-        # Used only for the final return to start pose after the whole queue is
-        # placed -- roughly 1.5x faster than start_duration (10.0).
         self.declare_parameter('return_duration', 6.0)
 
         # --- Approach / insertion ---
         self.declare_parameter('pregrasp_distance', 0.1)
         self.declare_parameter('pregrasp_duration', 4.0)
         self.declare_parameter('insertion_duration', 2.0)
-        # How far to lower from the hover height (fixed_grasp_z) to the actual grab
-        # height, along the approach axis. Measured: fixed_grasp_z - min_grasp_z.
         self.declare_parameter('insertion_overshoot_distance', 0.1438221335411271)
         self.declare_parameter('movel_subscriber_timeout', 2.0)
         self.declare_parameter('settle_time', 0.5)
         self.declare_parameter('eef_link', 'end_effector_l_link')
-        # Hover height before lowering to grab -- always fixed, same height as
-        # start_position_xyz's z.
         self.declare_parameter('fixed_grasp_z', 0.9377147555351257)
-        # Measured hard floor -- the arm must never descend below this when grabbing
-        # a shoe. insert_pose.z is clamped to this in code, not just via arithmetic.
         self.declare_parameter('min_grasp_z', 0.7938926219940186)
 
-        # --- Shoe hole offset from detected center ---
-        # x pulled 3cm toward the robot (-X, 1cm then +2cm more).
+        # --- Shoe hole offset ---
         self.declare_parameter('grasp_position_offset', [-0.03, 0.0, 0.0])
-        # Pixel-based y correction, same idea as centerpose_box.py.
         self.declare_parameter('grasp_position_y_slope', -6.944444444444444e-05)
         self.declare_parameter('grasp_position_y_reference_pixel', 288.0)
-        # Extra right (-Y) pull applied only to the second-captured shoe (queue index 1),
-        # separate from the position-based correction above.
         self.declare_parameter('second_shoe_grasp_y_offset', -0.02)
         self.declare_parameter('shoe_depth_center_offset', 0.0)
         self.declare_parameter('tool_orientation_offset_xyzw', [0.0, 0.0, 0.0, 1.0])
 
         # --- Shoe yaw -> gripper yaw calibration ---
-        # Grasped from directly above, so gripper yaw (not roll, unlike
-        # centerpose_box.py) follows shoe rotation; roll/pitch stay fixed.
-        # Least-squares fit from 3 measured points, residuals 2-6 deg, validated
-        # against a 4th independent sample (~4.4 deg error).
         self.declare_parameter(
             'shoe_yaw_reference_orientation_xyzw',
             [0.04132861537025957, -0.3549227920668959, 0.9339735266150585,
@@ -138,10 +110,7 @@ class CenterposeShoe(PickPlaceNodeBase):
             ],
         )
         self.declare_parameter('gripper_open_position', 0.0)
-        # Higher than centerpose_bottle.py's 0.7 -- shoes need a firmer grip.
         self.declare_parameter('gripper_closed_position', 1.1)
-        # Only used when releasing a shoe -- opening fully knocks into an
-        # already-placed shoe in the neighboring slot.
         self.declare_parameter('gripper_release_position', 0.7)
         self.declare_parameter('gripper_duration', 1.0)
         self.declare_parameter('gripper_settle_time', 0.2)
@@ -149,7 +118,7 @@ class CenterposeShoe(PickPlaceNodeBase):
         self.declare_parameter('lift_height', 0.1)
         self.declare_parameter('lift_duration', 2.0)
 
-        # --- Place sequence (2 slots, same pattern as centerpose_bottle.py) ---
+        # --- Place sequence ---
         self.declare_parameter(
             'place_slot_1_position_xyz',
             [0.47151222825050354, 0.42120254039764404, 0.9456136226654053],
@@ -159,7 +128,6 @@ class CenterposeShoe(PickPlaceNodeBase):
             [-0.0023092320188879967, 0.008429071865975857, 0.028931625187397003,
              0.9995430707931519],
         )
-        # y shifted from slot 1 (right) so the two placed shoes do not touch.
         self.declare_parameter(
             'place_slot_2_position_xyz',
             [0.45977485179901123, 0.22981253385543823, 0.9466336965560913],
@@ -170,8 +138,6 @@ class CenterposeShoe(PickPlaceNodeBase):
              0.9995430707931519],
         )
         self.declare_parameter('place_hover_duration', 4.0)
-        # TODO: not independently measured yet -- insertion_overshoot_distance
-        # minus 1cm (release 1cm higher).
         self.declare_parameter('place_lower_distance', 0.1338221335411271)
         self.declare_parameter('place_lower_duration', 2.0)
         self.declare_parameter('place_duration', 1.0)
@@ -321,7 +287,6 @@ class CenterposeShoe(PickPlaceNodeBase):
         for index, slot in enumerate(self.place_slots, start=1):
             self.get_logger().info(f'  place slot {index} hover: {slot["position"]}')
 
-        # Backgrounded since it's a blocking move and would otherwise block init/spin.
         if self.execute_motion:
             threading.Thread(target=self._startup_sequence, daemon=True).start()
 
@@ -369,6 +334,7 @@ class CenterposeShoe(PickPlaceNodeBase):
 
         return {'position': position, 'orientation': orientation / norm}
 
+    # --- Detection -> pose conversion ---
     def _process_single_detection(
         self, detection, camera_info, depth_image, depth_msg,
         camera_transform, fixed_z, log, index
@@ -422,7 +388,7 @@ class CenterposeShoe(PickPlaceNodeBase):
         return {'pose': pose, 'pixel_u': u}
 
     def _real_camera_point(self, camera_info, u, v, depth_image, depth_msg, log):
-        # TODO: shoe_depth_center_offset (surface-to-grab-point correction) still 0, unmeasured.
+        # TODO: shoe_depth_center_offset unmeasured.
         fx = camera_info.k[0]
         fy = camera_info.k[4]
         cx = camera_info.k[2]
@@ -446,7 +412,6 @@ class CenterposeShoe(PickPlaceNodeBase):
         )
 
     def _execute_queue(self, queue):
-        # Does not return to the start pose between shoes -- only once after the whole queue.
         with self.execution_lock:
             try:
                 for index, item in enumerate(queue):
@@ -477,6 +442,7 @@ class CenterposeShoe(PickPlaceNodeBase):
             finally:
                 self.execution_step = 'idle'
 
+    # --- Pick/place motion ---
     def _pick_and_place(self, grasp_pose, slot, label='shoe'):
         grasp_q = np.array([
             grasp_pose.pose.orientation.x,
@@ -490,7 +456,6 @@ class CenterposeShoe(PickPlaceNodeBase):
         insert_pose.pose.position.x += approach_dir[0] * self.insertion_overshoot_distance
         insert_pose.pose.position.y += approach_dir[1] * self.insertion_overshoot_distance
         insert_pose.pose.position.z += approach_dir[2] * self.insertion_overshoot_distance
-        # Hard floor clamp, not just relied on via arithmetic.
         insert_pose.pose.position.z = max(insert_pose.pose.position.z, self.min_grasp_z)
 
         pregrasp_pose = self._copy_pose(insert_pose)

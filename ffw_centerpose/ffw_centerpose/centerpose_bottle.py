@@ -19,30 +19,24 @@ class CenterposeBottle(PickPlaceNodeBase):
         # --- Parameters ---
         self.declare_parameter('detections_topic', '/centerpose/detections')
         self.declare_parameter('camera_info_topic', '/camera_info')
-        # x/y from pixel projection + measured depth; z always fixed_grasp_z.
         self.declare_parameter('depth_topic', '/zedm/zed_node/depth/depth_registered')
         self.declare_parameter('depth_window', 5)
         self.declare_parameter('joint_states_topic', '/joint_states')
         self.declare_parameter('target_frame', 'base_link')
         self.declare_parameter('projection_frame', '')
         self.declare_parameter('detection_timeout', 10.0)
-        # Reject captures with x beyond this -- likely a depth misread.
         self.declare_parameter('max_grasp_x', 0.7)
         self.declare_parameter('execute_motion', False)
         self.declare_parameter('movel_topic', '/l_goal_move')
         self.declare_parameter('movel_duration', 5.0)
-        # Back off along the approach axis before inserting straight in.
         self.declare_parameter('pregrasp_distance', 0.08)
         self.declare_parameter('pregrasp_duration', 2.0)
         self.declare_parameter('insertion_duration', 1.0)
         self.declare_parameter('movel_subscriber_timeout', 2.0)
         self.declare_parameter('settle_time', 0.5)
         self.declare_parameter('eef_link', 'end_effector_l_link')
-        # Fixed grasp height; negative falls back to current EEF z at capture.
         self.declare_parameter('fixed_grasp_z', 0.8241714239120483)
-        # Calibrated from measured grasp error on the real robot.
         self.declare_parameter('grasp_position_offset', [0.01, -0.04, 0.0])
-        # Fixed gripper orientation for every step; does not follow bottle orientation.
         self.declare_parameter(
             'grasp_orientation_xyzw',
             [-0.0657237321138382, -0.6881383657455444, -0.06250208616256714, 0.7198885083198547],
@@ -69,12 +63,10 @@ class CenterposeBottle(PickPlaceNodeBase):
         self.declare_parameter('gripper_closed_position', 0.7)
         self.declare_parameter('gripper_duration', 0.5)
         self.declare_parameter('gripper_settle_time', 0.2)
-        # Re-sent at this rate so it stays competitive with MoveL streaming to the same topic.
         self.declare_parameter('command_rate_hz', 300.0)
         self.declare_parameter('lift_height', 0.1)
         self.declare_parameter('lift_duration', 1.0)
-        # Place sequence: hover -> lower by box_place_z_offset -> release -> hover.
-        # Two slots, filled by capture order; slot 1 only if a single bottle.
+        # --- Box slot positions ---
         self.declare_parameter(
             'box_slot_1_position_xyz',
             [0.6468760967254639, 0.36483344435691833, 0.9507306218147278],
@@ -92,11 +84,9 @@ class CenterposeBottle(PickPlaceNodeBase):
             [0.13866588473320007, -0.6788055896759033, 0.13322767615318298, 0.7086924910545349],
         )
         self.declare_parameter('box_duration', 1.5)
-        # Lower distance from hover to release, shared by both slots.
         self.declare_parameter('box_place_z_offset', 0.1093128323554992)
         self.declare_parameter('box_place_duration', 1.0)
         self.declare_parameter('return_to_initial', True)
-        # Measured via tf2_echo in the bottle_ready initial pose.
         self.declare_parameter(
             'home_position_xyz',
             [0.13451801240444183, 0.2999741733074188, 0.9742214239120483],
@@ -139,7 +129,7 @@ class CenterposeBottle(PickPlaceNodeBase):
         if orientation_norm < 1e-9:
             raise ValueError('grasp_orientation_xyzw must not be zero')
         self.grasp_orientation = grasp_orientation / orientation_norm
-        # Approach direction from grasp_orientation's local -Z; fixed, so computed once.
+        # --- Approach direction ---
         self.approach_dir = self._rotate_vector(
             np.array([0.0, 0.0, -1.0]), self.grasp_orientation
         )
@@ -202,6 +192,7 @@ class CenterposeBottle(PickPlaceNodeBase):
 
         return {'position': position, 'orientation': orientation / norm}
 
+    # --- Detection -> pose conversion ---
     def _process_single_detection(
         self, detection, camera_info, depth_image, depth_msg,
         camera_transform, fixed_z, log, index
@@ -273,7 +264,6 @@ class CenterposeBottle(PickPlaceNodeBase):
                     if self.cancel_event.is_set():
                         return
                     label = f'bottle {index + 1}/{len(queue)}'
-                    # Reuse the last slot if there are more bottles than slots.
                     slot = self.box_slots[min(index, len(self.box_slots) - 1)]
                     if not self._pick_and_place(item['pose'], slot, label):
                         if self.cancel_event.is_set():
@@ -284,6 +274,7 @@ class CenterposeBottle(PickPlaceNodeBase):
             finally:
                 self.execution_step = 'idle'
 
+    # --- Pick/place motion ---
     def _pick_and_place(self, grasp_pose, slot, label='bottle'):
         pregrasp_pose = self._copy_pose(grasp_pose)
         pregrasp_pose.pose.position.x -= self.approach_dir[0] * self.pregrasp_distance
@@ -313,7 +304,6 @@ class CenterposeBottle(PickPlaceNodeBase):
             ('move above box', lambda: self._move_l(box_pose, duration=self.box_duration)),
             ('lower into box', lambda: self._move_l(box_place_pose, duration=self.box_place_duration)),
             ('release in box', lambda: self._move_gripper(self.gripper_open_position)),
-            # Raise to hover before retreating, to avoid clipping the box.
             ('raise back above box', lambda: self._move_l(box_pose, duration=self.box_place_duration)),
         ]
         if self.return_to_initial:

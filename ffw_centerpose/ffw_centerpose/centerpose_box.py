@@ -13,8 +13,6 @@ from ffw_centerpose.pick_place_base import PickPlaceNodeBase
 class CenterposeBox(PickPlaceNodeBase):
     _OBJECT_LABEL_PLURAL = 'box(es)'
 
-    # CenterPose occasionally reports the box front/back-flipped 180 deg; see
-    # box_yaw_flip_threshold_deg.
     _LOCAL_Y_180_FLIP = np.array([0.0, 1.0, 0.0, 0.0])
 
     def __init__(self):
@@ -23,65 +21,45 @@ class CenterposeBox(PickPlaceNodeBase):
         # --- Parameters ---
         self.declare_parameter('detections_topic', '/centerpose/detections')
         self.declare_parameter('camera_info_topic', '/camera_info')
-        # x/y from pixel projection + measured depth; z always fixed_grasp_z.
         self.declare_parameter('depth_topic', '/zedm/zed_node/depth/depth_registered')
         self.declare_parameter('depth_window', 5)
         self.declare_parameter('joint_states_topic', '/joint_states')
         self.declare_parameter('target_frame', 'base_link')
         self.declare_parameter('projection_frame', '')
         self.declare_parameter('detection_timeout', 10.0)
-        # Reject captures with x beyond this -- likely a depth misread.
         self.declare_parameter('max_grasp_x', 0.7)
         self.declare_parameter('execute_motion', False)
         self.declare_parameter('movel_topic', '/l_goal_move')
         self.declare_parameter('movel_duration', 10.0)
-        # Back off along the approach axis (varies with roll) before inserting straight in.
         self.declare_parameter('pregrasp_distance', 0.11)
         self.declare_parameter('pregrasp_duration', 4.0)
         self.declare_parameter('insertion_duration', 3.0)
-        # Push this much further than the raw detection before closing, since the
-        # detected surface position is only an estimate.
         self.declare_parameter('insertion_overshoot_distance', -0.04)
         self.declare_parameter('movel_subscriber_timeout', 2.0)
         self.declare_parameter('settle_time', 0.5)
         self.declare_parameter('eef_link', 'end_effector_l_link')
-        # Fixed grasp height (same as centerpose_bottle); negative falls back to
-        # current EEF z at capture.
         self.declare_parameter('fixed_grasp_z', 0.8241714239120483)
-        # [x, y, z] offset, exact at grasp_position_y_reference_pixel; corrected
-        # elsewhere by grasp_position_x/y_slope.
+        # --- Grasp position/yaw calibration ---
         self.declare_parameter('grasp_position_offset', [0.01, -0.02, 0.0])
-        # Pixel-based y correction slope (camera mounting angle error).
-        # y_offset = grasp_position_offset[1] + slope * (pixel_u - reference_pixel).
         self.declare_parameter('grasp_position_y_slope', 0.0)
         self.declare_parameter('grasp_position_y_reference_pixel', 288.0)
-        # Same idea as grasp_position_y_slope, for forward/backward (x).
         self.declare_parameter('grasp_position_x_slope', -3.472222222222222e-05)
-        # Depth reads the box's front face, not its center; added to sampled depth.
         self.declare_parameter('box_depth_center_offset', 0.08)
         self.declare_parameter('tool_orientation_offset_xyzw', [0.0, 0.0, 0.0, 1.0])
-        # Reference orientation (box facing the robot, yaw=0) that object_yaw is
-        # measured against via quaternion axis-angle. Roll fit from 3 measured points.
         self.declare_parameter(
             'box_yaw_reference_orientation_xyzw',
             [-0.6272754451461677, 0.2145960107465087, -0.6681762105760168, 0.33766050954862303],
         )
-        # Calibrated rotation axis (camera frame) the box actually turns about.
         self.declare_parameter(
             'box_yaw_axis_xyz',
             [0.15517196976367656, -0.9264099543820705, 0.3430543050618564],
         )
-        # Angle from the reference beyond which a 180 deg front/back flip is assumed.
         self.declare_parameter('box_yaw_flip_threshold_deg', 90.0)
-        # Fixed pitch/yaw; only roll follows box yaw. From the reference sample's Euler angles.
         self.declare_parameter('grasp_fixed_pitch', -1.5016251715681637)
         self.declare_parameter('grasp_fixed_yaw', -0.052366725449585025)
-        # Linear fit: roll = scale * box_yaw + offset.
         self.declare_parameter('grasp_roll_from_yaw_scale', -0.9731714138014503)
         self.declare_parameter('grasp_roll_offset', 0.04845972067574276)
-        # Display-only offset so a box facing the robot reads ~0 deg.
         self.declare_parameter('box_yaw_zero_offset_deg', 0.0)
-        # Clamp range for the roll fit above, valid only within the measured angles.
         self.declare_parameter('roll_clamp_min_deg', -60.0)
         self.declare_parameter('roll_clamp_max_deg', 60.0)
         self.declare_parameter(
@@ -106,10 +84,10 @@ class CenterposeBox(PickPlaceNodeBase):
         self.declare_parameter('gripper_closed_position', 0.57)
         self.declare_parameter('gripper_duration', 1.0)
         self.declare_parameter('gripper_settle_time', 0.2)
-        # Re-sent at this rate so it stays competitive with MoveL streaming to the same topic.
         self.declare_parameter('command_rate_hz', 300.0)
         self.declare_parameter('lift_height', 0.1)
         self.declare_parameter('lift_duration', 2.0)
+        # --- Place sequence ---
         self.declare_parameter(
             'place_hover_position_xyz',
             [0.4098847508430481, 0.3597005009651184, 0.9550905227661133],
@@ -152,7 +130,6 @@ class CenterposeBox(PickPlaceNodeBase):
         )
         self.declare_parameter('place_push_duration', 2.0)
         self.declare_parameter('return_to_initial', True)
-        # Measured via tf2_echo in the bottle_ready initial pose.
         self.declare_parameter(
             'home_position_xyz',
             [0.13451801240444183, 0.2999741733074188, 0.9742214239120483],
@@ -333,6 +310,7 @@ class CenterposeBox(PickPlaceNodeBase):
         p = item['pose'].pose.position
         return f'({p.x:.3f}, {p.y:.3f}, {p.z:.3f}), yaw={item["box_yaw_deg"]:.1f} deg'
 
+    # --- Detection -> pose conversion ---
     def _process_single_detection(
         self, detection, camera_info, depth_image, depth_msg,
         camera_transform, fixed_z, log, index
@@ -409,7 +387,6 @@ class CenterposeBox(PickPlaceNodeBase):
                 )
             return None
 
-        # Correct depth itself (not x/y/z separately) since x/y also back-project from it.
         depth += self.box_depth_center_offset
 
         return np.array(
@@ -432,6 +409,7 @@ class CenterposeBox(PickPlaceNodeBase):
             finally:
                 self.execution_step = 'idle'
 
+    # --- Pick/place motion ---
     def _pick_and_place(self, grasp_pose, label='box'):
         grasp_q = np.array([
             grasp_pose.pose.orientation.x,
@@ -439,11 +417,8 @@ class CenterposeBox(PickPlaceNodeBase):
             grasp_pose.pose.orientation.z,
             grasp_pose.pose.orientation.w,
         ], dtype=np.float64)
-        # Approach axis from grasp orientation's local -Z; recomputed every call since
-        # roll varies with box yaw (unlike centerpose_bottle's fixed direction).
         approach_dir = self._rotate_vector(np.array([0.0, 0.0, -1.0]), grasp_q)
 
-        # Push in further than the detected surface before closing, since it's an estimate.
         insert_pose = self._copy_pose(grasp_pose)
         insert_pose.pose.position.x += approach_dir[0] * self.insertion_overshoot_distance
         insert_pose.pose.position.y += approach_dir[1] * self.insertion_overshoot_distance
@@ -533,7 +508,6 @@ class CenterposeBox(PickPlaceNodeBase):
 
         object_yaw, raw_angle = self._signed_box_yaw(object_q)
         if math.degrees(raw_angle) > self.box_yaw_flip_threshold_deg:
-            # Assume a 180 deg front/back flip and recompute.
             object_q = self._quaternion_multiply(object_q, self._LOCAL_Y_180_FLIP)
             object_yaw, _ = self._signed_box_yaw(object_q)
 

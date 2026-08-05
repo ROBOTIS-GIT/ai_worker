@@ -51,17 +51,14 @@ class CenterposePointcloud(Node):
         self.declare_parameter('table_plane_ransac_iterations', 150)
         self.declare_parameter('table_plane_min_inliers', 200)
         self.declare_parameter('table_plane_max_ransac_points', 20000)
-        # Rejects planes tilted too far from horizontal, so a wall or arm never
-        # gets mistaken for the table.
         self.declare_parameter('table_plane_normal_z_min', 0.8)
-        # EMA blend of the RANSAC fit across frames, to stop it flickering.
         self.declare_parameter('table_plane_smoothing_alpha', 0.15)
         self.declare_parameter('table_plane_grid_resolution', 0.004)
         self.declare_parameter('color_topic', '/zedm/zed_node/left/image_rect_color/compressed')
         self.declare_parameter('below_table_margin', 0.02)
         self.declare_parameter('freeze_table_plane', False)
 
-        # --- Wall (raised at the table's far edge, so the view doesn't cut off) ---
+        # --- Wall ---
         self.declare_parameter('enable_wall', True)
         self.declare_parameter('wall_min_height', 0.02)
         self.declare_parameter('wall_max_height', 2.0)
@@ -73,11 +70,8 @@ class CenterposePointcloud(Node):
         self.declare_parameter('depth_window', 5)
         self.declare_parameter('marker_topic', '/centerpose/bbox_markers')
         self.declare_parameter('marker_color_rgba', [1.0, 0.3, 0.0, 0.35])
-        # CenterPose's bbox.size reads about 5x too large.
         self.declare_parameter('bbox_size_scale', 0.2)
         self.declare_parameter('marker_lifetime', 2.0)
-        # Keeps showing the last position for this long after a detection drops
-        # out, so one missed frame doesn't flicker the marker.
         self.declare_parameter('marker_hold_timeout', 1.0)
         self.declare_parameter('show_marker_axes', True)
         self.declare_parameter('marker_axis_length', 0.15)
@@ -278,7 +272,7 @@ class CenterposePointcloud(Node):
             self._table_centroid_ema = centroid.copy()
             self._table_normal_ema = normal.copy()
         else:
-            # RANSAC/SVD can flip the normal's sign frame to frame; align before blending.
+            # Normal sign alignment.
             if self._table_normal_ema @ normal < 0.0:
                 normal = -normal
             self._table_centroid_ema = (1.0 - alpha) * self._table_centroid_ema + alpha * centroid
@@ -466,7 +460,7 @@ class CenterposePointcloud(Node):
         if edge_cam[2] <= 1e-3:
             return None
 
-        # Solve for wall height H so its projection reaches the top of the frame (v=0).
+        # Wall height solve.
         normal_cam = wall_normal @ rotation.T
         denom = fy * normal_cam[1] + cy * normal_cam[2]
         if abs(denom) < 1e-9:
@@ -609,7 +603,7 @@ class CenterposePointcloud(Node):
             [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)],
         ], dtype=np.float64)
 
-    # --- Bbox markers (renders CenterPose detections as RViz cubes) ---
+    # --- Bbox markers ---
 
     def _camera_info_callback(self, msg):
         with self.data_lock:
@@ -644,8 +638,6 @@ class CenterposePointcloud(Node):
         lifetime = self._duration(self.marker_lifetime)
         now = self.get_clock().now()
 
-        # Fixed index, not a running count -- otherwise one failed correction
-        # shifts every later marker's id and causes RViz flicker.
         for index, detection in enumerate(msg.detections):
             corrected = self._correct_bbox(detection, camera_info, depth_image, depth_msg)
             if corrected is None:
@@ -750,8 +742,7 @@ class CenterposePointcloud(Node):
         cx = camera_info.k[2]
         cy = camera_info.k[5]
 
-        # Bearing from CenterPose is trustworthy even though its depth isn't;
-        # reproject to a pixel and resample real depth there.
+        # Reproject and resample real depth.
         u = fx * (center.x / center.z) + cx
         v = fy * (center.y / center.z) + cy
 
@@ -764,7 +755,6 @@ class CenterposePointcloud(Node):
             dtype=np.float64,
         ) * self.bbox_size_scale
 
-        # Push back from the front face to the center by half the corrected size.
         center_depth = real_depth + 0.5 * float(size.mean())
 
         position = np.array(
