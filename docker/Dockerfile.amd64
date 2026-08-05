@@ -88,7 +88,7 @@ ENV PYTHONPATH=/opt/cyclo_manager:${PYTHONPATH}
 
 RUN pip config set global.break-system-packages true
 
-RUN pip install --no-cache-dir --ignore-installed -r /opt/cyclo_manager/requirements.txt
+RUN pip install --no-cache-dir --ignore-installed -r /opt/cyclo_manager/requirements-agent.txt
 
 # New-style s6-rc services (recommended in s6-overlay v3 docs)
 # Define services under /etc/s6-overlay/s6-rc.d and add them to the user bundle.
