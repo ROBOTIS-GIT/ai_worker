@@ -2,6 +2,11 @@
 Changelog for package ffw
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.0 (2026-08-06)
+------------------
+* Added support for the A2 leader
+* Contributors: Yeonguk Kim
+
 2.2.1 (2026-08-03)
 ------------------
 * Use Cyclo Manager agent requirements in Docker images

@@ -2,6 +2,11 @@
 Changelog for package ffw_bringup
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.0 (2026-08-06)
+------------------
+* Added hardware bringup for the A2 leader
+* Contributors: Yeonguk Kim
+
 2.2.1 (2026-08-03)
 ------------------
 * None
