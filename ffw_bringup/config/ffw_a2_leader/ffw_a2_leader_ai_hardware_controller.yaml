@@ -1,0 +1,104 @@
+/**:
+  controller_manager:
+    ros__parameters:
+      update_rate: 100
+      use_sim_time: false
+
+      joint_state_broadcaster:
+        type: joint_state_broadcaster/JointStateBroadcaster
+
+      joint_trajectory_command_broadcaster:
+        type: joint_trajectory_command_broadcaster/JointTrajectoryCommandBroadcaster
+
+      spring_actuator_controller:
+        type: spring_actuator_controller/SpringActuatorController
+
+      joystick_controller:
+        type: joystick_controller/JoystickController
+
+/**:
+  joint_trajectory_command_broadcaster:
+    ros__parameters:
+      left_joints:
+        - arm_l_joint1
+        - arm_l_joint2
+        - arm_l_joint3
+        - arm_l_joint4
+        - arm_l_joint5
+        - arm_l_joint6
+        - arm_l_joint7
+        - gripper_l_joint1
+      left_offsets:
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.3
+      right_joints:
+        - arm_r_joint1
+        - arm_r_joint2
+        - arm_r_joint3
+        - arm_r_joint4
+        - arm_r_joint5
+        - arm_r_joint6
+        - arm_r_joint7
+        - gripper_r_joint1
+      right_offsets:
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 0.3
+      trigger_threshold: -0.5
+
+/**:
+  spring_actuator_controller:
+    ros__parameters:
+      joints:
+        - gripper_l_joint1
+        - gripper_r_joint1
+      command_interfaces:
+        - effort
+      state_interfaces:
+        - position
+        - velocity
+      trigger_spring_stiffness: [0.06, 0.06]
+      trigger_neutral_position: [0.0, 0.0]
+      trigger_damping: [0.004, 0.004]
+      static_friction_scalars: [0.1, 0.1]
+      static_friction_velocity_thresholds: [0.3, 0.3]
+      torque_scaling_factors: [1.0, 1.0]
+
+/**:
+  joystick_controller:
+    ros__parameters:
+      joystick_sensors:
+        - sensorxel_l_joy
+        - sensorxel_r_joy
+      state_interfaces:
+        - JOYSTICK X VALUE
+        - JOYSTICK Y VALUE
+        - JOYSTICK TACT SWITCH
+      sensorxel_l_joy_reverse_interfaces:
+        - JOYSTICK Y VALUE
+        - JOYSTICK X VALUE
+      joystick_calibration_min: 0.0
+      joystick_calibration_center: 2048.0
+      joystick_calibration_max: 4096.0
+      sensorxel_l_joy_controlled_joints:
+        - head_joint1
+        - head_joint2
+      sensorxel_r_joy_controlled_joints:
+        - lift_joint
+      joint_states_topic: "/joint_states"
+      sensorxel_l_joy_joint_trajectory_topic: "/leader/joystick_controller_left/joint_trajectory"
+      sensorxel_r_joy_joint_trajectory_topic: "/leader/joystick_controller_right/joint_trajectory"
+      sensorxel_l_joy_jog_scale: 0.06
+      sensorxel_r_joy_jog_scale: 0.01
+      deadzone: 0.05
