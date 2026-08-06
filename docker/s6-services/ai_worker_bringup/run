@@ -1,5 +1,5 @@
 #!/command/with-contenv bash
-# AI Worker Bringup - unified follower (SG2/BG2/SH5/BH5)
+# AI Worker Bringup - unified follower (SG2/BG2/SH5/BH5/F1/F2)
 
 set -e
 
@@ -8,7 +8,7 @@ COMMON_SCRIPT="/usr/local/lib/s6-services/ros2_service_run.sh"
 ROBOT_TYPE_FILE="/run/robot_type"
 
 if [ ! -f "${ROBOT_TYPE_FILE}" ]; then
-  echo "[${SERVICE_NAME}] Error: ${ROBOT_TYPE_FILE} not found. Set robot type (sg2, bg2, sh5, bh5, or mobile) before starting." >&2
+  echo "[${SERVICE_NAME}] Error: ${ROBOT_TYPE_FILE} not found. Set robot type (sg2, bg2, sh5, bh5, f1, f2, or mobile) before starting." >&2
   exit 1
 fi
 ROBOT_TYPE=$(cat "${ROBOT_TYPE_FILE}" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
@@ -20,10 +20,14 @@ elif [ "${ROBOT_TYPE}" = "sh5" ]; then
   ROS2_COMMAND="ros2 launch ffw_bringup ffw_sh5_follower_ai.launch.py"
 elif [ "${ROBOT_TYPE}" = "bh5" ]; then
   ROS2_COMMAND="ros2 launch ffw_bringup ffw_bh5_follower_ai.launch.py"
+elif [ "${ROBOT_TYPE}" = "f1" ]; then
+  ROS2_COMMAND="ros2 launch ffw_bringup f1_follower_ai.launch.py"
+elif [ "${ROBOT_TYPE}" = "f2" ]; then
+  ROS2_COMMAND="ros2 launch ffw_bringup f2_follower_ai.launch.py"
 elif [ "${ROBOT_TYPE}" = "mobile" ]; then
   ROS2_COMMAND="ros2 launch ffw_bringup ffw_mobile_base_ai.launch.py"
 else
-  echo "[${SERVICE_NAME}] Error: ${ROBOT_TYPE_FILE} must be 'sg2', 'bg2', 'sh5', 'bh5', or 'mobile', got: ${ROBOT_TYPE}" >&2
+  echo "[${SERVICE_NAME}] Error: ${ROBOT_TYPE_FILE} must be 'sg2', 'bg2', 'sh5', 'bh5', 'f1', 'f2', or 'mobile', got: ${ROBOT_TYPE}" >&2
   exit 1
 fi
 

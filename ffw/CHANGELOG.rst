@@ -2,6 +2,12 @@
 Changelog for package ffw
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.1 (2026-08-03)
+------------------
+* Use Cyclo Manager agent requirements in Docker images
+* Added support for F1 and F2 in s6-overlay services
+* Contributors: Hyungyu Kim
+
 2.2.0 (2026-07-22)
 ------------------
 * Added robotis_hand repository to Dockerfile for HX5-D20 tactile sensor support
