@@ -1,0 +1,38 @@
+centerpose_box:
+  ros__parameters:
+    fixed_grasp_z: 0.8241714239120483
+    insertion_overshoot_distance: -0.04
+
+    grasp_position_offset: [0.01, -0.02, 0.0]
+    grasp_position_y_slope: 0.0
+    grasp_position_y_reference_pixel: 288.0
+    grasp_position_x_slope: -3.472222222222222e-05
+    box_depth_center_offset: 0.08
+    tool_orientation_offset_xyzw: [0.0, 0.0, 0.0, 1.0]
+    box_yaw_reference_orientation_xyzw:
+      [-0.6272754451461677, 0.2145960107465087, -0.6681762105760168, 0.33766050954862303]
+    box_yaw_axis_xyz: [0.15517196976367656, -0.9264099543820705, 0.3430543050618564]
+    box_yaw_flip_threshold_deg: 90.0
+    grasp_fixed_pitch: -1.5016251715681637
+    grasp_fixed_yaw: -0.052366725449585025
+    grasp_roll_from_yaw_scale: -0.9731714138014503
+    grasp_roll_offset: 0.04845972067574276
+    box_yaw_zero_offset_deg: 0.0
+    roll_clamp_min_deg: -60.0
+    roll_clamp_max_deg: 60.0
+
+    place_hover_position_xyz: [0.4098847508430481, 0.3597005009651184, 0.9550905227661133]
+    place_hover_orientation_xyzw:
+      [-0.007772511336952448, -0.692754328250885, -0.007550723850727081, 0.7210924029350281]
+    place_position_xyz: [0.6282518005371094, 0.3551318049430847, 0.8419253444671631]
+    place_orientation_xyzw:
+      [-0.007772511336952448, -0.692754328250885, -0.007550723850727081, 0.7210924029350281]
+    place_retreat_position_xyz: [0.5029386687278748, 0.3570454716682434, 0.847183346748352]
+    place_retreat_orientation_xyzw:
+      [-0.00785414595156908, -0.6926011443138123, -0.007563420571386814, 0.721238374710083]
+    place_push_position_xyz: [0.6187779307365417, 0.3549533486366272, 0.8432992696762085]
+    place_push_orientation_xyzw:
+      [-0.00785414595156908, -0.6926011443138123, -0.007563420571386814, 0.721238374710083]
+    home_position_xyz: [0.13451801240444183, 0.2999741733074188, 0.9742214239120483]
+    home_orientation_xyzw:
+      [-0.0657237321138382, -0.6881383657455444, -0.06250208616256714, 0.7198885083198547]

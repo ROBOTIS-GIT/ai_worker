@@ -1,0 +1,54 @@
+from glob import glob
+import os
+
+from setuptools import find_packages, setup
+
+package_name = 'ffw_centerpose'
+authors_info = [
+    ('Sungho Woo', 'wsh@robotis.com'),
+    ('Woojin Wie', 'wwj@robotis.com'),
+    ('Wonho Yun', 'ywh@robotis.com'),
+]
+authors = ', '.join(author for author, _ in authors_info)
+author_emails = ', '.join(email for _, email in authors_info)
+
+setup(
+    name=package_name,
+    version='2.0.1',
+    packages=find_packages(exclude=['test']),
+    data_files=[
+        ('share/ament_index/resource_index/packages',
+            ['resource/' + package_name]),
+        ('share/' + package_name, ['package.xml']),
+        ('share/' + package_name + '/launch', glob('launch/*.launch.py')),
+        (os.path.join('share', package_name, 'config/ffw_sg2_rev1_follower'),
+         glob('config/ffw_sg2_rev1_follower/*')),
+    ],
+    install_requires=['setuptools'],
+    zip_safe=True,
+    author=authors,
+    author_email=author_emails,
+    maintainer='Pyo',
+    maintainer_email='pyo@robotis.com',
+    keywords=['ROS'],
+    classifiers=[
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: Apache Software License',
+        'Programming Language :: Python',
+        'Topic :: Software Development',
+    ],
+    description='CenterPose-based pick-and-place pipeline (box, shoes, bottle) for the FFW.',
+    license='Apache 2.0',
+    tests_require=['pytest'],
+    entry_points={
+        'console_scripts': [
+            'centerpose_bottle = ffw_centerpose.centerpose_bottle:main',
+            'centerpose_box = ffw_centerpose.centerpose_box:main',
+            'centerpose_shoe = ffw_centerpose.centerpose_shoe:main',
+            'centerpose_pointcloud = ffw_centerpose.centerpose_pointcloud:main',
+            'centerpose_camera = ffw_centerpose.centerpose_camera:main',
+            'joint_trajectory_topic_executor = '
+            'ffw_centerpose.joint_trajectory_topic_executor:main',
+        ],
+    },
+)

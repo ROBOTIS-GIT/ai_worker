@@ -1,4 +1,4 @@
-# The name of the workflow
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           # The name of the workflow
 name: CI
 
 # Specifies the events that trigger the workflow
@@ -74,6 +74,7 @@ jobs:
           package-name: |
             ffw
             ffw_bringup
+            ffw_centerpose
             ffw_description
             ffw_joystick_controller
             ffw_joint_trajectory_command_broadcaster
