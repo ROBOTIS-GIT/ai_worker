@@ -41,7 +41,7 @@ class HeadEefTracker(Node):
         self.declare_parameter('target_frame', 'arm_base_link')
         self.declare_parameter('eef_l_link', 'end_effector_l_link')
         self.declare_parameter('eef_r_link', 'end_effector_r_link')
-        self.declare_parameter('camera_link', 'zedm_camera_link')
+        self.declare_parameter('camera_link', 'zed_camera_link')
         self.declare_parameter('head_joint1_name', 'head_joint1')
         self.declare_parameter('head_joint2_name', 'head_joint2')
         self.declare_parameter(

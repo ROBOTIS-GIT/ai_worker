@@ -334,7 +334,7 @@
             izz="2.2469260e-04" />
          </inertial>
       </link>
-      <xacro:wrist_d401 parent="${prefix}arm_l_link7" name="${prefix}camera_l">
+      <xacro:wrist_d401 parent="${prefix}arm_l_link7" name="${prefix}camera_left">
          <origin xyz="0.0275 0.0 -0.0847501" rpy="-1.57079632679 1.57079632679 0"/>
       </xacro:wrist_d401>
 
@@ -563,7 +563,7 @@
             izz="2.2469260e-04" />
          </inertial>
       </link>
-      <xacro:wrist_d401 parent="${prefix}arm_r_link7" name="${prefix}camera_r">
+      <xacro:wrist_d401 parent="${prefix}arm_r_link7" name="${prefix}camera_right">
          <origin xyz="0.0275 0.0 -0.0847501" rpy="-1.57079632679 1.57079632679 0"/>
       </xacro:wrist_d401>
 
