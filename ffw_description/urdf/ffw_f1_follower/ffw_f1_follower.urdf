@@ -374,12 +374,12 @@
       <inertia ixx="7.6276195e-05" ixy="0.000000000e+00" ixz="6.4673549e-06" iyy="2.4260619e-04" iyz="0.000000000e+00" izz="2.2469260e-04"/>
     </inertial>
   </link>
-  <joint name="camera_l_link_joint" type="fixed">
+  <joint name="camera_left_link_joint" type="fixed">
     <origin rpy="-1.57079632679 1.57079632679 0" xyz="0.0275 0.0 -0.0847501"/>
     <parent link="arm_l_link7"/>
-    <child link="camera_l_base_link"/>
+    <child link="camera_left_base_link"/>
   </joint>
-  <link name="camera_l_base_link">
+  <link name="camera_left_base_link">
     <visual>
       <geometry>
         <mesh filename="package://ffw_description/meshes/common/follower/wrist_d401_base.stl" scale="0.001 0.001 0.001"/>
@@ -400,12 +400,12 @@
       <inertia ixx="1.9718941e-05" ixy="-1.2011101e-06" ixz="-1.1357280e-07" iyy="1.7266296e-05" iyz="1.7450661e-08" izz="8.6783614e-06"/>
     </inertial>
   </link>
-  <joint name="camera_l_joint" type="fixed">
-    <parent link="camera_l_base_link"/>
-    <child link="camera_l_link"/>
+  <joint name="camera_left_joint" type="fixed">
+    <parent link="camera_left_base_link"/>
+    <child link="camera_left_link"/>
     <origin rpy="0 0 0.3490656" xyz="0.0126724 -0.02235 0.009"/>
   </joint>
-  <link name="camera_l_link"/>
+  <link name="camera_left_link"/>
   <joint name="arm_r_joint1" type="revolute">
     <parent link="arm_base_link"/>
     <child link="arm_r_link1"/>
@@ -616,12 +616,12 @@
       <inertia ixx="7.6276195e-05" ixy="0.000000000e+00" ixz="6.4673549e-06" iyy="2.4260619e-04" iyz="0.000000000e+00" izz="2.2469260e-04"/>
     </inertial>
   </link>
-  <joint name="camera_r_link_joint" type="fixed">
+  <joint name="camera_right_link_joint" type="fixed">
     <origin rpy="-1.57079632679 1.57079632679 0" xyz="0.0275 0.0 -0.0847501"/>
     <parent link="arm_r_link7"/>
-    <child link="camera_r_base_link"/>
+    <child link="camera_right_base_link"/>
   </joint>
-  <link name="camera_r_base_link">
+  <link name="camera_right_base_link">
     <visual>
       <geometry>
         <mesh filename="package://ffw_description/meshes/common/follower/wrist_d401_base.stl" scale="0.001 0.001 0.001"/>
@@ -642,12 +642,12 @@
       <inertia ixx="1.9718941e-05" ixy="-1.2011101e-06" ixz="-1.1357280e-07" iyy="1.7266296e-05" iyz="1.7450661e-08" izz="8.6783614e-06"/>
     </inertial>
   </link>
-  <joint name="camera_r_joint" type="fixed">
-    <parent link="camera_r_base_link"/>
-    <child link="camera_r_link"/>
+  <joint name="camera_right_joint" type="fixed">
+    <parent link="camera_right_base_link"/>
+    <child link="camera_right_link"/>
     <origin rpy="0 0 0.3490656" xyz="0.0126724 -0.02235 0.009"/>
   </joint>
-  <link name="camera_r_link"/>
+  <link name="camera_right_link"/>
   <joint name="gripper_l_joint" type="fixed">
     <origin rpy="0 3.14159265359 3.14159265359" xyz="0.00025 0 -0.049"/>
     <parent link="arm_l_link7"/>

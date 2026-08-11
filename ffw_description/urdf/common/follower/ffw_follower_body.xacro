@@ -105,10 +105,10 @@
             izz="1.339403400e-03" />
          </inertial>
       </link>
-      <xacro:zed_camera name="zedm" model="zedm" />
-      <joint name="zedm_joint" type="fixed">
+      <xacro:zed_camera name="zed" model="zedm" />
+      <joint name="zed_joint" type="fixed">
          <parent link="head_link2"/>
-         <child link="zedm_camera_link"/>
+         <child link="zed_camera_link"/>
          <origin xyz="0.0238122 -0.00651797 -0.0242094" rpy="0 0 0" />
       </joint>
 
@@ -336,7 +336,7 @@
             izz="4.156884400e-04" />
          </inertial>
       </link>
-      <xacro:sensor_d405 parent="${prefix}arm_l_link7" use_nominal_extrinsics="false" name="${prefix}camera_l">
+      <xacro:sensor_d405 parent="${prefix}arm_l_link7" use_nominal_extrinsics="false" name="${prefix}camera_left">
          <origin xyz="0.108236 -0.021 -0.062552" rpy="-1.57079632679 1.66678943569 0"/>
       </xacro:sensor_d405>
 
@@ -565,7 +565,7 @@
             izz="4.156884400e-04" />
          </inertial>
       </link>
-      <xacro:sensor_d405 parent="${prefix}arm_r_link7" use_nominal_extrinsics="false" name="${prefix}camera_r">
+      <xacro:sensor_d405 parent="${prefix}arm_r_link7" use_nominal_extrinsics="false" name="${prefix}camera_right">
          <origin xyz="0.108236 -0.021 -0.062552" rpy="-1.57079632679 1.66678943569 0"/>
       </xacro:sensor_d405>
 
