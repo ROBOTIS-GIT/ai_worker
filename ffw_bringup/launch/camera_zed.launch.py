@@ -357,7 +357,7 @@ def generate_launch_description():
                             'ID of all the connected cameras.'),
             DeclareLaunchArgument(
                 'publish_urdf',
-                default_value='true',
+                default_value='false',
                 description='Enable URDF processing and starts Robot State Published to '
                             'propagate static TF.',
                 choices=['true', 'false']),
