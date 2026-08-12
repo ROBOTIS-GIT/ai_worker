@@ -70,6 +70,8 @@ RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc  && \
     echo "alias ffw_sh5_follower_ai='ros2 launch ffw_bringup ffw_sh5_follower_ai.launch.py start_rviz:=true use_mock_hardware:=true launch_cameras:=false launch_lidar:=false'" >> ~/.bashrc && \
     echo "alias ffw_bh5_follower_ai='ros2 launch ffw_bringup ffw_bh5_follower_ai.launch.py start_rviz:=true use_mock_hardware:=true launch_cameras:=false launch_lidar:=false'" >> ~/.bashrc && \
     echo "alias ffw_bg2_follower_ai='ros2 launch ffw_bringup ffw_bg2_follower_ai.launch.py start_rviz:=true use_mock_hardware:=true launch_cameras:=false launch_lidar:=false'" >> ~/.bashrc && \
+    echo "alias ffw_f2_follower_ai='ros2 launch ffw_bringup ffw_f2_follower_ai.launch.py start_rviz:=true use_mock_hardware:=true launch_cameras:=false launch_lidar:=false'" >> ~/.bashrc && \
+    echo "alias ffw_f1_follower_ai='ros2 launch ffw_bringup ffw_f1_follower_ai.launch.py start_rviz:=true use_mock_hardware:=true launch_cameras:=false launch_lidar:=false'" >> ~/.bashrc && \
     echo "alias zenohd='ros2 run rmw_zenoh_cpp rmw_zenohd'" >> ~/.bashrc && \
     echo "export RMW_IMPLEMENTATION=rmw_zenoh_cpp" >> ~/.bashrc && \
     echo "export ROS_DOMAIN_ID=30" >> ~/.bashrc
