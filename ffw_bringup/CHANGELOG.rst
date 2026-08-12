@@ -2,6 +2,12 @@
 Changelog for package ffw_bringup
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.4 (2026-08-12)
+------------------
+* Standardized F1 and F2 AI launch names and service aliases
+* Added F2 pack positions and F1/F2 support to the shared pack pose launcher
+* Contributors: Yeonguk Kim
+
 2.2.3 (2026-08-12)
 ------------------
 * None
