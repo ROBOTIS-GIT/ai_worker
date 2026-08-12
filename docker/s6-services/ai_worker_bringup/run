@@ -21,9 +21,9 @@ elif [ "${ROBOT_TYPE}" = "sh5" ]; then
 elif [ "${ROBOT_TYPE}" = "bh5" ]; then
   ROS2_COMMAND="ros2 launch ffw_bringup ffw_bh5_follower_ai.launch.py"
 elif [ "${ROBOT_TYPE}" = "f1" ]; then
-  ROS2_COMMAND="ros2 launch ffw_bringup f1_follower_ai.launch.py"
+  ROS2_COMMAND="ros2 launch ffw_bringup ffw_f1_follower_ai.launch.py"
 elif [ "${ROBOT_TYPE}" = "f2" ]; then
-  ROS2_COMMAND="ros2 launch ffw_bringup f2_follower_ai.launch.py"
+  ROS2_COMMAND="ros2 launch ffw_bringup ffw_f2_follower_ai.launch.py"
 elif [ "${ROBOT_TYPE}" = "mobile" ]; then
   ROS2_COMMAND="ros2 launch ffw_bringup ffw_mobile_base_ai.launch.py"
 else
