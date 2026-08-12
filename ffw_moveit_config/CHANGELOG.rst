@@ -2,6 +2,10 @@
 Changelog for package ffw_moveit_config
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.3 (2026-08-12)
+------------------
+* None
+
 2.2.2 (2026-08-10)
 ------------------
 * Updated collision settings for the renamed camera links

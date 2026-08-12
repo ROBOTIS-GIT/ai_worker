@@ -2,6 +2,10 @@
 Changelog for package ffw_bringup
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.3 (2026-08-12)
+------------------
+* None
+
 2.2.2 (2026-08-10)
 ------------------
 * Updated the head camera target frame name

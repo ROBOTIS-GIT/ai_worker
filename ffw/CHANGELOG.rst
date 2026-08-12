@@ -2,6 +2,11 @@
 Changelog for package ffw
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.3 (2026-08-12)
+------------------
+* Fixed SH5 ros2_control xacro file
+* Contributors: Hyunwoo Nam
+
 2.2.2 (2026-08-10)
 ------------------
 * Updated head and wrist camera TF frame names
