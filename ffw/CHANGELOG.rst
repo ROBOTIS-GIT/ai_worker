@@ -7,6 +7,13 @@ Changelog for package ffw
 * Added support for the A2 leader
 * Contributors: Yeonguk Kim
 
+2.2.2 (2026-08-10)
+------------------
+* Updated head and wrist camera TF frame names
+* Updated MoveIt collision settings for the renamed camera links
+* Disabled duplicate ZED URDF publication
+* Contributors: Yeonguk Kim
+
 2.2.1 (2026-08-03)
 ------------------
 * Use Cyclo Manager agent requirements in Docker images

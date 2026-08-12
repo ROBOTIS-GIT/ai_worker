@@ -7,6 +7,12 @@ Changelog for package ffw_bringup
 * Added hardware bringup for the A2 leader
 * Contributors: Yeonguk Kim
 
+2.2.2 (2026-08-10)
+------------------
+* Updated the head camera target frame name
+* Disabled ZED wrapper URDF publication by default
+* Contributors: Yeonguk Kim
+
 2.2.1 (2026-08-03)
 ------------------
 * None
