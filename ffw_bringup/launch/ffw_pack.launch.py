@@ -25,7 +25,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 
 
-VALID_ROBOT_TYPES = ['sg2', 'bg2', 'sh5', 'bh5']
+VALID_ROBOT_TYPES = ['sg2', 'bg2', 'sh5', 'bh5', 'f1', 'f2']
 
 
 def generate_launch_description():
