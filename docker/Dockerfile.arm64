@@ -121,6 +121,8 @@ RUN apt-get update && apt-get install -y \
     vim \
     nano \
     python3-pip \
+    python3-serial \
+    udev \
     && rm -rf /var/lib/apt/lists/*
 
 ENV COLCON_WS=/root/ros2_ws
@@ -186,6 +188,10 @@ RUN pip install --no-cache-dir --ignore-installed -r /opt/cyclo_manager/requirem
 # New-style s6-rc services (recommended in s6-overlay v3 docs)
 # Define services under /etc/s6-overlay/s6-rc.d and add them to the user bundle.
 
+# Discover logical robot port names stored in the controller control table.
+COPY docker/robot-port-mapper/robot_port_mapper.py /usr/local/bin/robot_port_mapper.py
+RUN chmod +x /usr/local/bin/robot_port_mapper.py
+
 # Agent service (longrun)
 COPY docker/s6-agent /etc/s6-overlay/s6-rc.d/s6-agent
 
@@ -216,11 +222,13 @@ RUN mkdir -p /usr/local/lib/s6-services
 COPY docker/s6-services/common/ros2_service_run.sh /usr/local/lib/s6-services/ros2_service_run.sh
 COPY docker/s6-services/common/ros2_service_finish.sh /usr/local/lib/s6-services/ros2_service_finish.sh
 RUN chmod +x /usr/local/lib/s6-services/ros2_service_run.sh /usr/local/lib/s6-services/ros2_service_finish.sh
+RUN chmod +x /etc/s6-overlay/s6-rc.d/robot_port_mapper/run
 
 # Add services to the user bundle so they start at container boot
 # Note: ROS2 services are NOT in the user bundle - they must be started manually
 RUN mkdir -p /etc/s6-overlay/s6-rc.d/user/contents.d && \
-    touch /etc/s6-overlay/s6-rc.d/user/contents.d/s6-agent
+    touch /etc/s6-overlay/s6-rc.d/user/contents.d/s6-agent \
+          /etc/s6-overlay/s6-rc.d/user/contents.d/robot_port_mapper
 
 # Set s6-overlay as entrypoint
 ENTRYPOINT ["/init"]
