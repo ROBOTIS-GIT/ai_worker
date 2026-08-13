@@ -34,7 +34,7 @@ def generate_launch_description():
 
     follower = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(bringup_launch_dir,
-                                                   'f2_follower_ai.launch.py')),
+                                                   'ffw_f2_follower_ai.launch.py')),
         launch_arguments={
             'launch_cameras': 'true',
             'init_position': 'true',

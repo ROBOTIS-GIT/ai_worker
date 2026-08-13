@@ -35,9 +35,9 @@
         </hardware>
       </xacro:unless>
 
-      <xacro:ffw_sh5_follower_joints/>
       <xacro:hx5_right_joints/>
       <xacro:hx5_left_joints/>
+      <xacro:ffw_sh5_follower_joints/>
 
     </ros2_control>
   </xacro:macro>

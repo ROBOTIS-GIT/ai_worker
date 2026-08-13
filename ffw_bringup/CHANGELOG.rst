@@ -7,6 +7,16 @@ Changelog for package ffw_bringup
 * Added hardware bringup for the A2 leader
 * Contributors: Yeonguk Kim
 
+2.2.4 (2026-08-12)
+------------------
+* Standardized F1 and F2 AI launch names and service aliases
+* Added F2 pack positions and F1/F2 support to the shared pack pose launcher
+* Contributors: Yeonguk Kim
+
+2.2.3 (2026-08-12)
+------------------
+* None
+
 2.2.2 (2026-08-10)
 ------------------
 * Updated the head camera target frame name
