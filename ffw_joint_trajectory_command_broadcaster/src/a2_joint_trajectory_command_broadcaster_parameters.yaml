@@ -1,0 +1,137 @@
+a2_joint_trajectory_command_broadcaster:
+  map_interface_to_joint_state:
+    position: {
+      type: string,
+      default_value: "position",
+    }
+  use_urdf_to_filter: {
+    type: bool,
+    default_value: true,
+    description: "Uses the robot_description to filter the joint trajectory.
+    If true, the broadcaster will publish the data of the joints present in the URDF alone.
+    If false, the broadcaster will publish the data of any interface that has type ``position``."
+  }
+  follower_joint_states_topic: {
+    type: string,
+    default_value: "/joint_states",
+    description: "Topic name for subscribing to follower's joint states to check synchronization."
+  }
+  sync_threshold: {
+    type: double,
+    default_value: 0.01,
+    description: "Threshold value (in radians) to determine if follower joints are synced with leader joints."
+  }
+  max_error: {
+    type: double,
+    default_value: 0.6,
+    description: "Maximum error value (in radians) used for adaptive timing calculation. Errors above this value will use maximum delay."
+  }
+  min_error: {
+    type: double,
+    default_value: 0.01,
+    description: "Minimum error value (in radians) used for adaptive timing calculation. Errors below this value will use minimum delay."
+  }
+  min_delay: {
+    type: double,
+    default_value: 0.0,
+    description: "Minimum delay (in seconds) for adaptive timing when joints are not synced."
+  }
+  max_delay: {
+    type: double,
+    default_value: 0.4,
+    description: "Maximum delay (in seconds) for adaptive timing when joints are not synced."
+  }
+  left_joints: {
+    type: string_array,
+    default_value: [],
+    description: "Joint names for left arm group."
+  }
+  left_offsets: {
+    type: double_array,
+    default_value: [],
+    description: "Offsets for left arm joints."
+  }
+  left_reverse_joints: {
+    type: string_array,
+    default_value: [],
+    description: "Reverse joints for left arm group."
+  }
+  right_joints: {
+    type: string_array,
+    default_value: [],
+    description: "Joint names for right arm group."
+  }
+  right_offsets: {
+    type: double_array,
+    default_value: [],
+    description: "Offsets for right arm joints."
+  }
+  right_reverse_joints: {
+    type: string_array,
+    default_value: [],
+    description: "Reverse joints for right arm group."
+  }
+  trigger_threshold: {
+    type: double,
+    default_value: -0.5,
+    description: "Threshold value for gripper trigger joints to activate auto mode. Both gripper triggers must exceed this value."
+  }
+  trigger_duration: {
+    type: double,
+    default_value: 2.0,
+    description: "Duration (in seconds) that triggers must be held above threshold to toggle auto mode."
+  }
+  trigger_sign: {
+    type: double,
+    default_value: -1.0,
+    description: "Sign of the trigger joints. 1.0 for positive sign, -1.0 for negative sign."
+  }
+  enable_teleoperation: {
+    type: bool,
+    default_value: false,
+    description: "Enable mode-aware Cyclo teleoperation command handling."
+  }
+  output_topic_suffix: {
+    type: string,
+    default_value: "joint_trajectory",
+    description: "Per-arm output suffix. Use raw_joint_trajectory with cyclo_teleoperation."
+  }
+  default_control_mode: {
+    type: int,
+    default_value: 1,
+    description: "Numeric control mode requested at startup."
+  }
+  default_left_preset_id: {
+    type: int,
+    default_value: 1,
+    description: "Initially selected left-arm preset."
+  }
+  default_right_preset_id: {
+    type: int,
+    default_value: 1,
+    description: "Initially selected right-arm preset."
+  }
+  joystick_command_topic: {
+    type: string,
+    default_value: "/leader/teleoperation/joystick_command"
+  }
+  control_command_topic: {
+    type: string,
+    default_value: "/leader/teleoperation/control_command"
+  }
+  control_status_topic: {
+    type: string,
+    default_value: "/leader/teleoperation/control_status"
+  }
+  set_mode_service: {
+    type: string,
+    default_value: "/leader/teleoperation/set_mode"
+  }
+  set_teleoperation_service: {
+    type: string,
+    default_value: "/leader/teleoperation/set_enabled"
+  }
+  set_preset_service: {
+    type: string,
+    default_value: "/leader/teleoperation/set_preset"
+  }

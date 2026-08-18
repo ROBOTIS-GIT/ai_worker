@@ -18,6 +18,7 @@
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, GroupAction
+from launch.conditions import IfCondition
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node, PushRosNamespace
 from launch_ros.substitutions import FindPackageShare
@@ -35,11 +36,17 @@ def generate_launch_description():
             default_value='false',
             description='Use mock hardware mirroring command.',
         ),
+        DeclareLaunchArgument(
+            'start_teleoperation_controller',
+            default_value='true',
+            description='Start the Cyclo A2 teleoperation controller.',
+        ),
     ]
 
     description_file = LaunchConfiguration('description_file')
     use_mock_hardware = LaunchConfiguration('use_mock_hardware')
 
+    start_teleoperation_controller = LaunchConfiguration('start_teleoperation_controller')
     # Robot controllers config file path
     robot_controllers = PathJoinSubstitution(
         [
@@ -100,5 +107,44 @@ def generate_launch_description():
         ]
     )
 
+    teleoperation_config = PathJoinSubstitution(
+        [
+            FindPackageShare('ffw_bringup'),
+            'config',
+            'ffw_a2_leader',
+            'ffw_a2_teleoperation.yaml',
+        ]
+    )
+    follower_urdf_path = PathJoinSubstitution(
+        [
+            FindPackageShare('cyclo_motion_controller_models'),
+            'models',
+            'ai_worker',
+            'ffw_sg2_follower.urdf',
+        ]
+    )
+    follower_srdf_path = PathJoinSubstitution(
+        [
+            FindPackageShare('cyclo_motion_controller_models'),
+            'models',
+            'ai_worker',
+            'ffw_sg2_follower_default.srdf',
+        ]
+    )
+    teleoperation_node = Node(
+        package='cyclo_teleoperation',
+        executable='cyclo_teleoperation_node',
+        name='cyclo_teleoperation',
+        parameters=[
+            teleoperation_config,
+            {
+                'follower_urdf_path': follower_urdf_path,
+                'follower_srdf_path': follower_srdf_path,
+                'leader_urdf_xml': robot_description_content,
+            },
+        ],
+        output='screen',
+        condition=IfCondition(start_teleoperation_controller),
+    )
     # Return combined LaunchDescription
-    return LaunchDescription(declared_arguments + [leader_with_namespace])
+    return LaunchDescription(declared_arguments + [leader_with_namespace, teleoperation_node])

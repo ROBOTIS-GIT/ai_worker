@@ -20,6 +20,8 @@
   <depend>ros_gz_sim</depend>
   <depend>ros_gz_image</depend>
   <exec_depend>ffw_description</exec_depend>
+  <exec_depend>cyclo_motion_controller_models</exec_depend>
+  <exec_depend>cyclo_teleoperation</exec_depend>
   <exec_depend>gz_ros2_control</exec_depend>
   <exec_depend>image_transport_plugins</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>

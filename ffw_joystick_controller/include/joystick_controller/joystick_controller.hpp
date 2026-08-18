@@ -114,7 +114,7 @@ protected:
     const std::string & sensor_name);
   void publish_cmd_vel(bool swerve_mode, const JoystickValues & joystick_values);
   void publish_joystick_values();
-  void handle_tact_switches(
+  virtual void handle_tact_switches(
     bool left_tact_pressed, bool right_tact_pressed, const rclcpp::Time & current_time);
   std::vector<std::string> sensorxel_joy_names_;
   std::vector<std::string> state_interface_types_ = {"JOYSTICK X VALUE", "JOYSTICK Y VALUE",

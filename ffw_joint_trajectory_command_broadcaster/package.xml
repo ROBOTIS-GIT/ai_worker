@@ -20,6 +20,7 @@
   <depend>pluginlib</depend>
   <depend>rclcpp_lifecycle</depend>
   <depend>rcutils</depend>
+  <depend>robotis_interfaces</depend>
   <depend>realtime_tools</depend>
   <depend>sensor_msgs</depend>
   <depend>urdf</depend>

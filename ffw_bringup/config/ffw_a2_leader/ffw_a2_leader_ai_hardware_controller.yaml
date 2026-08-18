@@ -8,17 +8,22 @@
         type: joint_state_broadcaster/JointStateBroadcaster
 
       joint_trajectory_command_broadcaster:
-        type: joint_trajectory_command_broadcaster/JointTrajectoryCommandBroadcaster
+        type: joint_trajectory_command_broadcaster/A2JointTrajectoryCommandBroadcaster
 
       spring_actuator_controller:
         type: spring_actuator_controller/SpringActuatorController
 
       joystick_controller:
-        type: joystick_controller/JoystickController
+        type: joystick_controller/A2JoystickController
 
 /**:
   joint_trajectory_command_broadcaster:
     ros__parameters:
+      enable_teleoperation: true
+      output_topic_suffix: raw_joint_trajectory
+      default_control_mode: 1
+      default_left_preset_id: 1
+      default_right_preset_id: 1
       left_joints:
         - arm_l_joint1
         - arm_l_joint2
@@ -78,6 +83,9 @@
 /**:
   joystick_controller:
     ros__parameters:
+      teleoperation_toggle_enabled: true
+      teleoperation_command_topic: "/leader/teleoperation/joystick_command"
+      a2_mode_switch_long_press_duration: 1.0
       joystick_sensors:
         - sensorxel_l_joy
         - sensorxel_r_joy

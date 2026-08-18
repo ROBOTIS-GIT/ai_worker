@@ -1,7 +1,16 @@
-<library path="joint_trajectory_command_broadcaster">
-  <class name="joint_trajectory_command_broadcaster/JointTrajectoryCommandBroadcaster" type="joint_trajectory_command_broadcaster::JointTrajectoryCommandBroadcaster" base_class_type="controller_interface::ControllerInterface">
-  <description>
-    The joint trajectory command broadcaster publishes the current states from ros2_control system.
-  </description>
-  </class>
-</library>
+<class_libraries>
+  <library path="joint_trajectory_command_broadcaster">
+    <class name="joint_trajectory_command_broadcaster/JointTrajectoryCommandBroadcaster" type="joint_trajectory_command_broadcaster::JointTrajectoryCommandBroadcaster" base_class_type="controller_interface::ControllerInterface">
+      <description>
+        The joint trajectory command broadcaster publishes the current states from ros2_control system.
+      </description>
+    </class>
+  </library>
+  <library path="a2_joint_trajectory_command_broadcaster">
+    <class name="joint_trajectory_command_broadcaster/A2JointTrajectoryCommandBroadcaster" type="a2_joint_trajectory_command_broadcaster::A2JointTrajectoryCommandBroadcaster" base_class_type="controller_interface::ControllerInterface">
+      <description>
+        A2-specific leader trajectory broadcaster with Cyclo teleoperation interfaces.
+      </description>
+    </class>
+  </library>
+</class_libraries>

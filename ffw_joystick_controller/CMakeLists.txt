@@ -17,6 +17,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   pluginlib
   rclcpp
   rclcpp_lifecycle
+  robotis_interfaces
   std_msgs
 )
 
@@ -33,6 +34,9 @@ endforeach()
 ################################################################################
 generate_parameter_library(joystick_controller_parameters
   src/joystick_controller_parameters.yaml
+)
+generate_parameter_library(a2_joystick_controller_parameters
+  src/a2_joystick_controller_parameters.yaml
 )
 
 add_library(joystick_controller SHARED
@@ -55,7 +59,28 @@ target_link_libraries(joystick_controller PUBLIC
 
 # Causes the visibility macros to use dllexport rather than dllimport,
 # which is appropriate when building the dll but not consuming it.
-target_compile_definitions(joystick_controller PRIVATE "joystick_controller_BUILDING_DLL")
+target_compile_definitions(joystick_controller PRIVATE "JOYSTICK_CONTROLLER_BUILDING_LIBRARY")
+
+add_library(a2_joystick_controller SHARED
+  src/a2_joystick_controller.cpp
+)
+target_compile_features(a2_joystick_controller PUBLIC cxx_std_17)
+target_include_directories(a2_joystick_controller PUBLIC
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include/joystick_controller>
+)
+target_link_libraries(a2_joystick_controller PUBLIC
+  ${robotis_interfaces_TARGETS}
+  a2_joystick_controller_parameters
+  controller_interface::controller_interface
+  joystick_controller
+  pluginlib::pluginlib
+  rclcpp::rclcpp
+  rclcpp_lifecycle::rclcpp_lifecycle
+)
+target_compile_definitions(
+  a2_joystick_controller PRIVATE "A2_JOYSTICK_CONTROLLER_BUILDING_DLL"
+)
 pluginlib_export_plugin_description_file(controller_interface joystick_plugin.xml)
 
 ################################################################################
@@ -67,7 +92,9 @@ install(
 )
 install(TARGETS
     joystick_controller
+    a2_joystick_controller
     joystick_controller_parameters
+    a2_joystick_controller_parameters
   EXPORT export_joystick_controller
   RUNTIME DESTINATION bin
   ARCHIVE DESTINATION lib

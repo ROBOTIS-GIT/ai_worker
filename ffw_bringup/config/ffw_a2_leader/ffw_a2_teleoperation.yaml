@@ -1,0 +1,119 @@
+cyclo_teleoperation:
+  ros__parameters:
+    robot_type: ai_worker
+
+    follower_joint_states_topic: /joint_states
+    right_leader_topic: /leader/joint_trajectory_command_broadcaster_right/raw_joint_trajectory
+    left_leader_topic: /leader/joint_trajectory_command_broadcaster_left/raw_joint_trajectory
+    right_command_topic: /leader/joint_trajectory_command_broadcaster_right/joint_trajectory
+    left_command_topic: /leader/joint_trajectory_command_broadcaster_left/joint_trajectory
+    control_command_topic: /leader/teleoperation/control_command
+    control_status_topic: /leader/teleoperation/control_status
+
+    right_gripper_joint: gripper_r_joint1
+    left_gripper_joint: gripper_l_joint1
+    follower_right_eef: arm_r_link7
+    follower_left_eef: arm_l_link7
+    follower_right_elbow: arm_r_link4
+    follower_left_elbow: arm_l_link4
+    leader_right_eef: arm_r_link7
+    leader_left_eef: arm_l_link7
+
+    available_control_modes: [1, 2]
+    default_control_mode: 1
+
+    control_modes:
+      "1":
+        name: teleoperation
+        plugin: cyclo_teleoperation/AiWorkerMoveJMode
+        initial_pose:
+          enabled: true
+          step_names: [step0, step1]
+          steps:
+            step0:
+              left:
+                positions: [1.57, 0.0, 0.0, -2.5, 0.0, 0.0, 0.0]
+              right:
+                positions: [1.57, 0.0, -0.0, -2.5, 0.0, 0.0, 0.0]
+            step1:
+              left:
+                positions: [0.0, 0.0, 0.0, -1.57, 0.0, 0.0, 0.0]
+              right:
+                positions: [0.0, 0.0, 0.0, -1.57, 0.0, 0.0, 0.0]
+          duration: 3.0
+          completion_tolerance: 0.1
+          timeout: 30.0
+        exit_pose:
+          enabled: false
+
+      "2":
+        name: elbow_up_leader
+        plugin: cyclo_teleoperation/AiWorkerElbowUpLeaderMode
+        initial_pose:
+          enabled: true
+          step_names: [step0, step1, step2]
+          steps:
+            step0:
+              left:
+                positions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+              right:
+                positions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            step1:
+              left:
+                positions: [0.0, 0.0, -3.14, 0.0, 1.57, 0.0, 0.0]
+              right:
+                positions: [0.0, 0.0, 3.14, 0.0, -1.57, 0.0, 0.0]
+            step2:
+              left:
+                positions: [-1.57, 0.0, -3.14, -1.57, 1.57, 0.0, 0.0]
+              right:
+                positions: [-1.57, 0.0, 3.14, -1.57, -1.57, 0.0, 0.0]
+          duration: 3.0
+          completion_tolerance: 0.1
+          timeout: 30.0
+        exit_pose:
+          enabled: true
+          step_names: [step0, step1]
+          steps:
+            step0:
+              left:
+                positions: [0.0, 0.0, -3.14, 0.0, 1.57, 0.0, 0.0]
+              right:
+                positions: [0.0, 0.0, 3.14, 0.0, -1.57, 0.0, 0.0]
+            step1:
+              left:
+                positions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+              right:
+                positions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+          duration: 3.0
+          completion_tolerance: 0.1
+          timeout: 30.0
+
+    available_presets: [1, 2]
+
+    presets:
+      "1":
+        name: ready
+        step_names: [step0]
+        steps:
+          step0:
+            left:
+              positions: [0.431, 0.304, 0.152, -2.457, -0.267, 0.686, -0.948]
+            right:
+              positions: [0.431, -0.304, -0.152, -2.457, 0.267, 0.686, 0.948]
+        duration: 3.0
+        completion_tolerance: 0.1
+        timeout: 30.0
+
+      "2":
+        name: home
+        step_names: [step0]
+        steps:
+          step0:
+            left:
+              positions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            right:
+              positions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        duration: 4.0
+        completion_tolerance: 0.1
+        timeout: 30.0

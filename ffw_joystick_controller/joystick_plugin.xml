@@ -1,8 +1,17 @@
 <?xml version="1.0"?>
-<library path="joystick_controller">
-  <class name="joystick_controller/JoystickController" type="joystick_controller::JoystickController" base_class_type="controller_interface::ControllerInterface">
-    <description>
-      A controller that reads JOYSTICK X VALUE and JOYSTICK Y VALUE values from hardware interfaces and publishes them.
-    </description>
-  </class>
-</library>
+<class_libraries>
+  <library path="joystick_controller">
+    <class name="joystick_controller/JoystickController" type="joystick_controller::JoystickController" base_class_type="controller_interface::ControllerInterface">
+      <description>
+        A controller that reads JOYSTICK X VALUE and JOYSTICK Y VALUE values from hardware interfaces and publishes them.
+      </description>
+    </class>
+  </library>
+  <library path="a2_joystick_controller">
+    <class name="joystick_controller/A2JoystickController" type="a2_joystick_controller::A2JoystickController" base_class_type="controller_interface::ControllerInterface">
+      <description>
+        A2-specific joystick controller with per-arm teleoperation and long-press mode switching.
+      </description>
+    </class>
+  </library>
+</class_libraries>
