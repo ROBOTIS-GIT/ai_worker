@@ -52,7 +52,7 @@ class CenterposePointcloud(Node):
         super().__init__('centerpose_pointcloud')
 
         # --- Crop ---
-        self.declare_parameter('input_topic', '/zedm/zed_node/point_cloud/cloud_registered')
+        self.declare_parameter('input_topic', '/zed/zed_node/point_cloud/cloud_registered')
         self.declare_parameter('output_topic', '/centerpose/cloud_cropped')
         self.declare_parameter('target_frame', 'base_link')
         self.declare_parameter('x_max', 1.2)
@@ -70,7 +70,7 @@ class CenterposePointcloud(Node):
         self.declare_parameter('table_plane_normal_z_min', 0.8)
         self.declare_parameter('table_plane_smoothing_alpha', 0.15)
         self.declare_parameter('table_plane_grid_resolution', 0.004)
-        self.declare_parameter('color_topic', '/zedm/zed_node/left/image_rect_color/compressed')
+        self.declare_parameter('color_topic', '/zed/zed_node/left/image_rect_color/compressed')
         self.declare_parameter('below_table_margin', 0.02)
         self.declare_parameter('freeze_table_plane', False)
 
@@ -81,8 +81,8 @@ class CenterposePointcloud(Node):
 
         # --- Bbox markers ---
         self.declare_parameter('detections_topic', '/centerpose/detections')
-        self.declare_parameter('camera_info_topic', '/zedm/zed_node/left/camera_info')
-        self.declare_parameter('depth_topic', '/zedm/zed_node/depth/depth_registered')
+        self.declare_parameter('camera_info_topic', '/zed/zed_node/left/camera_info')
+        self.declare_parameter('depth_topic', '/zed/zed_node/depth/depth_registered')
         self.declare_parameter('depth_window', 5)
         self.declare_parameter('marker_topic', '/centerpose/bbox_markers')
         self.declare_parameter('marker_color_rgba', [1.0, 0.3, 0.0, 0.35])

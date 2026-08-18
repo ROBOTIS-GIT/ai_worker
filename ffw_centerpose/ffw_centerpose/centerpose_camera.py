@@ -29,9 +29,9 @@ class CenterposeCamera(Node):
     def __init__(self):
         super().__init__('centerpose_camera')
 
-        self.declare_parameter('input_topic', '/zedm/zed_node/left/image_rect_color')
+        self.declare_parameter('input_topic', '/zed/zed_node/left/image_rect_color')
         self.declare_parameter('output_topic', '/image')
-        self.declare_parameter('camera_info_input_topic', '/zedm/zed_node/left/camera_info')
+        self.declare_parameter('camera_info_input_topic', '/zed/zed_node/left/camera_info')
         self.declare_parameter('camera_info_output_topic', '/camera_info')
 
         self.input_topic = self.get_parameter('input_topic').value

@@ -26,7 +26,7 @@ def generate_launch_description():
     arguments = [
         # --- Crop ------------------------------------------------------------
         DeclareLaunchArgument(
-            'input_topic', default_value='/zedm/zed_node/point_cloud/cloud_registered'
+            'input_topic', default_value='/zed/zed_node/point_cloud/cloud_registered'
         ),
         DeclareLaunchArgument(
             'output_topic',
@@ -95,7 +95,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             'color_topic',
-            default_value='/zedm/zed_node/left/image_rect_color/compressed',
+            default_value='/zed/zed_node/left/image_rect_color/compressed',
             description='Color image reprojected onto the real table plane using '
                         'the camera pose (not per-pixel depth) to texture the '
                         'raster above.',
@@ -140,11 +140,11 @@ def generate_launch_description():
         # --- Bbox markers ------------------------------------------------------
         DeclareLaunchArgument('detections_topic', default_value='/centerpose/detections'),
         DeclareLaunchArgument(
-            'camera_info_topic', default_value='/zedm/zed_node/left/camera_info'
+            'camera_info_topic', default_value='/zed/zed_node/left/camera_info'
         ),
         DeclareLaunchArgument(
             'depth_topic',
-            default_value='/zedm/zed_node/depth/depth_registered',
+            default_value='/zed/zed_node/depth/depth_registered',
             description='Real metric depth used to correct CenterPose position, '
                         'which otherwise comes from an assumed canonical object '
                         'size.',

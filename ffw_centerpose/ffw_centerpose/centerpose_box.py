@@ -37,7 +37,7 @@ class CenterposeBox(PickPlaceNodeBase):
         # --- Parameters ---
         self.declare_parameter('detections_topic', '/centerpose/detections')
         self.declare_parameter('camera_info_topic', '/camera_info')
-        self.declare_parameter('depth_topic', '/zedm/zed_node/depth/depth_registered')
+        self.declare_parameter('depth_topic', '/zed/zed_node/depth/depth_registered')
         self.declare_parameter('depth_window', 5)
         self.declare_parameter('joint_states_topic', '/joint_states')
         self.declare_parameter('target_frame', 'base_link')

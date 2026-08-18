@@ -37,11 +37,11 @@ def generate_launch_description():
         # --- Detection / vision input -----------------------------------------
         DeclareLaunchArgument('detections_topic', default_value='/centerpose/detections'),
         DeclareLaunchArgument(
-            'camera_info_topic', default_value='/zedm/zed_node/left/camera_info'
+            'camera_info_topic', default_value='/zed/zed_node/left/camera_info'
         ),
         DeclareLaunchArgument(
             'depth_topic',
-            default_value='/zedm/zed_node/depth/depth_registered',
+            default_value='/zed/zed_node/depth/depth_registered',
             description='Real metric depth used for x/y only; z always stays fixed.',
         ),
         DeclareLaunchArgument('depth_window', default_value='5'),
