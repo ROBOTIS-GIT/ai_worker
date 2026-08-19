@@ -104,7 +104,7 @@
       sensorxel_r_joy_controlled_joints:
         - lift_joint
       joint_states_topic: "/joint_states"
-      sensorxel_l_joy_joint_trajectory_topic: "/leader/joystick_controller_left/joint_trajectory_"
+      sensorxel_l_joy_joint_trajectory_topic: "/leader/joystick_controller_left/joint_trajectory"
       sensorxel_r_joy_joint_trajectory_topic: "/leader/joystick_controller_right/joint_trajectory"
       sensorxel_l_joy_jog_scale: 0.06
       sensorxel_r_joy_jog_scale: 0.01

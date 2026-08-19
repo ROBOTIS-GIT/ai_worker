@@ -111,11 +111,6 @@ protected:
     const std::vector<std::string> & controlled_joints,
     const std::vector<double> & positions,
     const std::string & sensor_name);
-  void publish_joint_state(
-    const std::vector<std::string> & controlled_joints,
-    const std::vector<double> & positions,
-    const std::string & sensor_name,
-    const rclcpp::Time & time);
   void publish_cmd_vel(const JoystickValues & joystick_values);
   void publish_joystick_values();
   void handle_tact_switches(
@@ -134,14 +129,10 @@ protected:
   std::map<std::string, std::vector<std::string>> sensor_controlled_joints_;
   std::map<std::string, std::vector<std::string>> sensor_reverse_interfaces_;
   std::map<std::string, std::string> sensor_joint_trajectory_topic_;
-  std::map<std::string, std::string> sensor_joint_state_stamped_topic_;
   std::map<std::string, std::vector<double>> sensor_last_active_positions_;
   std::map<std::string,
     rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr>
   sensor_joint_trajectory_publisher_;
-  std::map<std::string,
-    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr>
-  sensor_joint_state_stamped_publisher_;
   std::map<std::string,
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr> sensorxel_joy_publisher_;
 

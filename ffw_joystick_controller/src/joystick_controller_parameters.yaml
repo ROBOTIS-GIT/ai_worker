@@ -104,12 +104,6 @@ joystick_controller:
     description: "Deadzone around center position [0.0, 1.0)",
     read_only: false
   }
-  enable_joystick_update: {
-    type: bool,
-    default_value: true,
-    description: "Enable joystick X/Y motion updates and trajectory publishing while keeping tact-switch features active.",
-    read_only: true
-  }
   long_press_duration: {
     type: double,
     default_value: 2.0,

@@ -113,4 +113,3 @@
       sensorxel_l_joy_jog_scale: 0.06
       sensorxel_r_joy_jog_scale: 0.01
       deadzone: 1.0
-      enable_joystick_update: true

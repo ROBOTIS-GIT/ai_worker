@@ -122,9 +122,6 @@
       joint_states_topic: "/joint_states"
       sensorxel_l_joy_joint_trajectory_topic: "/leader/joystick_controller_left/joint_trajectory"
       sensorxel_r_joy_joint_trajectory_topic: "/leader/joystick_controller_right/joint_trajectory"
-      sensorxel_l_joy_joint_states_stamped_topic: "/robot/head_leader/joint_states_"
-      sensorxel_r_joy_joint_states_stamped_topic: "/robot/lift_leader/joint_states"
       sensorxel_l_joy_jog_scale: 0.06
       sensorxel_r_joy_jog_scale: 0.01
-      deadzone: 1.00
-      enable_joystick_update: true
+      deadzone: 0.90
