@@ -15,6 +15,7 @@
 #ifndef A2_JOINT_TRAJECTORY_COMMAND_BROADCASTER__A2_JOINT_TRAJECTORY_COMMAND_BROADCASTER_HPP_
 #define A2_JOINT_TRAJECTORY_COMMAND_BROADCASTER__A2_JOINT_TRAJECTORY_COMMAND_BROADCASTER_HPP_
 
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -103,11 +104,16 @@ protected:
   double calculate_mean_error() const;
   void update_trigger_state(const rclcpp::Time & current_time);
   bool check_trigger_active() const;
+  void update_initial_pose_trigger_state(const rclcpp::Time & current_time);
+  bool check_arm_trigger_active(uint8_t arm) const;
+  void request_final_initial_pose(uint8_t target_arms);
   void teleoperation_command_callback(
     const robotis_interfaces::msg::TeleoperationCommand::SharedPtr msg);
   void control_status_callback(
     const robotis_interfaces::msg::ControlModeStatus::SharedPtr msg);
-  void publish_control_command(const std::string & preset_target_arm = "none");
+  void publish_control_command(
+    const std::string & preset_target_arm = "none",
+    const std::string & initial_pose_target_arm = "none");
   void set_control_mode_callback(
     const std::shared_ptr<robotis_interfaces::srv::SetControlMode::Request> request,
     std::shared_ptr<robotis_interfaces::srv::SetControlMode::Response> response);
@@ -167,6 +173,15 @@ protected:
   bool trigger_counting_ = false;
   bool mode_changed_in_this_trigger_ = false;
 
+  struct TriggerHoldState
+  {
+    rclcpp::Time start_time{0, 0, RCL_ROS_TIME};
+    bool counting = false;
+    bool triggered = false;
+  };
+  TriggerHoldState left_initial_pose_trigger_;
+  TriggerHoldState right_initial_pose_trigger_;
+
   rclcpp::Subscription<robotis_interfaces::msg::TeleoperationCommand>::SharedPtr
     teleoperation_command_subscriber_;
   rclcpp::Subscription<robotis_interfaces::msg::ControlModeStatus>::SharedPtr
@@ -184,6 +199,9 @@ protected:
   uint16_t right_preset_id_ = 1;
   uint8_t requested_arms_ = 0;
   uint8_t active_arms_ = 0;
+  uint8_t initial_pose_available_arms_ = 0;
+  uint8_t initial_pose_busy_arms_ = 0;
+  uint8_t preset_busy_arms_ = 0;
   uint64_t transition_id_ = 0;
   std::mutex teleoperation_mutex_;
 };

@@ -108,17 +108,13 @@ void A2JoystickController::handle_tact_switches(
       const auto press_duration = current_time - both_tact_press_start_time_;
       if (press_duration.seconds() >= a2_params_.a2_mode_switch_long_press_duration) {
         both_tact_long_press_triggered_ = true;
+        std_msgs::msg::String mode_msg;
+        current_mode_ = current_mode_ == kArmControlMode ? kSwerveMode : kArmControlMode;
+        mode_msg.data = current_mode_;
+        mode_pub_->publish(mode_msg);
+        RCLCPP_INFO(
+          get_node()->get_logger(), "Mode switched to: %s", current_mode_.c_str());
       }
-    }
-  }
-
-  // Account for the release update being the first update past the threshold.
-  if (both_pressed_flag_ && prev_state == 3 && current_state != 3 &&
-    !both_tact_long_press_triggered_)
-  {
-    const auto press_duration = current_time - both_tact_press_start_time_;
-    if (press_duration.seconds() >= a2_params_.a2_mode_switch_long_press_duration) {
-      both_tact_long_press_triggered_ = true;
     }
   }
 
@@ -160,14 +156,7 @@ void A2JoystickController::handle_tact_switches(
   // Execute exactly one action after every participating button has been released.
   if (current_state == 0 && prev_state != 0) {
     if (both_pressed_flag_) {
-      if (both_tact_long_press_triggered_) {
-        std_msgs::msg::String mode_msg;
-        current_mode_ = current_mode_ == kArmControlMode ? kSwerveMode : kArmControlMode;
-        mode_msg.data = current_mode_;
-        mode_pub_->publish(mode_msg);
-        RCLCPP_INFO(
-          get_node()->get_logger(), "Mode switched to: %s", current_mode_.c_str());
-      } else {
+      if (!both_tact_long_press_triggered_) {
         publish_teleoperation_toggle(
           robotis_interfaces::msg::TeleoperationCommand::TARGET_BOTH);
         RCLCPP_INFO(get_node()->get_logger(), "Both-arm teleoperation toggled");

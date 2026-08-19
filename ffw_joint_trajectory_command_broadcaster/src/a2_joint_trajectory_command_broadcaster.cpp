@@ -76,6 +76,18 @@ std::string arms_to_name(const uint8_t arms)
       return "none";
   }
 }
+
+bool initial_pose_state_busy(const uint8_t state)
+{
+  return state == robotis_interfaces::msg::ControlModeStatus::INITIAL_POSE_WAITING ||
+         state == robotis_interfaces::msg::ControlModeStatus::INITIAL_POSE_MOVING;
+}
+
+bool preset_state_busy(const uint8_t state)
+{
+  return state == robotis_interfaces::msg::ControlModeStatus::PRESET_WAITING ||
+         state == robotis_interfaces::msg::ControlModeStatus::PRESET_MOVING;
+}
 }  // namespace
 
 A2JointTrajectoryCommandBroadcaster::A2JointTrajectoryCommandBroadcaster() {}
@@ -210,6 +222,11 @@ controller_interface::CallbackReturn A2JointTrajectoryCommandBroadcaster::on_con
       right_preset_id_ = static_cast<uint16_t>(params_.default_right_preset_id);
       requested_arms_ = 0;
       active_arms_ = 0;
+      initial_pose_available_arms_ = 0;
+      initial_pose_busy_arms_ = 0;
+      preset_busy_arms_ = 0;
+      left_initial_pose_trigger_ = TriggerHoldState{};
+      right_initial_pose_trigger_ = TriggerHoldState{};
       auto command_qos = rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local();
       control_command_publisher_ =
         get_node()->create_publisher<robotis_interfaces::msg::ControlModeCommand>(
@@ -520,6 +537,95 @@ void A2JointTrajectoryCommandBroadcaster::update_trigger_state(const rclcpp::Tim
   }
 }
 
+bool A2JointTrajectoryCommandBroadcaster::check_arm_trigger_active(const uint8_t arm) const
+{
+  const char * joint_name = arm == kLeftArm ? "gripper_l_joint1" : "gripper_r_joint1";
+  const double position = get_value(name_if_value_mapping_, joint_name, HW_IF_POSITION);
+  return !std::isnan(position) &&
+         position * params_.trigger_sign >=
+         params_.trigger_threshold * params_.trigger_sign;
+}
+
+void A2JointTrajectoryCommandBroadcaster::request_final_initial_pose(
+  const uint8_t target_arms)
+{
+  uint8_t accepted_arms = 0;
+  uint8_t unavailable_arms = 0;
+  uint8_t busy_arms = 0;
+  {
+    std::lock_guard<std::mutex> lock(teleoperation_mutex_);
+    unavailable_arms = target_arms & static_cast<uint8_t>(~initial_pose_available_arms_);
+    busy_arms = target_arms & (initial_pose_busy_arms_ | preset_busy_arms_);
+    accepted_arms = target_arms & initial_pose_available_arms_ &
+      static_cast<uint8_t>(~(initial_pose_busy_arms_ | preset_busy_arms_));
+    if (accepted_arms != 0) {
+      requested_arms_ &= static_cast<uint8_t>(~accepted_arms);
+      initial_pose_busy_arms_ |= accepted_arms;
+      ++transition_id_;
+    }
+  }
+
+  if (unavailable_arms != 0) {
+    RCLCPP_INFO(
+      get_node()->get_logger(),
+      "Ignoring %s trigger: current control mode has no enabled initial pose for that arm",
+      arms_to_name(unavailable_arms).c_str());
+  }
+  if (busy_arms != 0) {
+    RCLCPP_WARN(
+      get_node()->get_logger(),
+      "Ignoring %s trigger: another pose movement is already in progress",
+      arms_to_name(busy_arms).c_str());
+  }
+  if (accepted_arms == 0) {
+    return;
+  }
+
+  RCLCPP_INFO(
+    get_node()->get_logger(),
+    "%s trigger held; moving the selected arm to the current mode's final initial pose",
+    arms_to_name(accepted_arms).c_str());
+  publish_control_command("none", arms_to_name(accepted_arms));
+}
+
+void A2JointTrajectoryCommandBroadcaster::update_initial_pose_trigger_state(
+  const rclcpp::Time & current_time)
+{
+  uint8_t triggered_arms = 0;
+  auto update_arm =
+    [this, &current_time, &triggered_arms](
+    const uint8_t arm, TriggerHoldState & state)
+    {
+      const bool active = check_arm_trigger_active(arm);
+      if (!active) {
+        state = TriggerHoldState{};
+        return;
+      }
+      if (state.triggered) {
+        return;
+      }
+      if (!state.counting) {
+        state.start_time = current_time;
+        state.counting = true;
+        return;
+      }
+      if (
+        (current_time - state.start_time) >=
+        rclcpp::Duration::from_seconds(params_.trigger_duration))
+      {
+        state.counting = false;
+        state.triggered = true;
+        triggered_arms |= arm;
+      }
+    };
+
+  update_arm(kLeftArm, left_initial_pose_trigger_);
+  update_arm(kRightArm, right_initial_pose_trigger_);
+  if (triggered_arms != 0) {
+    request_final_initial_pose(triggered_arms);
+  }
+}
+
 bool A2JointTrajectoryCommandBroadcaster::check_joints_synced() const
 {
   double mean_error = calculate_mean_error();
@@ -527,7 +633,8 @@ bool A2JointTrajectoryCommandBroadcaster::check_joints_synced() const
 }
 
 void A2JointTrajectoryCommandBroadcaster::publish_control_command(
-  const std::string & preset_target_arm)
+  const std::string & preset_target_arm,
+  const std::string & initial_pose_target_arm)
 {
   if (!control_command_publisher_) {
     return;
@@ -540,6 +647,7 @@ void A2JointTrajectoryCommandBroadcaster::publish_control_command(
     command.control_mode = requested_control_mode_;
     command.enabled_arms = arms_to_name(requested_arms_);
     command.preset_target_arm = preset_target_arm;
+    command.initial_pose_target_arm = initial_pose_target_arm;
     command.left_preset_id = left_preset_id_;
     command.right_preset_id = right_preset_id_;
   }
@@ -560,25 +668,50 @@ void A2JointTrajectoryCommandBroadcaster::teleoperation_command_callback(
     return;
   }
 
+  bool changed = false;
+  uint8_t blocked_arms = 0;
   {
     std::lock_guard<std::mutex> lock(teleoperation_mutex_);
+    const uint8_t previous_arms = requested_arms_;
     switch (msg->command) {
-      case robotis_interfaces::msg::TeleoperationCommand::COMMAND_ENABLE:
-        requested_arms_ |= target_arms;
-        break;
+      case robotis_interfaces::msg::TeleoperationCommand::COMMAND_ENABLE: {
+          blocked_arms = target_arms & initial_pose_busy_arms_;
+          requested_arms_ |= target_arms & static_cast<uint8_t>(~blocked_arms);
+          break;
+        }
       case robotis_interfaces::msg::TeleoperationCommand::COMMAND_DISABLE:
         requested_arms_ &= static_cast<uint8_t>(~target_arms);
         break;
-      case robotis_interfaces::msg::TeleoperationCommand::COMMAND_TOGGLE:
-        requested_arms_ ^= target_arms;
-        break;
+      case robotis_interfaces::msg::TeleoperationCommand::COMMAND_TOGGLE: {
+          const uint8_t disable_arms = target_arms & requested_arms_;
+          const uint8_t requested_enable_arms = target_arms &
+            static_cast<uint8_t>(~requested_arms_);
+          blocked_arms = requested_enable_arms & initial_pose_busy_arms_;
+          const uint8_t enable_arms = requested_enable_arms &
+            static_cast<uint8_t>(~blocked_arms);
+          requested_arms_ &= static_cast<uint8_t>(~disable_arms);
+          requested_arms_ |= enable_arms;
+          break;
+        }
       default:
         RCLCPP_WARN(
           get_node()->get_logger(), "Ignoring unknown teleoperation command: %u",
           static_cast<unsigned int>(msg->command));
         return;
     }
-    ++transition_id_;
+    changed = previous_arms != requested_arms_;
+    if (changed) {
+      ++transition_id_;
+    }
+  }
+  if (blocked_arms != 0) {
+    RCLCPP_WARN(
+      get_node()->get_logger(),
+      "Ignoring teleoperation enable for %s while initial pose movement is in progress",
+      arms_to_name(blocked_arms).c_str());
+  }
+  if (!changed) {
+    return;
   }
   publish_control_command();
 }
@@ -596,14 +729,19 @@ void A2JointTrajectoryCommandBroadcaster::set_control_mode_callback(
   }
   {
     std::lock_guard<std::mutex> lock(teleoperation_mutex_);
-    if (requested_arms_ != 0 || active_arms_ != 0) {
+    if (
+      requested_arms_ != 0 || active_arms_ != 0 ||
+      initial_pose_busy_arms_ != 0 || preset_busy_arms_ != 0)
+    {
       response->accepted = false;
       response->transition_id = transition_id_;
       response->message =
-        "Control mode can only be changed while both arms teleoperation is stopped";
+        "Control mode can only be changed while both arms are stopped and no initial pose "
+        "movement is in progress";
       return;
     }
     requested_control_mode_ = request->control_mode;
+    initial_pose_available_arms_ = 0;
     response->accepted = true;
     response->transition_id = ++transition_id_;
     response->message = "Control mode request accepted";
@@ -626,6 +764,14 @@ void A2JointTrajectoryCommandBroadcaster::set_teleoperation_callback(
   {
     std::lock_guard<std::mutex> lock(teleoperation_mutex_);
     if (request->enabled) {
+      const uint8_t blocked_arms = target_arms & initial_pose_busy_arms_;
+      if (blocked_arms != 0) {
+        response->accepted = false;
+        response->transition_id = transition_id_;
+        response->message =
+          "Teleoperation cannot be enabled while initial pose movement is in progress";
+        return;
+      }
       requested_arms_ |= target_arms;
     } else {
       requested_arms_ &= static_cast<uint8_t>(~target_arms);
@@ -663,6 +809,13 @@ void A2JointTrajectoryCommandBroadcaster::set_preset_callback(
   }
   {
     std::lock_guard<std::mutex> lock(teleoperation_mutex_);
+    if ((target_arms & initial_pose_busy_arms_) != 0) {
+      response->accepted = false;
+      response->transition_id = transition_id_;
+      response->message =
+        "Preset cannot be started while initial pose movement is in progress";
+      return;
+    }
     // Disable the selected arms in the same command that starts their preset motion.
     requested_arms_ &= static_cast<uint8_t>(~target_arms);
     if ((target_arms & kLeftArm) != 0) {
@@ -689,7 +842,23 @@ void A2JointTrajectoryCommandBroadcaster::control_status_callback(
     if (msg->transition_id != transition_id_) {
       return;
     }
+    requested_arms_ = arms_from_name(msg->requested_arms);
     active_arms_ = arms_from_name(msg->active_arms);
+    initial_pose_available_arms_ = arms_from_name(msg->initial_pose_available_arms);
+    initial_pose_busy_arms_ = 0;
+    if (initial_pose_state_busy(msg->left_initial_pose_state)) {
+      initial_pose_busy_arms_ |= kLeftArm;
+    }
+    if (initial_pose_state_busy(msg->right_initial_pose_state)) {
+      initial_pose_busy_arms_ |= kRightArm;
+    }
+    preset_busy_arms_ = 0;
+    if (preset_state_busy(msg->left_preset_state)) {
+      preset_busy_arms_ |= kLeftArm;
+    }
+    if (preset_state_busy(msg->right_preset_state)) {
+      preset_busy_arms_ |= kRightArm;
+    }
   }
   if (msg->state == robotis_interfaces::msg::ControlModeStatus::STATE_ERROR) {
     RCLCPP_ERROR(
@@ -723,7 +892,9 @@ controller_interface::return_type A2JointTrajectoryCommandBroadcaster::update(
   }
 
   double mean_error = 0.0;
-  if (!params_.enable_teleoperation) {
+  if (params_.enable_teleoperation) {
+    update_initial_pose_trigger_state(time);
+  } else {
     // Keep the legacy gripper-trigger behavior for existing leader models.
     update_trigger_state(time);
     if (auto_mode_ == AutoMode::STOPPED) {
