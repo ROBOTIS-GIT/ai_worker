@@ -21,6 +21,8 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch', glob('launch/*.launch.py')),
+        (os.path.join('share', package_name, 'config/ffw_a1_leader'),
+         glob('config/ffw_a1_leader/*')),
         (os.path.join('share', package_name, 'config/ffw_a2_leader'),
          glob('config/ffw_a2_leader/*')),
         (os.path.join('share', package_name, 'config/ffw_bg2_rev2_follower'),
