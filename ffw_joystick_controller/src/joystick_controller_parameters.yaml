@@ -136,25 +136,25 @@ joystick_controller:
   }
   cmd_vel_linear_x_random_range: {
     type: double_array,
-    default_value: [-0.5, 0.5],
+    default_value: [-0.05, 0.05],
     description: "cmd_vel linear.x random offset range",
     read_only: true
   }
   cmd_vel_linear_y_random_range: {
     type: double_array,
-    default_value: [-1.0, 1.0],
+    default_value: [-0.1, 0.1],
     description: "cmd_vel linear.y random offset range",
     read_only: true
   }
   cmd_vel_angular_z_random_range: {
     type: double_array,
-    default_value: [-1.0, 1.0],
+    default_value: [-0.1, 0.1],
     description: "cmd_vel angular.z random offset range",
     read_only: true
   }
   random_duration: {
     type: double,
-    default_value: 2.0,
-    description: "Seconds to apply random offsets with linear 0-1-0 scale",
+    default_value: 1.0,
+    description: "Seconds to interpolate joint offsets and pulse cmd_vel offsets",
     read_only: true
   }

@@ -254,13 +254,20 @@ double JoystickController::sample_random_value(const std::vector<double> & range
 
 void JoystickController::randomization(const rclcpp::Time & current_time)
 {
-  random_joint_offsets_.clear();
+  random_joint_interpolation_start_offsets_.clear();
+  random_joint_interpolation_target_offsets_.clear();
   for (const auto & sensor_name : sensorxel_joy_names_) {
     const auto & range = sensor_name == constants::LEFT_JOYSTICK_NAME ?
       params_.head_random_range : params_.lift_random_range;
-    auto & offsets = random_joint_offsets_[sensor_name];
-    offsets.resize(sensor_controlled_joints_[sensor_name].size());
-    for (auto & offset : offsets) {
+
+    const auto joint_count = sensor_controlled_joints_[sensor_name].size();
+    auto & current_offsets = random_joint_offsets_[sensor_name];
+    current_offsets.resize(joint_count, 0.0);
+    random_joint_interpolation_start_offsets_[sensor_name] = current_offsets;
+
+    auto & target_offsets = random_joint_interpolation_target_offsets_[sensor_name];
+    target_offsets.resize(joint_count);
+    for (auto & offset : target_offsets) {
       offset = sample_random_value(range);
     }
   }
@@ -293,13 +300,23 @@ double JoystickController::random_scale(const rclcpp::Time & current_time)
   return 0.0;
 }
 
-void JoystickController::apply_random_joint_offsets(
-  std::vector<double> & positions, const std::string & sensor_name, double random_scale) const
+void JoystickController::interpolate_random_joint_offsets(double random_alpha)
 {
-  if (random_scale == 0.0) {
-    return;
+  for (const auto & [sensor_name, target_offsets] : random_joint_interpolation_target_offsets_) {
+    auto & current_offsets = random_joint_offsets_[sensor_name];
+    const auto & start_offsets = random_joint_interpolation_start_offsets_[sensor_name];
+    for (size_t i = 0; i < current_offsets.size() && i < start_offsets.size() &&
+      i < target_offsets.size(); ++i)
+    {
+      current_offsets[i] = start_offsets[i] +
+        (target_offsets[i] - start_offsets[i]) * random_alpha;
+    }
   }
+}
 
+void JoystickController::apply_random_joint_offsets(
+  std::vector<double> & positions, const std::string & sensor_name) const
+{
   const auto offsets_it = random_joint_offsets_.find(sensor_name);
   if (offsets_it == random_joint_offsets_.end()) {
     return;
@@ -307,7 +324,7 @@ void JoystickController::apply_random_joint_offsets(
 
   const auto & offsets = offsets_it->second;
   for (size_t i = 0; i < positions.size() && i < offsets.size(); ++i) {
-    positions[i] += offsets[i] * random_scale;
+    positions[i] += offsets[i];
   }
 }
 
@@ -520,8 +537,17 @@ controller_interface::return_type JoystickController::update(
   if (!params_.enable_randomization) {
     random_active_ = false;
     randomization_requested_.store(false);
+    random_joint_offsets_.clear();
+    random_joint_interpolation_start_offsets_.clear();
+    random_joint_interpolation_target_offsets_.clear();
   } else if (randomization_requested_.exchange(false)) {
     randomization(time);
+  }
+
+  if (params_.enable_randomization && random_active_) {
+    const double elapsed = (time - random_start_time_).seconds();
+    const double random_alpha = std::clamp(elapsed / params_.random_duration, 0.0, 1.0);
+    interpolate_random_joint_offsets(random_alpha);
   }
   const double active_random_scale = params_.enable_randomization ? random_scale(time) : 0.0;
 
@@ -589,7 +615,9 @@ controller_interface::return_type JoystickController::update(
         positions = last_active_positions;
       }
 
-      apply_random_joint_offsets(positions, sensor_name, active_random_scale);
+      if (params_.enable_randomization) {
+        apply_random_joint_offsets(positions, sensor_name);
+      }
       publish_joint_trajectory(controlled_joints, positions, sensor_name);
     }
 

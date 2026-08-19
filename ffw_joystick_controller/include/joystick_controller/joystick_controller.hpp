@@ -121,8 +121,9 @@ protected:
   void randomization(const rclcpp::Time & current_time);
   double random_scale(const rclcpp::Time & current_time);
   double sample_random_value(const std::vector<double> & range);
+  void interpolate_random_joint_offsets(double random_alpha);
   void apply_random_joint_offsets(
-    std::vector<double> & positions, const std::string & sensor_name, double random_scale) const;
+    std::vector<double> & positions, const std::string & sensor_name) const;
   std::vector<std::string> sensorxel_joy_names_;
   std::vector<std::string> state_interface_types_ = {"JOYSTICK X VALUE", "JOYSTICK Y VALUE",
     "JOYSTICK TACT SWITCH"};
@@ -171,6 +172,8 @@ protected:
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr action_event_sub_;
   std::atomic_bool randomization_requested_{false};
   std::mt19937 random_engine_{std::random_device{}()};
+  std::map<std::string, std::vector<double>> random_joint_interpolation_start_offsets_;
+  std::map<std::string, std::vector<double>> random_joint_interpolation_target_offsets_;
   std::map<std::string, std::vector<double>> random_joint_offsets_;
   geometry_msgs::msg::Twist random_cmd_vel_;
   rclcpp::Time random_start_time_;
