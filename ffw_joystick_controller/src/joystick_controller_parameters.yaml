@@ -110,3 +110,51 @@ joystick_controller:
     description: "Duration in seconds to trigger long press event",
     read_only: true
   }
+  enable_randomization: {
+    type: bool,
+    default_value: false,
+    description: "Enable random offsets on recording finish events",
+    read_only: false
+  }
+  action_event_topic: {
+    type: string,
+    default_value: "/task/action_event",
+    description: "Topic to receive recording action events",
+    read_only: true
+  }
+  head_random_range: {
+    type: double_array,
+    default_value: [-0.00, 0.00],
+    description: "Head joint random offset range",
+    read_only: true
+  }
+  lift_random_range: {
+    type: double_array,
+    default_value: [-0.02, 0.02],
+    description: "Lift joint random offset range",
+    read_only: true
+  }
+  cmd_vel_linear_x_random_range: {
+    type: double_array,
+    default_value: [-0.5, 0.5],
+    description: "cmd_vel linear.x random offset range",
+    read_only: true
+  }
+  cmd_vel_linear_y_random_range: {
+    type: double_array,
+    default_value: [-1.0, 1.0],
+    description: "cmd_vel linear.y random offset range",
+    read_only: true
+  }
+  cmd_vel_angular_z_random_range: {
+    type: double_array,
+    default_value: [-1.0, 1.0],
+    description: "cmd_vel angular.z random offset range",
+    read_only: true
+  }
+  random_duration: {
+    type: double,
+    default_value: 2.0,
+    description: "Seconds to apply random offsets with linear 0-1-0 scale",
+    read_only: true
+  }

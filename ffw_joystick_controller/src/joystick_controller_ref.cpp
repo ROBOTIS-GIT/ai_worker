@@ -16,7 +16,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cmath>
 #include <string>
 #include <stdexcept>
 
@@ -46,15 +45,6 @@ const char LEFT_JOYSTICK_NAME[] = "sensorxel_l_joy";
 const char RIGHT_JOYSTICK_NAME[] = "sensorxel_r_joy";
 
 }  // namespace constants
-
-namespace
-{
-bool is_valid_range(const std::vector<double> & range)
-{
-  return range.size() == 2 && std::isfinite(range[0]) && std::isfinite(range[1]) &&
-         range[0] <= range[1];
-}
-}  // namespace
 
 JoystickController::JoystickController()
 : controller_interface::ControllerInterface()
@@ -239,99 +229,12 @@ void JoystickController::publish_joint_trajectory(
   }
 }
 
-void JoystickController::action_event_callback(const std_msgs::msg::String::SharedPtr msg)
-{
-  if (msg->data == "finish") {
-    randomization_requested_.store(true);
-  }
-}
-
-double JoystickController::sample_random_value(const std::vector<double> & range)
-{
-  std::uniform_real_distribution<double> distribution(range[0], range[1]);
-  return distribution(random_engine_);
-}
-
-void JoystickController::randomization(const rclcpp::Time & current_time)
-{
-  random_joint_offsets_.clear();
-  for (const auto & sensor_name : sensorxel_joy_names_) {
-    const auto & range = sensor_name == constants::LEFT_JOYSTICK_NAME ?
-      params_.head_random_range : params_.lift_random_range;
-    auto & offsets = random_joint_offsets_[sensor_name];
-    offsets.resize(sensor_controlled_joints_[sensor_name].size());
-    for (auto & offset : offsets) {
-      offset = sample_random_value(range);
-    }
-  }
-
-  random_cmd_vel_.linear.x = sample_random_value(params_.cmd_vel_linear_x_random_range);
-  random_cmd_vel_.linear.y = sample_random_value(params_.cmd_vel_linear_y_random_range);
-  random_cmd_vel_.angular.z = sample_random_value(params_.cmd_vel_angular_z_random_range);
-  random_start_time_ = current_time;
-  random_active_ = true;
-}
-
-double JoystickController::random_scale(const rclcpp::Time & current_time)
-{
-  if (!random_active_) {
-    return 0.0;
-  }
-
-  double elapsed = (current_time - random_start_time_).seconds();
-  if (elapsed < 0.0) {
-    random_active_ = false;
-    return 0.0;
-  }
-
-  if (elapsed < params_.random_duration) {
-    const double progress = elapsed / params_.random_duration;
-    return progress < 0.5 ? progress * 2.0 : (1.0 - progress) * 2.0;
-  }
-
-  random_active_ = false;
-  return 0.0;
-}
-
-void JoystickController::apply_random_joint_offsets(
-  std::vector<double> & positions, const std::string & sensor_name, double random_scale) const
-{
-  if (random_scale == 0.0) {
-    return;
-  }
-
-  const auto offsets_it = random_joint_offsets_.find(sensor_name);
-  if (offsets_it == random_joint_offsets_.end()) {
-    return;
-  }
-
-  const auto & offsets = offsets_it->second;
-  for (size_t i = 0; i < positions.size() && i < offsets.size(); ++i) {
-    positions[i] += offsets[i] * random_scale;
-  }
-}
-
-void JoystickController::publish_cmd_vel(
-  const JoystickValues & joystick_values, double random_scale)
+void JoystickController::publish_cmd_vel(const JoystickValues & joystick_values)
 {
   geometry_msgs::msg::Twist twist_msg;
   twist_msg.linear.x = -joystick_values.left_x / constants::LINEAR_X_SCALE;
   twist_msg.linear.y = joystick_values.left_y / constants::LINEAR_Y_SCALE;
   twist_msg.angular.z = -joystick_values.right_y / constants::ANGULAR_Z_SCALE;
-
-  if (random_scale != 0.0) {
-    twist_msg.linear.x += random_cmd_vel_.linear.x * random_scale;
-    twist_msg.linear.y += random_cmd_vel_.linear.y * random_scale;
-    twist_msg.angular.z += random_cmd_vel_.angular.z * random_scale;
-  }
-
-  twist_msg.linear.x = std::clamp(
-    twist_msg.linear.x, -1.0 / constants::LINEAR_X_SCALE, 1.0 / constants::LINEAR_X_SCALE);
-  twist_msg.linear.y = std::clamp(
-    twist_msg.linear.y, -1.0 / constants::LINEAR_Y_SCALE, 1.0 / constants::LINEAR_Y_SCALE);
-  twist_msg.angular.z = std::clamp(
-    twist_msg.angular.z, -1.0 / constants::ANGULAR_Z_SCALE, 1.0 / constants::ANGULAR_Z_SCALE);
-
   cmd_vel_pub_->publish(twist_msg);
 }
 
@@ -517,14 +420,6 @@ controller_interface::return_type JoystickController::update(
     params_ = param_listener_->get_params();
   }
 
-  if (!params_.enable_randomization) {
-    random_active_ = false;
-    randomization_requested_.store(false);
-  } else if (randomization_requested_.exchange(false)) {
-    randomization(time);
-  }
-  const double active_random_scale = params_.enable_randomization ? random_scale(time) : 0.0;
-
   JoystickValues joystick_values;
   bool left_tact_switch_pressed = false;
   bool right_tact_switch_pressed = false;
@@ -557,9 +452,7 @@ controller_interface::return_type JoystickController::update(
                           left_tact_switch_pressed, right_tact_switch_pressed);
 
     // Update last active positions when joystick becomes inactive
-    const bool trajectory_joy_active = any_sensorxel_joy_active && !params_.enable_randomization;
-
-    if (was_active_ && !trajectory_joy_active && !current_joint_states_.name.empty() &&
+    if (was_active_ && !any_sensorxel_joy_active && !current_joint_states_.name.empty() &&
       !controlled_joints.empty())
     {
       for (size_t i = 0; i < controlled_joints.size(); ++i) {
@@ -579,7 +472,7 @@ controller_interface::return_type JoystickController::update(
     if (!current_joint_states_.name.empty() && !controlled_joints.empty()) {
       std::vector<double> positions;
 
-      if (trajectory_joy_active) {
+      if (any_sensorxel_joy_active) {
         positions = calculate_joint_positions(
           controlled_joints, sensor_name, joystick_values);
         for (size_t i = 0; i < positions.size() && i < last_active_positions.size(); ++i) {
@@ -589,16 +482,15 @@ controller_interface::return_type JoystickController::update(
         positions = last_active_positions;
       }
 
-      apply_random_joint_offsets(positions, sensor_name, active_random_scale);
       publish_joint_trajectory(controlled_joints, positions, sensor_name);
     }
 
-    was_active_ = trajectory_joy_active;
+    was_active_ = any_sensorxel_joy_active;
     sensorxel_joy_values_[sensor_idx] = normalized_values;
   }
 
   // Publish cmd_vel
-  publish_cmd_vel(joystick_values, active_random_scale);
+  publish_cmd_vel(joystick_values);
 
   // Publish joystick values
   publish_joystick_values();
@@ -646,19 +538,6 @@ controller_interface::CallbackReturn JoystickController::on_configure(
       logger,
       "Invalid deadzone %.3f. 'deadzone' must be in the range [0.0, 1.0).",
       params_.deadzone);
-    return controller_interface::CallbackReturn::ERROR;
-  }
-
-  const bool randomization_params_valid =
-    is_valid_range(params_.head_random_range) &&
-    is_valid_range(params_.lift_random_range) &&
-    is_valid_range(params_.cmd_vel_linear_x_random_range) &&
-    is_valid_range(params_.cmd_vel_linear_y_random_range) &&
-    is_valid_range(params_.cmd_vel_angular_z_random_range) &&
-    std::isfinite(params_.random_duration) &&
-    params_.random_duration > 0.0;
-  if (!randomization_params_valid) {
-    RCLCPP_ERROR(logger, "Invalid randomization parameters.");
     return controller_interface::CallbackReturn::ERROR;
   }
 
@@ -765,10 +644,6 @@ controller_interface::CallbackReturn JoystickController::on_configure(
     [this](const std_msgs::msg::Bool::SharedPtr msg) {
       middle_pedal_held_ = msg->data;
     });
-
-  action_event_sub_ = get_node()->create_subscription<std_msgs::msg::String>(
-    params_.action_event_topic, 10,
-    std::bind(&JoystickController::action_event_callback, this, std::placeholders::_1));
 
   RCLCPP_INFO(get_node()->get_logger(), "JoystickController configured successfully.");
   return CallbackReturn::SUCCESS;

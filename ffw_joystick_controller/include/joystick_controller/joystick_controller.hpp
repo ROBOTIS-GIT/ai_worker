@@ -20,6 +20,8 @@
 #include <vector>
 #include <functional>
 #include <map>
+#include <atomic>
+#include <random>
 
 #include "controller_interface/controller_interface.hpp"
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
@@ -111,10 +113,16 @@ protected:
     const std::vector<std::string> & controlled_joints,
     const std::vector<double> & positions,
     const std::string & sensor_name);
-  void publish_cmd_vel(const JoystickValues & joystick_values);
+  void publish_cmd_vel(const JoystickValues & joystick_values, double random_scale);
   void publish_joystick_values();
   void handle_tact_switches(
     bool left_tact_pressed, bool right_tact_pressed, const rclcpp::Time & current_time);
+  void action_event_callback(const std_msgs::msg::String::SharedPtr msg);
+  void randomization(const rclcpp::Time & current_time);
+  double random_scale(const rclcpp::Time & current_time);
+  double sample_random_value(const std::vector<double> & range);
+  void apply_random_joint_offsets(
+    std::vector<double> & positions, const std::string & sensor_name, double random_scale) const;
   std::vector<std::string> sensorxel_joy_names_;
   std::vector<std::string> state_interface_types_ = {"JOYSTICK X VALUE", "JOYSTICK Y VALUE",
     "JOYSTICK TACT SWITCH"};
@@ -160,6 +168,13 @@ protected:
 
   bool middle_pedal_held_ = false;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr middle_pedal_sub_;
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr action_event_sub_;
+  std::atomic_bool randomization_requested_{false};
+  std::mt19937 random_engine_{std::random_device{}()};
+  std::map<std::string, std::vector<double>> random_joint_offsets_;
+  geometry_msgs::msg::Twist random_cmd_vel_;
+  rclcpp::Time random_start_time_;
+  bool random_active_ = false;
 };
 
 }  // namespace joystick_controller
