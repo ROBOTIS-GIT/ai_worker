@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ffw_a1">
+  <xacro:arg name="use_sim" default="false" />
+  <xacro:arg name="use_mock_hardware" default="false" />
+  <xacro:arg name="mock_sensor_commands" default="false" />
+  <xacro:arg name="prefix" default="" />
+
+  <xacro:include filename="$(find ffw_description)/urdf/common/leader/ffw_leader_body.urdf.xacro" />
+
+  <xacro:include filename="$(find ffw_description)/ros2_control/ffw_a1_leader/ffw_a1_leader.ros2_control.xacro" />
+
+  <link name="world"/>
+
+  <xacro:ffw_leader_body parent="$(arg prefix)world" prefix="$(arg prefix)">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </xacro:ffw_leader_body>
+
+  <joint name="$(arg prefix)gripper_l_joint1" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <parent link="$(arg prefix)arm_l_link7"/>
+    <axis xyz="0 1 0"/>
+    <child link="$(arg prefix)gripper_l_link1"/>
+    <limit velocity="6.5" effort="1000" lower="-6.28" upper="6.28" />
+  </joint>
+  <link name="$(arg prefix)gripper_l_link1"/>
+
+  <joint name="$(arg prefix)gripper_r_joint1" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <parent link="$(arg prefix)arm_r_link7"/>
+    <axis xyz="0 1 0"/>
+    <child link="$(arg prefix)gripper_r_link1"/>
+    <limit velocity="6.5" effort="1000" lower="-6.28" upper="6.28" />
+  </joint>
+  <link name="$(arg prefix)gripper_r_link1"/>
+
+  <xacro:ffw_a1_leader_system
+      use_sim="$(arg use_sim)"
+      use_mock_hardware="$(arg use_mock_hardware)"
+      mock_sensor_commands="$(arg mock_sensor_commands)" />
+
+</robot>
