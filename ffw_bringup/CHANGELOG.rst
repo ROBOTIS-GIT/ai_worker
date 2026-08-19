@@ -7,6 +7,10 @@ Changelog for package ffw_bringup
 * Added hardware bringup for the A2 leader
 * Contributors: Yeonguk Kim
 
+2.2.5 (2026-08-19)
+------------------
+* None
+
 2.2.4 (2026-08-12)
 ------------------
 * Standardized F1 and F2 AI launch names and service aliases

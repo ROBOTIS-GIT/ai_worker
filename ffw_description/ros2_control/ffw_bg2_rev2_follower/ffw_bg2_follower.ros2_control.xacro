@@ -348,8 +348,8 @@
         <param name="Current Limit">1500</param>
         <param name="Profile Velocity">100</param>
         <param name="Profile Acceleration">50</param>
-        <param name="Max Position Limit">131875</param>
-        <param name="Min Position Limit">-131875</param>
+        <param name="Max Position Limit">152804</param>
+        <param name="Min Position Limit">-175979</param>
       </gpio>
       <gpio name="dxl8">
         <param name="type">dxl</param>
@@ -525,8 +525,8 @@
         <param name="Current Limit">1500</param>
         <param name="Profile Velocity">100</param>
         <param name="Profile Acceleration">50</param>
-        <param name="Max Position Limit">131875</param>
-        <param name="Min Position Limit">-131875</param>
+        <param name="Max Position Limit">175979</param>
+        <param name="Min Position Limit">-152804</param>
       </gpio>
       <gpio name="dxl38">
         <param name="type">dxl</param>

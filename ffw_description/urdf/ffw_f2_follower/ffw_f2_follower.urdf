@@ -950,7 +950,7 @@
     <child link="arm_l_link7"/>
     <origin rpy="0 0 0" xyz="-0.00025 -0.0007 -0.0775"/>
     <axis xyz="1 0 0"/>
-    <limit effort="1000" lower="-1.8201" upper="1.5804" velocity="4.8"/>
+    <limit effort="1000" lower="-1.5804" upper="1.8201" velocity="4.8"/>
     <dynamics damping="0.1"/>
   </joint>
   <link name="arm_l_link7">
@@ -1192,7 +1192,7 @@
     <child link="arm_r_link7"/>
     <origin rpy="0 0 0" xyz="-0.00025 -0.0007 -0.0775"/>
     <axis xyz="1 0 0"/>
-    <limit effort="1000" lower="-1.5804" upper="1.8201" velocity="4.8"/>
+    <limit effort="1000" lower="-1.8201" upper="1.5804" velocity="4.8"/>
     <dynamics damping="0.1"/>
   </joint>
   <link name="arm_r_link7">
@@ -2100,8 +2100,8 @@
       <param name="Current Limit">1500</param>
       <param name="Profile Velocity">100</param>
       <param name="Profile Acceleration">50</param>
-      <param name="Max Position Limit">131875</param>
-      <param name="Min Position Limit">-151875</param>
+      <param name="Max Position Limit">152804</param>
+      <param name="Min Position Limit">-175979</param>
     </gpio>
     <gpio name="dxl8">
       <param name="type">dxl</param>
@@ -2277,8 +2277,8 @@
       <param name="Current Limit">1500</param>
       <param name="Profile Velocity">100</param>
       <param name="Profile Acceleration">50</param>
-      <param name="Max Position Limit">131875</param>
-      <param name="Min Position Limit">-151875</param>
+      <param name="Max Position Limit">175979</param>
+      <param name="Min Position Limit">-152804</param>
     </gpio>
     <gpio name="dxl38">
       <param name="type">dxl</param>

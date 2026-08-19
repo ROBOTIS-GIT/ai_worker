@@ -7,6 +7,11 @@ Changelog for package ffw
 * Added support for the A2 leader
 * Contributors: Yeonguk Kim
 
+2.2.5 (2026-08-19)
+------------------
+* Corrected left and right joint7 position limits in URDF and ros2_control configurations for SG2, SH5, BG2, BH5, F1, and F2
+* Contributors: Yeonguk Kim
+
 2.2.4 (2026-08-12)
 ------------------
 * Standardized F1 and F2 AI launch names

@@ -6,6 +6,10 @@ Changelog for package ffw_swerve_drive_controller
 ------------------
 * None
 
+2.2.5 (2026-08-19)
+------------------
+* None
+
 2.2.4 (2026-08-12)
 ------------------
 * None
