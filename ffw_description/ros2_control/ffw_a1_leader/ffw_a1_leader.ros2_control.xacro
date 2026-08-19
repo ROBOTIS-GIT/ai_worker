@@ -32,24 +32,6 @@
             <param name="set_dynamixel_data_srv_name">dynamixel_hardware_interface/set_dxl_data</param>
             <param name="reboot_dxl_srv_name">dynamixel_hardware_interface/reboot_dxl</param>
             <param name="set_dxl_torque_srv_name">dynamixel_hardware_interface/set_dxl_torque</param>
-            <param name="transmission_to_joint_matrix">
-              1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-              0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-              0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-              0, 0, 0, -1.0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-              0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-              0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-              0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-              0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0,
-              0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
-              0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
-              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
-              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0,
-              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
-              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0,
-              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
-              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1
-            </param>
           </xacro:unless>
         </hardware>
       </xacro:unless>
@@ -140,16 +122,17 @@
         <param name="type">dxl</param>
         <param name="ID">32</param>
         <state_interface name="Present Position"/>
+        <param name="Drive Mode">1</param>
+        <param name="Homing Offset">910</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
-        <param name="[unit info]">
-          Present Position, 0.00038349519697141030,rad,signed, -3.490658654;
-        </param>
       </gpio>
       <gpio name="dxl31">
         <param name="type">dxl</param>
         <param name="ID">31</param>
         <state_interface name="Present Position"/>
+        <param name="Drive Mode">0</param>
+        <param name="Homing Offset">0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -157,6 +140,8 @@
         <param name="type">dxl</param>
         <param name="ID">33</param>
         <state_interface name="Present Position"/>
+        <param name="Drive Mode">1</param>
+        <param name="Homing Offset">0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -165,10 +150,8 @@
         <param name="ID">34</param>
         <state_interface name="Present Position"/>
         <param name="Return Delay Time">0</param>
-        <param name="Drive Mode">1</param>
-        <param name="[unit info]">
-          Present Position, 0.00038349519697141030,rad,signed,-1.396263327;
-        </param>
+        <param name="Drive Mode">0</param>
+        <param name="Homing Offset">-4551</param>
         <param name="Torque Enable">0</param>
       </gpio>
       <gpio name="dxl35">
@@ -177,6 +160,7 @@
         <state_interface name="Present Position"/>
         <param name="Return Delay Time">0</param>
         <param name="Drive Mode">1</param>
+        <param name="Homing Offset">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
       <gpio name="dxl36">
@@ -184,19 +168,18 @@
         <param name="ID">36</param>
         <state_interface name="Present Position"/>
         <param name="Return Delay Time">0</param>
-        <param name="Drive Mode">1</param>
+        <param name="Drive Mode">0</param>
+        <param name="Homing Offset">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
       <gpio name="dxl37">
         <param name="type">dxl</param>
         <param name="ID">37</param>
         <state_interface name="Present Position"/>
+        <param name="Drive Mode">1</param>
+        <param name="Homing Offset">-4096</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
-        <!-- <param name="Drive Mode">1</param> -->
-        <param name="[unit info]">
-          Present Position, 0.00038349519697141030,rad,signed,-1.5707963268;
-        </param>
       </gpio>
 
       <gpio name="sensorxel_r_joy">
@@ -221,16 +204,17 @@
         <param name="type">dxl</param>
         <param name="ID">2</param>
         <state_interface name="Present Position"/>
+        <param name="Drive Mode">0</param>
+        <param name="Homing Offset">910</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
-        <param name="[unit info]">
-          Present Position, 0.00038349519697141030,rad,signed, -2.792526654;
-        </param>
       </gpio>
       <gpio name="dxl1">
         <param name="type">dxl</param>
         <param name="ID">1</param>
         <state_interface name="Present Position"/>
+        <param name="Drive Mode">0</param>
+        <param name="Homing Offset">0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -238,6 +222,8 @@
         <param name="type">dxl</param>
         <param name="ID">3</param>
         <state_interface name="Present Position"/>
+        <param name="Drive Mode">1</param>
+        <param name="Homing Offset">0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -245,16 +231,17 @@
         <param name="type">dxl</param>
         <param name="ID">4</param>
         <state_interface name="Present Position"/>
+        <param name="Drive Mode">0</param>
+        <param name="Homing Offset">-4551</param>
         <param name="Return Delay Time">0</param>
-        <param name="[unit info]">
-          Present Position, 0.00038349519697141030,rad,signed,-4.88692198;
-        </param>
         <param name="Torque Enable">0</param>
       </gpio>
       <gpio name="dxl5">
         <param name="type">dxl</param>
         <param name="ID">5</param>
         <state_interface name="Present Position"/>
+        <param name="Drive Mode">1</param>
+        <param name="Homing Offset">0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -262,16 +249,17 @@
         <param name="type">dxl</param>
         <param name="ID">6</param>
         <state_interface name="Present Position"/>
+        <param name="Drive Mode">0</param>
+        <param name="Homing Offset">8192</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
-        <param name="[unit info]">
-          Present Position, 0.00038349519697141030,rad,signed,0;
-        </param>
       </gpio>
       <gpio name="dxl7">
         <param name="type">dxl</param>
         <param name="ID">7</param>
         <state_interface name="Present Position"/>
+        <param name="Drive Mode">1</param>
+        <param name="Homing Offset">0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
