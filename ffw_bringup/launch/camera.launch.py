@@ -42,21 +42,6 @@ def generate_launch_description():
             os.path.join(bringup_launch_dir, 'camera_realsense.launch.py')),
     )
 
-
-    # Delay ZED relay nodes to start after ZED camera is ready
-    zed_relay_nodes = TimerAction(
-        period=5.0,
-        actions=[relay_left_head, relay_right_head,
-                 relay_left_head_info, relay_right_head_info]
-    )
-
-    # Delay RealSense relay nodes to start after RealSense cameras are ready
-    realsense_relay_nodes = TimerAction(
-        period=15.0,
-        actions=[relay_left_wrist, relay_right_wrist,
-                 relay_left_wrist_info, relay_right_wrist_info]
-    )
-
     return LaunchDescription([
         camera_zed,
         TimerAction(period=10.0, actions=[camera_realsense]),
