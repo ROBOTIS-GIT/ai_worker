@@ -84,8 +84,9 @@ CallbackReturn SwerveDriveController::on_init()
     auto_declare<double>("steering_alignment_angle_error_threshold", 0.1);
     auto_declare<double>("steering_alignment_start_angle_error_threshold", 0.1);
     auto_declare<double>("steering_alignment_start_speed_error_threshold", 0.1);
-    auto_declare<double>("linear_vel_deadband", 0.01);
-    auto_declare<double>("angular_vel_deadband", 0.01);
+    auto_declare<double>("linear_vel_deadband", 0.001);
+    auto_declare<double>("angular_vel_deadband", 0.001);
+    auto_declare<bool>("align_steering_on_stop", true);
 
     auto_declare<std::string>("cmd_vel_topic", "/cmd_vel");
     auto_declare<double>("cmd_vel_timeout", 500.0);
@@ -250,6 +251,8 @@ CallbackReturn SwerveDriveController::on_configure(
       "linear_vel_deadband").as_double();
     angular_vel_deadband_ = get_node()->get_parameter(
       "angular_vel_deadband").as_double();
+    align_steering_on_stop_ = get_node()->get_parameter(
+      "align_steering_on_stop").as_bool();
 
     cmd_vel_topic_ = get_node()->get_parameter("cmd_vel_topic").as_string();
     cmd_vel_timeout_ = get_node()->get_parameter("cmd_vel_timeout").as_double();
@@ -1036,11 +1039,12 @@ controller_interface::return_type SwerveDriveController::update(
       auto & handle = module_handles_[i];
       auto steering_val = handle.steering_state_pos.get().get_optional();
       const double hold_angle = steering_val.value_or(0.0);
-      handle.steering_cmd_pos.get().set_value(hold_angle);
+      const double steering_command = align_steering_on_stop_ ? 0.0 : hold_angle;
+      handle.steering_cmd_pos.get().set_value(steering_command);
       handle.wheel_cmd_vel.get().set_value(0.0);
-      final_steering_commands_[i] = hold_angle;
+      final_steering_commands_[i] = steering_command;
       final_wheel_velocity_commands_[i] = 0.0;
-      previoud_steering_commands_[i] = hold_angle;
+      previoud_steering_commands_[i] = steering_command;
     }
   } else {
     // Update the final commands
