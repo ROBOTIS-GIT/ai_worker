@@ -35,50 +35,6 @@ def generate_launch_description():
         launch_arguments={'camera_model': 'zedm'}.items()
     )
 
-    # ZED topic relay nodes
-    relay_left_head = Node(
-        package='topic_tools',
-        executable='relay',
-        name='relay_cam_left_head',
-        arguments=[
-            '/zed/zed_node/left/image_rect_color/compressed',
-            '/robot/camera/cam_left_head/image_raw/compressed'
-        ],
-        output='screen'
-    )
-
-    relay_right_head = Node(
-        package='topic_tools',
-        executable='relay',
-        name='relay_cam_right_head',
-        arguments=[
-            '/zed/zed_node/right/image_rect_color/compressed',
-            '/robot/camera/cam_right_head/image_raw/compressed'
-        ],
-        output='screen'
-    )
-
-    relay_left_head_info = Node(
-        package='topic_tools',
-        executable='relay',
-        name='relay_cam_left_head_info',
-        arguments=[
-            '/zed/zed_node/left/camera_info',
-            '/robot/camera/cam_left_head/image_raw/compressed/camera_info'
-        ],
-        output='screen'
-    )
-
-    relay_right_head_info = Node(
-        package='topic_tools',
-        executable='relay',
-        name='relay_cam_right_head_info',
-        arguments=[
-            '/zed/zed_node/right/camera_info',
-            '/robot/camera/cam_right_head/image_raw/compressed/camera_info'
-        ],
-        output='screen'
-    )
 
     # RealSense cameras launch
     camera_realsense = IncludeLaunchDescription(
@@ -86,52 +42,6 @@ def generate_launch_description():
             os.path.join(bringup_launch_dir, 'camera_realsense.launch.py')),
     )
 
-    # RealSense topic relay nodes
-    # Relay from /camera_left/camera_left/color/image_rect_raw/compressed
-    # to /robot/camera/cam_left_wrist/image_raw/compressed
-    relay_left_wrist = Node(
-        package='topic_tools',
-        executable='relay',
-        name='relay_cam_left_wrist',
-        arguments=[
-            '/camera_left/camera_left/color/image_rect_raw/compressed',
-            '/robot/camera/cam_left_wrist/image_raw/compressed'
-        ],
-        output='screen'
-    )
-
-    relay_right_wrist = Node(
-        package='topic_tools',
-        executable='relay',
-        name='relay_cam_right_wrist',
-        arguments=[
-            '/camera_right/camera_right/color/image_rect_raw/compressed',
-            '/robot/camera/cam_right_wrist/image_raw/compressed'
-        ],
-        output='screen'
-    )
-
-    relay_left_wrist_info = Node(
-        package='topic_tools',
-        executable='relay',
-        name='relay_cam_left_wrist_info',
-        arguments=[
-            '/camera_left/camera_left/color/camera_info',
-            '/robot/camera/cam_left_wrist/image_raw/compressed/camera_info'
-        ],
-        output='screen'
-    )
-
-    relay_right_wrist_info = Node(
-        package='topic_tools',
-        executable='relay',
-        name='relay_cam_right_wrist_info',
-        arguments=[
-            '/camera_right/camera_right/color/camera_info',
-            '/robot/camera/cam_right_wrist/image_raw/compressed/camera_info'
-        ],
-        output='screen'
-    )
 
     # Delay ZED relay nodes to start after ZED camera is ready
     zed_relay_nodes = TimerAction(
@@ -149,7 +59,5 @@ def generate_launch_description():
 
     return LaunchDescription([
         camera_zed,
-        zed_relay_nodes,
         TimerAction(period=10.0, actions=[camera_realsense]),
-        realsense_relay_nodes,
     ])
