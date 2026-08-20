@@ -112,7 +112,7 @@ joystick_controller:
   }
   enable_randomization: {
     type: bool,
-    default_value: false,
+    default_value: true,
     description: "Enable random offsets on recording finish events",
     read_only: false
   }
