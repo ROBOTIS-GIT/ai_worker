@@ -1,0 +1,30 @@
+cyclo_teleoperation:
+  ros__parameters:
+    control_frequency: 100.0
+    trajectory_time: 0.0
+    joint_state_timeout: 0.5
+    leader_command_timeout: 0.5
+
+    hold:
+      kp: 20.0
+      max_correction_velocity: 0.2
+      tracking_weight: 100.0
+
+    pose_sequence:
+      kp_joint: 30.0
+      tracking_weight: 10.0
+
+    control_modes:
+      "1":
+        kp_joint: 50.0
+        tracking_weight: 10.0
+
+      "2":
+        kp_position: 50.0
+        kp_orientation: 50.0
+        weight_position: 10.0
+        weight_orientation: 1.0
+        elbow_up_velocity: 0.2
+        elbow_weight: 1.0
+        nullspace_damping: 0.001
+        elbow_up_joint_velocity: 1.0

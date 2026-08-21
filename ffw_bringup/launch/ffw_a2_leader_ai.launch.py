@@ -115,6 +115,14 @@ def generate_launch_description():
             'ffw_a2_teleoperation.yaml',
         ]
     )
+    teleoperation_controller_parameters = PathJoinSubstitution(
+        [
+            FindPackageShare('ffw_bringup'),
+            'config',
+            'ffw_a2_leader',
+            'ffw_a2_teleoperation_controller_parameters.yaml',
+        ]
+    )
     follower_urdf_path = PathJoinSubstitution(
         [
             FindPackageShare('cyclo_motion_controller_models'),
@@ -137,6 +145,7 @@ def generate_launch_description():
         name='cyclo_teleoperation',
         parameters=[
             teleoperation_config,
+            teleoperation_controller_parameters,
             {
                 'follower_urdf_path': follower_urdf_path,
                 'follower_srdf_path': follower_srdf_path,
