@@ -15,6 +15,7 @@
 #ifndef A2_JOINT_TRAJECTORY_COMMAND_BROADCASTER__A2_JOINT_TRAJECTORY_COMMAND_BROADCASTER_HPP_
 #define A2_JOINT_TRAJECTORY_COMMAND_BROADCASTER__A2_JOINT_TRAJECTORY_COMMAND_BROADCASTER_HPP_
 
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <mutex>
@@ -102,6 +103,7 @@ protected:
   void joint_states_callback(const sensor_msgs::msg::JointState::SharedPtr msg);
   bool check_joints_synced() const;
   double calculate_mean_error() const;
+  double calculate_group_mean_error(const std::string & group_name) const;
   void update_trigger_state(const rclcpp::Time & current_time);
   bool check_trigger_active() const;
   void update_initial_pose_trigger_state(const rclcpp::Time & current_time);
@@ -204,6 +206,9 @@ protected:
   uint8_t preset_busy_arms_ = 0;
   uint64_t transition_id_ = 0;
   std::mutex teleoperation_mutex_;
+  std::atomic<uint8_t> requested_arms_rt_{0};
+  uint8_t previous_requested_arms_rt_ = 0;
+  uint8_t unsynced_arms_rt_ = 0;
 };
 
 }  // namespace a2_joint_trajectory_command_broadcaster

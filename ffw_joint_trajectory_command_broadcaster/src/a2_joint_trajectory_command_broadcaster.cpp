@@ -225,6 +225,9 @@ controller_interface::CallbackReturn A2JointTrajectoryCommandBroadcaster::on_con
       initial_pose_available_arms_ = 0;
       initial_pose_busy_arms_ = 0;
       preset_busy_arms_ = 0;
+      requested_arms_rt_.store(0, std::memory_order_relaxed);
+      previous_requested_arms_rt_ = 0;
+      unsynced_arms_rt_ = 0;
       left_initial_pose_trigger_ = TriggerHoldState{};
       right_initial_pose_trigger_ = TriggerHoldState{};
       auto command_qos = rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local();
@@ -478,6 +481,61 @@ double A2JointTrajectoryCommandBroadcaster::calculate_mean_error() const
   return valid_joints > 0 ? total_error / valid_joints : std::numeric_limits<double>::max();
 }
 
+double A2JointTrajectoryCommandBroadcaster::calculate_group_mean_error(
+  const std::string & group_name) const
+{
+  if (follower_joint_positions_.empty()) {
+    return std::numeric_limits<double>::max();
+  }
+
+  const auto joints_it = group_joint_names_.find(group_name);
+  if (joints_it == group_joint_names_.end()) {
+    return std::numeric_limits<double>::max();
+  }
+
+  const auto offsets_it = group_joint_offsets_.find(group_name);
+  const auto reverse_it = group_reverse_joints_.find(group_name);
+  const std::vector<double> empty_offsets;
+  const std::vector<std::string> empty_reverse_joints;
+  const auto & offsets = offsets_it == group_joint_offsets_.end() ?
+    empty_offsets : offsets_it->second;
+  const auto & reverse_joints = reverse_it == group_reverse_joints_.end() ?
+    empty_reverse_joints : reverse_it->second;
+
+  double total_error = 0.0;
+  size_t valid_joints = 0;
+  for (size_t i = 0; i < joints_it->second.size(); ++i) {
+    const auto & joint_name = joints_it->second[i];
+    // Gripper commands remain immediate in MoveJ and must not prolong arm synchronization.
+    if (joint_name.find("gripper") != std::string::npos) {
+      continue;
+    }
+    const auto follower_it = follower_joint_positions_.find(joint_name);
+    if (follower_it == follower_joint_positions_.end()) {
+      continue;
+    }
+
+    double leader_position = get_value(name_if_value_mapping_, joint_name, HW_IF_POSITION);
+    if (std::isnan(leader_position)) {
+      continue;
+    }
+    if (
+      std::find(reverse_joints.begin(), reverse_joints.end(), joint_name) !=
+      reverse_joints.end())
+    {
+      leader_position = -leader_position;
+    }
+    if (i < offsets.size()) {
+      leader_position += offsets[i];
+    }
+    total_error += std::abs(leader_position - follower_it->second);
+    ++valid_joints;
+  }
+  return valid_joints > 0 ?
+         total_error / static_cast<double>(valid_joints) :
+         std::numeric_limits<double>::max();
+}
+
 bool A2JointTrajectoryCommandBroadcaster::check_trigger_active() const
 {
   // Check if gripper trigger joints are above threshold
@@ -641,16 +699,19 @@ void A2JointTrajectoryCommandBroadcaster::publish_control_command(
   }
 
   robotis_interfaces::msg::ControlModeCommand command;
+  uint8_t requested_arms = 0;
   {
     std::lock_guard<std::mutex> lock(teleoperation_mutex_);
+    requested_arms = requested_arms_;
     command.transition_id = transition_id_;
     command.control_mode = requested_control_mode_;
-    command.enabled_arms = arms_to_name(requested_arms_);
+    command.enabled_arms = arms_to_name(requested_arms);
     command.preset_target_arm = preset_target_arm;
     command.initial_pose_target_arm = initial_pose_target_arm;
     command.left_preset_id = left_preset_id_;
     command.right_preset_id = right_preset_id_;
   }
+  requested_arms_rt_.store(requested_arms, std::memory_order_release);
   control_command_publisher_->publish(command);
 }
 
@@ -892,8 +953,16 @@ controller_interface::return_type A2JointTrajectoryCommandBroadcaster::update(
   }
 
   double mean_error = 0.0;
+  uint8_t requested_arms = 0;
+  uint8_t newly_enabled_arms = 0;
   if (params_.enable_teleoperation) {
     update_initial_pose_trigger_state(time);
+    requested_arms = requested_arms_rt_.load(std::memory_order_acquire);
+    newly_enabled_arms = requested_arms &
+      static_cast<uint8_t>(~previous_requested_arms_rt_);
+    unsynced_arms_rt_ |= newly_enabled_arms;
+    unsynced_arms_rt_ &= requested_arms;
+    previous_requested_arms_rt_ = requested_arms;
   } else {
     // Keep the legacy gripper-trigger behavior for existing leader models.
     update_trigger_state(time);
@@ -973,8 +1042,43 @@ controller_interface::return_type A2JointTrajectoryCommandBroadcaster::update(
         traj_msg.points[0].positions[i] = pos_value;
       }
 
-      // Set time_from_start based on sync status and mean error
-      if (params_.enable_teleoperation || joints_synced_) {
+      // Teleoperation uses a per-arm adaptive duration. Cyclo teleoperation consumes this
+      // duration for its MoveJ slow start and still publishes immediate follower commands.
+      if (params_.enable_teleoperation) {
+        const uint8_t group_arm = arms_from_name(group_name);
+        if (
+          group_arm == 0 ||
+          (requested_arms & group_arm) == 0 ||
+          (unsynced_arms_rt_ & group_arm) == 0)
+        {
+          traj_msg.points[0].time_from_start = rclcpp::Duration(0, 0);
+        } else {
+          double group_error = calculate_group_mean_error(group_name);
+          if (group_error <= params_.sync_threshold) {
+            unsynced_arms_rt_ &= static_cast<uint8_t>(~group_arm);
+            traj_msg.points[0].time_from_start = rclcpp::Duration(0, 0);
+            RCLCPP_INFO(
+              get_node()->get_logger(),
+              "%s MoveJ slow start synchronized at mean error %.4f rad",
+              group_name.c_str(), group_error);
+          } else {
+            if (group_error < params_.min_error) {
+              group_error = params_.min_error;
+            }
+            const double error_ratio = std::min(group_error / params_.max_error, 1.0);
+            const double adaptive_delay =
+              params_.min_delay + (params_.max_delay - params_.min_delay) * error_ratio;
+            traj_msg.points[0].time_from_start =
+              rclcpp::Duration::from_seconds(adaptive_delay);
+            if ((newly_enabled_arms & group_arm) != 0) {
+              RCLCPP_INFO(
+                get_node()->get_logger(),
+                "%s MoveJ slow start began: mean error %.4f rad, time_from_start %.3f s",
+                group_name.c_str(), group_error, adaptive_delay);
+            }
+          }
+        }
+      } else if (joints_synced_) {
         traj_msg.points[0].time_from_start = rclcpp::Duration(0, 0);  // immediate when synced
       } else {
         // Adaptive timing based on mean error using parameters
