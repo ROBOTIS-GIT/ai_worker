@@ -26,6 +26,8 @@ cyclo_teleoperation:
       "1":
         name: teleoperation
         plugin: cyclo_teleoperation/AiWorkerMoveJMode
+        slow_start:
+          enabled: true
         initial_pose:
           enabled: true
           step_names: [step0, step1]
@@ -49,6 +51,8 @@ cyclo_teleoperation:
       "2":
         name: elbow_up_leader
         plugin: cyclo_teleoperation/AiWorkerElbowUpLeaderMode
+        slow_start:
+          enabled: false
         initial_pose:
           enabled: true
           step_names: [step0, step1, step2]
