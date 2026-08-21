@@ -8,7 +8,7 @@
         type: joint_state_broadcaster/JointStateBroadcaster
 
       joint_trajectory_command_broadcaster:
-        type: joint_trajectory_command_broadcaster/A2JointTrajectoryCommandBroadcaster
+        type: leader_joint_trajectory_command_broadcaster/LeaderJointTrajectoryCommandBroadcaster
 
       spring_actuator_controller:
         type: spring_actuator_controller/SpringActuatorController

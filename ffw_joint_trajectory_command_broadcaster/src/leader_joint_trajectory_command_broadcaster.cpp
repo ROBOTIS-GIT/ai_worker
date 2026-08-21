@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "a2_joint_trajectory_command_broadcaster/a2_joint_trajectory_command_broadcaster.hpp"
+#include "leader_joint_trajectory_command_broadcaster/leader_joint_trajectory_command_broadcaster.hpp"
 
 #include <cstddef>
 #include <limits>
@@ -38,7 +38,7 @@ namespace rclcpp_lifecycle
 class State;
 }  // namespace rclcpp_lifecycle
 
-namespace a2_joint_trajectory_command_broadcaster
+namespace leader_joint_trajectory_command_broadcaster
 {
 const auto kUninitializedValue = std::numeric_limits<double>::quiet_NaN();
 using hardware_interface::HW_IF_POSITION;
@@ -90,9 +90,9 @@ bool preset_state_busy(const uint8_t state)
 }
 }  // namespace
 
-A2JointTrajectoryCommandBroadcaster::A2JointTrajectoryCommandBroadcaster() {}
+LeaderJointTrajectoryCommandBroadcaster::LeaderJointTrajectoryCommandBroadcaster() {}
 
-controller_interface::CallbackReturn A2JointTrajectoryCommandBroadcaster::on_init()
+controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on_init()
 {
   try {
     param_listener_ = std::make_shared<ParamListener>(get_node());
@@ -106,13 +106,13 @@ controller_interface::CallbackReturn A2JointTrajectoryCommandBroadcaster::on_ini
 }
 
 controller_interface::InterfaceConfiguration
-A2JointTrajectoryCommandBroadcaster::command_interface_configuration() const
+LeaderJointTrajectoryCommandBroadcaster::command_interface_configuration() const
 {
   return controller_interface::InterfaceConfiguration{
     controller_interface::interface_configuration_type::NONE};
 }
 
-controller_interface::InterfaceConfiguration A2JointTrajectoryCommandBroadcaster::
+controller_interface::InterfaceConfiguration LeaderJointTrajectoryCommandBroadcaster::
 state_interface_configuration()
 const
 {
@@ -128,7 +128,7 @@ const
   return state_interfaces_config;
 }
 
-controller_interface::CallbackReturn A2JointTrajectoryCommandBroadcaster::on_configure(
+controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on_configure(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
   if (!param_listener_) {
@@ -207,7 +207,7 @@ controller_interface::CallbackReturn A2JointTrajectoryCommandBroadcaster::on_con
     // Create subscriber for follower joint states
     joint_states_subscriber_ = get_node()->create_subscription<sensor_msgs::msg::JointState>(
       params_.follower_joint_states_topic, rclcpp::SystemDefaultsQoS(),
-      std::bind(&A2JointTrajectoryCommandBroadcaster::joint_states_callback, this,
+      std::bind(&LeaderJointTrajectoryCommandBroadcaster::joint_states_callback, this,
         std::placeholders::_1));
 
     RCLCPP_INFO(
@@ -238,31 +238,31 @@ controller_interface::CallbackReturn A2JointTrajectoryCommandBroadcaster::on_con
         get_node()->create_subscription<robotis_interfaces::msg::TeleoperationCommand>(
         params_.joystick_command_topic, rclcpp::SystemDefaultsQoS(),
         std::bind(
-          &A2JointTrajectoryCommandBroadcaster::teleoperation_command_callback,
+          &LeaderJointTrajectoryCommandBroadcaster::teleoperation_command_callback,
           this, std::placeholders::_1));
       control_status_subscriber_ =
         get_node()->create_subscription<robotis_interfaces::msg::ControlModeStatus>(
         params_.control_status_topic, command_qos,
         std::bind(
-          &A2JointTrajectoryCommandBroadcaster::control_status_callback,
+          &LeaderJointTrajectoryCommandBroadcaster::control_status_callback,
           this, std::placeholders::_1));
       set_control_mode_service_ =
         get_node()->create_service<robotis_interfaces::srv::SetControlMode>(
         params_.set_mode_service,
         std::bind(
-          &A2JointTrajectoryCommandBroadcaster::set_control_mode_callback,
+          &LeaderJointTrajectoryCommandBroadcaster::set_control_mode_callback,
           this, std::placeholders::_1, std::placeholders::_2));
       set_teleoperation_service_ =
         get_node()->create_service<robotis_interfaces::srv::SetTeleoperation>(
         params_.set_teleoperation_service,
         std::bind(
-          &A2JointTrajectoryCommandBroadcaster::set_teleoperation_callback,
+          &LeaderJointTrajectoryCommandBroadcaster::set_teleoperation_callback,
           this, std::placeholders::_1, std::placeholders::_2));
       set_preset_service_ =
         get_node()->create_service<robotis_interfaces::srv::SetPreset>(
         params_.set_preset_service,
         std::bind(
-          &A2JointTrajectoryCommandBroadcaster::set_preset_callback,
+          &LeaderJointTrajectoryCommandBroadcaster::set_preset_callback,
           this, std::placeholders::_1, std::placeholders::_2));
       RCLCPP_INFO(
         get_node()->get_logger(),
@@ -286,7 +286,7 @@ controller_interface::CallbackReturn A2JointTrajectoryCommandBroadcaster::on_con
   return CallbackReturn::SUCCESS;
 }
 
-controller_interface::CallbackReturn A2JointTrajectoryCommandBroadcaster::on_activate(
+controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on_activate(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
   if (!init_joint_data()) {
@@ -329,7 +329,7 @@ controller_interface::CallbackReturn A2JointTrajectoryCommandBroadcaster::on_act
 }
 
 
-controller_interface::CallbackReturn A2JointTrajectoryCommandBroadcaster::on_deactivate(
+controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on_deactivate(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
   joint_names_.clear();
@@ -355,7 +355,7 @@ bool has_any_key(
   return false;
 }
 
-bool A2JointTrajectoryCommandBroadcaster::init_joint_data()
+bool LeaderJointTrajectoryCommandBroadcaster::init_joint_data()
 {
   joint_names_.clear();
   if (state_interfaces_.empty()) {
@@ -403,7 +403,7 @@ double get_value(
   }
 }
 
-void A2JointTrajectoryCommandBroadcaster::joint_states_callback(
+void LeaderJointTrajectoryCommandBroadcaster::joint_states_callback(
   const sensor_msgs::msg::JointState::SharedPtr msg)
 {
   // Update follower joint positions
@@ -421,7 +421,7 @@ void A2JointTrajectoryCommandBroadcaster::joint_states_callback(
   }
 }
 
-double A2JointTrajectoryCommandBroadcaster::calculate_mean_error() const
+double LeaderJointTrajectoryCommandBroadcaster::calculate_mean_error() const
 {
   // Check if we have received any follower joint states
   if (follower_joint_positions_.empty()) {
@@ -481,7 +481,7 @@ double A2JointTrajectoryCommandBroadcaster::calculate_mean_error() const
   return valid_joints > 0 ? total_error / valid_joints : std::numeric_limits<double>::max();
 }
 
-double A2JointTrajectoryCommandBroadcaster::calculate_group_mean_error(
+double LeaderJointTrajectoryCommandBroadcaster::calculate_group_mean_error(
   const std::string & group_name) const
 {
   if (follower_joint_positions_.empty()) {
@@ -536,7 +536,7 @@ double A2JointTrajectoryCommandBroadcaster::calculate_group_mean_error(
          std::numeric_limits<double>::max();
 }
 
-bool A2JointTrajectoryCommandBroadcaster::check_trigger_active() const
+bool LeaderJointTrajectoryCommandBroadcaster::check_trigger_active() const
 {
   // Check if gripper trigger joints are above threshold
   double gripper_r_pos = get_value(name_if_value_mapping_, "gripper_r_joint1", HW_IF_POSITION);
@@ -550,7 +550,7 @@ bool A2JointTrajectoryCommandBroadcaster::check_trigger_active() const
          gripper_l_pos * params_.trigger_sign >= params_.trigger_threshold * params_.trigger_sign);
 }
 
-void A2JointTrajectoryCommandBroadcaster::update_trigger_state(const rclcpp::Time & current_time)
+void LeaderJointTrajectoryCommandBroadcaster::update_trigger_state(const rclcpp::Time & current_time)
 {
   bool current_trigger_active = check_trigger_active();
 
@@ -595,7 +595,7 @@ void A2JointTrajectoryCommandBroadcaster::update_trigger_state(const rclcpp::Tim
   }
 }
 
-bool A2JointTrajectoryCommandBroadcaster::check_arm_trigger_active(const uint8_t arm) const
+bool LeaderJointTrajectoryCommandBroadcaster::check_arm_trigger_active(const uint8_t arm) const
 {
   const char * joint_name = arm == kLeftArm ? "gripper_l_joint1" : "gripper_r_joint1";
   const double position = get_value(name_if_value_mapping_, joint_name, HW_IF_POSITION);
@@ -604,7 +604,7 @@ bool A2JointTrajectoryCommandBroadcaster::check_arm_trigger_active(const uint8_t
          params_.trigger_threshold * params_.trigger_sign;
 }
 
-void A2JointTrajectoryCommandBroadcaster::request_final_initial_pose(
+void LeaderJointTrajectoryCommandBroadcaster::request_final_initial_pose(
   const uint8_t target_arms)
 {
   uint8_t accepted_arms = 0;
@@ -646,7 +646,7 @@ void A2JointTrajectoryCommandBroadcaster::request_final_initial_pose(
   publish_control_command("none", arms_to_name(accepted_arms));
 }
 
-void A2JointTrajectoryCommandBroadcaster::update_initial_pose_trigger_state(
+void LeaderJointTrajectoryCommandBroadcaster::update_initial_pose_trigger_state(
   const rclcpp::Time & current_time)
 {
   uint8_t triggered_arms = 0;
@@ -684,13 +684,13 @@ void A2JointTrajectoryCommandBroadcaster::update_initial_pose_trigger_state(
   }
 }
 
-bool A2JointTrajectoryCommandBroadcaster::check_joints_synced() const
+bool LeaderJointTrajectoryCommandBroadcaster::check_joints_synced() const
 {
   double mean_error = calculate_mean_error();
   return mean_error <= params_.sync_threshold;
 }
 
-void A2JointTrajectoryCommandBroadcaster::publish_control_command(
+void LeaderJointTrajectoryCommandBroadcaster::publish_control_command(
   const std::string & preset_target_arm,
   const std::string & initial_pose_target_arm)
 {
@@ -715,7 +715,7 @@ void A2JointTrajectoryCommandBroadcaster::publish_control_command(
   control_command_publisher_->publish(command);
 }
 
-void A2JointTrajectoryCommandBroadcaster::teleoperation_command_callback(
+void LeaderJointTrajectoryCommandBroadcaster::teleoperation_command_callback(
   const robotis_interfaces::msg::TeleoperationCommand::SharedPtr msg)
 {
   if (!msg || !params_.enable_teleoperation) {
@@ -777,7 +777,7 @@ void A2JointTrajectoryCommandBroadcaster::teleoperation_command_callback(
   publish_control_command();
 }
 
-void A2JointTrajectoryCommandBroadcaster::set_control_mode_callback(
+void LeaderJointTrajectoryCommandBroadcaster::set_control_mode_callback(
   const std::shared_ptr<robotis_interfaces::srv::SetControlMode::Request> request,
   std::shared_ptr<robotis_interfaces::srv::SetControlMode::Response> response)
 {
@@ -810,7 +810,7 @@ void A2JointTrajectoryCommandBroadcaster::set_control_mode_callback(
   publish_control_command();
 }
 
-void A2JointTrajectoryCommandBroadcaster::set_teleoperation_callback(
+void LeaderJointTrajectoryCommandBroadcaster::set_teleoperation_callback(
   const std::shared_ptr<robotis_interfaces::srv::SetTeleoperation::Request> request,
   std::shared_ptr<robotis_interfaces::srv::SetTeleoperation::Response> response)
 {
@@ -844,7 +844,7 @@ void A2JointTrajectoryCommandBroadcaster::set_teleoperation_callback(
   publish_control_command();
 }
 
-void A2JointTrajectoryCommandBroadcaster::set_preset_callback(
+void LeaderJointTrajectoryCommandBroadcaster::set_preset_callback(
   const std::shared_ptr<robotis_interfaces::srv::SetPreset::Request> request,
   std::shared_ptr<robotis_interfaces::srv::SetPreset::Response> response)
 {
@@ -892,7 +892,7 @@ void A2JointTrajectoryCommandBroadcaster::set_preset_callback(
   publish_control_command(request->target_arm);
 }
 
-void A2JointTrajectoryCommandBroadcaster::control_status_callback(
+void LeaderJointTrajectoryCommandBroadcaster::control_status_callback(
   const robotis_interfaces::msg::ControlModeStatus::SharedPtr msg)
 {
   if (!msg) {
@@ -937,7 +937,7 @@ void A2JointTrajectoryCommandBroadcaster::control_status_callback(
   }
 }
 
-controller_interface::return_type A2JointTrajectoryCommandBroadcaster::update(
+controller_interface::return_type LeaderJointTrajectoryCommandBroadcaster::update(
   const rclcpp::Time & time, const rclcpp::Duration & /*period*/)
 {
   // Update stored values
@@ -1104,10 +1104,10 @@ controller_interface::return_type A2JointTrajectoryCommandBroadcaster::update(
   return controller_interface::return_type::OK;
 }
 
-}  // namespace a2_joint_trajectory_command_broadcaster
+}  // namespace leader_joint_trajectory_command_broadcaster
 
 #include "pluginlib/class_list_macros.hpp"
 
 PLUGINLIB_EXPORT_CLASS(
-  a2_joint_trajectory_command_broadcaster::A2JointTrajectoryCommandBroadcaster,
+  leader_joint_trajectory_command_broadcaster::LeaderJointTrajectoryCommandBroadcaster,
   controller_interface::ControllerInterface)

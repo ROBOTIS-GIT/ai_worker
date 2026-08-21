@@ -6,10 +6,10 @@
       </description>
     </class>
   </library>
-  <library path="a2_joint_trajectory_command_broadcaster">
-    <class name="joint_trajectory_command_broadcaster/A2JointTrajectoryCommandBroadcaster" type="a2_joint_trajectory_command_broadcaster::A2JointTrajectoryCommandBroadcaster" base_class_type="controller_interface::ControllerInterface">
+  <library path="leader_joint_trajectory_command_broadcaster">
+    <class name="leader_joint_trajectory_command_broadcaster/LeaderJointTrajectoryCommandBroadcaster" type="leader_joint_trajectory_command_broadcaster::LeaderJointTrajectoryCommandBroadcaster" base_class_type="controller_interface::ControllerInterface">
       <description>
-        A2-specific leader trajectory broadcaster with Cyclo teleoperation interfaces.
+        Leader trajectory broadcaster with Cyclo teleoperation interfaces.
       </description>
     </class>
   </library>
