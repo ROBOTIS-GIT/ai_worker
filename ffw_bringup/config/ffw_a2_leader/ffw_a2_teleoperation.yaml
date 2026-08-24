@@ -29,6 +29,16 @@ cyclo_teleoperation:
         slow_start:
           enabled: true
         initial_pose:
+          enabled: false
+        exit_pose:
+          enabled: false
+
+      "2":
+        name: relative_pose
+        plugin: cyclo_teleoperation/AiWorkerRelativePoseMode
+        slow_start:
+          enabled: false
+        initial_pose:
           enabled: true
           step_names: [step0, step1]
           steps:
@@ -47,51 +57,6 @@ cyclo_teleoperation:
           timeout: 30.0
         exit_pose:
           enabled: false
-
-      "2":
-        name: elbow_up_leader
-        plugin: cyclo_teleoperation/AiWorkerElbowUpLeaderMode
-        slow_start:
-          enabled: false
-        initial_pose:
-          enabled: true
-          step_names: [step0, step1, step2]
-          steps:
-            step0:
-              left:
-                positions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-              right:
-                positions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-            step1:
-              left:
-                positions: [0.0, 0.0, -3.14, 0.0, 1.57, 0.0, 0.0]
-              right:
-                positions: [0.0, 0.0, 3.14, 0.0, -1.57, 0.0, 0.0]
-            step2:
-              left:
-                positions: [-1.57, 0.0, -3.14, -1.57, 1.57, 0.0, 0.0]
-              right:
-                positions: [-1.57, 0.0, 3.14, -1.57, -1.57, 0.0, 0.0]
-          duration: 3.0
-          completion_tolerance: 0.1
-          timeout: 30.0
-        exit_pose:
-          enabled: true
-          step_names: [step0, step1]
-          steps:
-            step0:
-              left:
-                positions: [0.0, 0.0, -3.14, 0.0, 1.57, 0.0, 0.0]
-              right:
-                positions: [0.0, 0.0, 3.14, 0.0, -1.57, 0.0, 0.0]
-            step1:
-              left:
-                positions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-              right:
-                positions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-          duration: 3.0
-          completion_tolerance: 0.1
-          timeout: 30.0
 
     available_presets: [1, 2]
 

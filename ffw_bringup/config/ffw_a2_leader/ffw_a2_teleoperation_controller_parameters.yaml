@@ -24,7 +24,3 @@ cyclo_teleoperation:
         kp_orientation: 50.0
         weight_position: 10.0
         weight_orientation: 1.0
-        elbow_up_velocity: 0.2
-        elbow_weight: 1.0
-        nullspace_damping: 0.001
-        elbow_up_joint_velocity: 1.0
