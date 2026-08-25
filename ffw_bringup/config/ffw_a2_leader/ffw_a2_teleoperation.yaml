@@ -1,6 +1,8 @@
 cyclo_teleoperation:
   ros__parameters:
-    robot_type: ai_worker
+    robot:
+      plugin: cyclo_teleoperation/AIWorkerTeleoperation
+      parameter_prefix: ""
 
     follower_joint_states_topic: /joint_states
     right_leader_topic: /leader/joint_trajectory_command_broadcaster_right/raw_joint_trajectory
@@ -25,7 +27,7 @@ cyclo_teleoperation:
     control_modes:
       "1":
         name: teleoperation
-        plugin: cyclo_teleoperation/AiWorkerMoveJMode
+        plugin: cyclo_teleoperation/MoveJMode
         slow_start:
           enabled: true
         initial_pose:
@@ -35,7 +37,7 @@ cyclo_teleoperation:
 
       "2":
         name: relative_pose
-        plugin: cyclo_teleoperation/AiWorkerRelativePoseMode
+        plugin: cyclo_teleoperation/RelativePoseMode
         slow_start:
           enabled: false
         initial_pose:
