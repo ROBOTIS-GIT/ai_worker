@@ -22,6 +22,7 @@ import threading
 from builtin_interfaces.msg import Duration
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
+from ffw_centerpose.pick_place_base import load_camera_topics
 from geometry_msgs.msg import Point
 import numpy as np
 import rclpy
@@ -34,8 +35,6 @@ import tf2_ros
 from tf2_ros import TransformException
 from vision_msgs.msg import Detection3DArray
 from visualization_msgs.msg import Marker, MarkerArray
-
-from ffw_centerpose.pick_place_base import load_camera_topics
 
 _DATATYPE_TO_NUMPY = {
     PointField.INT8: np.int8,
@@ -50,6 +49,7 @@ _DATATYPE_TO_NUMPY = {
 
 
 class CenterposePointcloud(Node):
+
     def __init__(self):
         super().__init__('centerpose_pointcloud')
 
@@ -234,7 +234,8 @@ class CenterposePointcloud(Node):
         kept = points[finite][in_box]
         kept_target_xyz = target_xyz[in_box]
 
-        if self.publish_table_plane and not (self.freeze_table_plane and self._frozen_table_cloud is not None):
+        frozen = self.freeze_table_plane and self._frozen_table_cloud is not None
+        if self.publish_table_plane and not frozen:
             self._update_table_plane_state(kept_target_xyz)
 
         if self._table_z_ema is not None:
@@ -325,7 +326,9 @@ class CenterposePointcloud(Node):
         grid_pv = grid_pv.reshape(-1)
 
         table_positions_target = (
-            centroid[None, :] + grid_pu[:, None] * u_hat[None, :] + grid_pv[:, None] * v_hat[None, :]
+            centroid[None, :]
+            + grid_pu[:, None] * u_hat[None, :]
+            + grid_pv[:, None] * v_hat[None, :]
         )
 
         intrinsics = self._scaled_intrinsics(camera_info, bgr.shape)

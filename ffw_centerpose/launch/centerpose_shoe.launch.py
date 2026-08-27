@@ -16,12 +16,11 @@
 #
 # Author: Seongjin Jeong
 
+from ffw_centerpose.pick_place_base import load_camera_topics
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
-
-from ffw_centerpose.pick_place_base import load_camera_topics
 
 
 def generate_launch_description():
@@ -55,8 +54,9 @@ def generate_launch_description():
             'max_grasp_x',
             default_value='0.9',
             description='Safety bound: ~/execute refuses to move at all if any '
-                        'captured pose x exceeds this. Wider than centerpose_box/centerpose_bottle '
-                        '(0.7) since shoes are worked on further out (measured x=0.87).',
+                        'captured pose x exceeds this. Wider than '
+                        'centerpose_box/centerpose_bottle (0.7) since shoes are worked on '
+                        'further out (measured x=0.87).',
         ),
 
         # --- Motion execution toggle ----------------------------------------------

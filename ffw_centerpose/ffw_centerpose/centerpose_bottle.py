@@ -18,12 +18,11 @@
 
 import math
 
+from ffw_centerpose.pick_place_base import load_camera_topics, PickPlaceNodeBase
 from geometry_msgs.msg import PoseStamped
 import numpy as np
 import rclpy
 from rclpy.executors import ExternalShutdownException
-
-from ffw_centerpose.pick_place_base import load_camera_topics, PickPlaceNodeBase
 
 
 class CenterposeBottle(PickPlaceNodeBase):
@@ -196,18 +195,23 @@ class CenterposeBottle(PickPlaceNodeBase):
 
         steps = [
             ('open gripper', lambda: self._move_gripper(self.gripper_open_position)),
-            ('move to pregrasp', lambda: self._move_l(pregrasp_pose, duration=self.pregrasp_duration)),
-            ('insert to bottle', lambda: self._move_l(grasp_pose, duration=self.insertion_duration)),
+            ('move to pregrasp',
+             lambda: self._move_l(pregrasp_pose, duration=self.pregrasp_duration)),
+            ('insert to bottle',
+             lambda: self._move_l(grasp_pose, duration=self.insertion_duration)),
             ('close gripper', lambda: self._move_gripper(self.gripper_closed_position)),
             ('lift bottle', lambda: self._move_l(lift_pose, duration=self.lift_duration)),
             ('move above box', lambda: self._move_l(box_pose, duration=self.box_duration)),
-            ('lower into box', lambda: self._move_l(box_place_pose, duration=self.box_place_duration)),
+            ('lower into box',
+             lambda: self._move_l(box_place_pose, duration=self.box_place_duration)),
             ('release in box', lambda: self._move_gripper(self.gripper_open_position)),
-            ('raise back above box', lambda: self._move_l(box_pose, duration=self.box_place_duration)),
+            ('raise back above box',
+             lambda: self._move_l(box_pose, duration=self.box_place_duration)),
         ]
         if self.return_to_initial:
             steps.append(
-                ('return to initial pose', lambda: self._move_l(home_pose, duration=self.home_duration))
+                ('return to initial pose',
+                 lambda: self._move_l(home_pose, duration=self.home_duration))
             )
 
         for name, command in steps:

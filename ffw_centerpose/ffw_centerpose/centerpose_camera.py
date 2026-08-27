@@ -18,12 +18,11 @@
 
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
+from ffw_centerpose.pick_place_base import load_camera_topics
 import rclpy
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from sensor_msgs.msg import CameraInfo, Image
-
-from ffw_centerpose.pick_place_base import load_camera_topics
 
 
 class CenterposeCamera(Node):
@@ -62,7 +61,8 @@ class CenterposeCamera(Node):
         try:
             frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
         except CvBridgeError as exc:
-            self.get_logger().error(f'cv_bridge conversion failed: {exc}', throttle_duration_sec=2.0)
+            self.get_logger().error(
+                f'cv_bridge conversion failed: {exc}', throttle_duration_sec=2.0)
             return
 
         if msg.encoding.lower() in ('bgra8', 'rgba8'):

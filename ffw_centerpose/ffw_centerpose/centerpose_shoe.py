@@ -19,12 +19,11 @@
 import math
 import threading
 
+from ffw_centerpose.pick_place_base import load_camera_topics, PickPlaceNodeBase
 from geometry_msgs.msg import PoseStamped
 import numpy as np
 import rclpy
 from rclpy.executors import ExternalShutdownException
-
-from ffw_centerpose.pick_place_base import load_camera_topics, PickPlaceNodeBase
 
 
 class CenterposeShoe(PickPlaceNodeBase):
@@ -158,7 +157,9 @@ class CenterposeShoe(PickPlaceNodeBase):
         )
         start_pose = PoseStamped()
         start_pose.header.frame_id = self.target_frame
-        self._set_pose_from_arrays(start_pose, self.start_position_xyz, self.start_orientation_xyzw)
+        self._set_pose_from_arrays(
+            start_pose, self.start_position_xyz, self.start_orientation_xyzw
+        )
 
         with self.execution_lock:
             self.execution_step = 'startup: move to startup pose (very slow)'
@@ -298,14 +299,19 @@ class CenterposeShoe(PickPlaceNodeBase):
 
         steps = [
             ('open gripper', lambda: self._move_gripper(self.gripper_open_position)),
-            ('move to pregrasp', lambda: self._move_l(pregrasp_pose, duration=self.pregrasp_duration)),
-            ('insert to shoe', lambda: self._move_l(insert_pose, duration=self.insertion_duration)),
+            ('move to pregrasp',
+             lambda: self._move_l(pregrasp_pose, duration=self.pregrasp_duration)),
+            ('insert to shoe',
+             lambda: self._move_l(insert_pose, duration=self.insertion_duration)),
             ('close gripper', lambda: self._move_gripper(self.gripper_closed_position)),
             ('lift shoe', lambda: self._move_l(lift_pose, duration=self.lift_duration)),
-            ('move to place hover', lambda: self._move_l(place_hover_pose, duration=self.place_hover_duration)),
-            ('lower into place', lambda: self._move_l(place_lower_pose, duration=self.place_lower_duration)),
+            ('move to place hover',
+             lambda: self._move_l(place_hover_pose, duration=self.place_hover_duration)),
+            ('lower into place',
+             lambda: self._move_l(place_lower_pose, duration=self.place_lower_duration)),
             ('release shoe', lambda: self._move_gripper(self.gripper_release_position)),
-            ('back to place hover', lambda: self._move_l(place_hover_pose, duration=self.place_duration)),
+            ('back to place hover',
+             lambda: self._move_l(place_hover_pose, duration=self.place_duration)),
         ]
 
         for name, command in steps:

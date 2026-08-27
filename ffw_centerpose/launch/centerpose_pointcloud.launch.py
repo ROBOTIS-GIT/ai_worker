@@ -16,12 +16,11 @@
 #
 # Author: Seongjin Jeong
 
+from ffw_centerpose.pick_place_base import load_camera_topics
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
-
-from ffw_centerpose.pick_place_base import load_camera_topics
 
 
 def generate_launch_description():

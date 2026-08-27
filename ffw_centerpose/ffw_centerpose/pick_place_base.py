@@ -16,12 +16,12 @@
 #
 # Author: Seongjin Jeong
 
-from ament_index_python.packages import get_package_share_directory
 import math
 import os
 import threading
 import time
 
+from ament_index_python.packages import get_package_share_directory
 from cv_bridge import CvBridge, CvBridgeError
 from geometry_msgs.msg import PoseStamped
 import numpy as np
@@ -31,9 +31,9 @@ from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPo
 from robotis_interfaces.msg import MoveL
 from sensor_msgs.msg import CameraInfo, Image, JointState
 from std_srvs.srv import Trigger
-from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 import tf2_ros
 from tf2_ros import TransformException
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from vision_msgs.msg import Detection3DArray
 import yaml
 
@@ -440,7 +440,8 @@ class PickPlaceNodeBase(Node):
         )
 
     def _stream_trajectory(self, publisher, joint_names, position_fn, rate_hz, total_duration):
-        # Repeatedly publish position_fn's output until total_duration elapses (continuous re-send).
+        # Repeatedly publish position_fn's output until total_duration elapses (continuous
+        # re-send).
         period = 1.0 / rate_hz
         point_time = max(period * 2.0, 0.05)
         point_duration = self._duration(point_time)

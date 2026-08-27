@@ -18,12 +18,11 @@
 
 import math
 
+from ffw_centerpose.pick_place_base import load_camera_topics, PickPlaceNodeBase
 from geometry_msgs.msg import PoseStamped
 import numpy as np
 import rclpy
 from rclpy.executors import ExternalShutdownException
-
-from ffw_centerpose.pick_place_base import load_camera_topics, PickPlaceNodeBase
 
 
 class CenterposeBox(PickPlaceNodeBase):
@@ -221,7 +220,8 @@ class CenterposeBox(PickPlaceNodeBase):
 
     # --- Pick/place motion ---
     def _pick_and_place(self, grasp_pose, label='box'):
-        # Run the full pick (insert->close->lift) then place (hover->release->retreat->push) sequence.
+        # Run the full pick (insert->close->lift) then place (hover->release->retreat->push)
+        # sequence.
         grasp_q = np.array([
             grasp_pose.pose.orientation.x,
             grasp_pose.pose.orientation.y,
@@ -274,20 +274,26 @@ class CenterposeBox(PickPlaceNodeBase):
 
         steps = [
             ('open gripper', lambda: self._move_gripper(self.gripper_open_position)),
-            ('move to pregrasp', lambda: self._move_l(pregrasp_pose, duration=self.pregrasp_duration)),
+            ('move to pregrasp',
+             lambda: self._move_l(pregrasp_pose, duration=self.pregrasp_duration)),
             ('insert to box', lambda: self._move_l(insert_pose, duration=self.insertion_duration)),
             ('close gripper', lambda: self._move_gripper(self.gripper_closed_position)),
             ('lift box', lambda: self._move_l(lift_pose, duration=self.lift_duration)),
-            ('move to place hover', lambda: self._move_l(place_hover_pose, duration=self.place_hover_duration)),
+            ('move to place hover',
+             lambda: self._move_l(place_hover_pose, duration=self.place_hover_duration)),
             ('move to place', lambda: self._move_l(place_pose, duration=self.place_duration)),
             ('release box', lambda: self._move_gripper(self.gripper_open_position)),
-            ('move to place retreat', lambda: self._move_l(place_retreat_pose, duration=self.place_retreat_duration)),
-            ('reclose gripper for push', lambda: self._move_gripper(self.place_release_gripper_position)),
-            ('push box into place', lambda: self._move_l(place_push_pose, duration=self.place_push_duration)),
+            ('move to place retreat',
+             lambda: self._move_l(place_retreat_pose, duration=self.place_retreat_duration)),
+            ('reclose gripper for push',
+             lambda: self._move_gripper(self.place_release_gripper_position)),
+            ('push box into place',
+             lambda: self._move_l(place_push_pose, duration=self.place_push_duration)),
         ]
         if self.return_to_initial:
             steps.append(
-                ('return to initial pose', lambda: self._move_l(home_pose, duration=self.home_duration))
+                ('return to initial pose',
+                 lambda: self._move_l(home_pose, duration=self.home_duration))
             )
             steps.append(
                 ('open gripper', lambda: self._move_gripper(self.gripper_open_position))
