@@ -2,6 +2,32 @@
 Changelog for package ffw
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.1 (2026-08-03)
+------------------
+* Use Cyclo Manager agent requirements in Docker images
+* Added support for F1 and F2 in s6-overlay services
+* Contributors: Hyungyu Kim
+
+2.2.0 (2026-07-22)
+------------------
+* Added robotis_hand repository to Dockerfile for HX5-D20 tactile sensor support
+* Added tactile sensor topic broadcaster
+* Updated SH5 ros2_control and urdf xacro
+* Contributors: Hyunwoo Nam
+
+2.1.0 (2026-07-14)
+------------------
+* Added support for F1 and F2
+* Improved camera bringup and automatic camera role detection
+* Contributors: Yeonguk Kim, Dongyun Kim
+
+2.0.2 (2026-07-09)
+------------------
+* Added s6 services for AI Worker navigation and map saving
+* Added map_name launch argument parsing for navigation and map save services
+* Updated ROS 2 s6 service runner to forward shutdown signals to process groups
+* Contributors: Howon Kim
+
 2.0.1 (2026-06-30)
 ------------------
 * Fixed zenohd alias command to run rmw_zenoh_cpp rmw_zenohd

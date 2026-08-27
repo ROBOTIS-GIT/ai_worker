@@ -14,7 +14,7 @@ author_emails = ', '.join(email for _, email in authors_info)
 
 setup(
     name=package_name,
-    version='2.0.1',
+    version='2.2.1',
     packages=find_packages(exclude=['test']),
     data_files=[
         ('share/ament_index/resource_index/packages',
@@ -29,6 +29,10 @@ setup(
          glob('config/ffw_bg2_rev4_follower/*')),
         (os.path.join('share', package_name, 'config/ffw_bh5_rev1_follower'),
          glob('config/ffw_bh5_rev1_follower/*')),
+        (os.path.join('share', package_name, 'config/ffw_f1_follower'),
+         glob('config/ffw_f1_follower/*')),
+        (os.path.join('share', package_name, 'config/ffw_f2_follower'),
+         glob('config/ffw_f2_follower/*')),
         (os.path.join('share', package_name, 'config/ffw_sg2_rev1_follower'),
          glob('config/ffw_sg2_rev1_follower/*')),
         (os.path.join('share', package_name, 'config/ffw_lg2_leader'),

@@ -10,7 +10,7 @@ authors = ', '.join(author for author, _ in authors_info)
 author_emails = ', '.join(email for _, email in authors_info)
 setup(
     name=package_name,
-    version='2.0.1',
+    version='2.2.1',
     packages=find_packages(exclude=[]),
     data_files=[
         ('share/ament_index/resource_index/packages',
