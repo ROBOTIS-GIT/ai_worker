@@ -39,9 +39,6 @@ import yaml
 
 
 def load_camera_topics():
-    # Read config/camera_topics.yaml -- the single place that defines the
-    # camera topic namespace used as defaults across every centerpose node
-    # and launch file.
     path = os.path.join(
         get_package_share_directory('ffw_centerpose'), 'config', 'camera_topics.yaml'
     )
