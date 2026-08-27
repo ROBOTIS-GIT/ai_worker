@@ -23,15 +23,18 @@ from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from sensor_msgs.msg import CameraInfo, Image
 
+from ffw_centerpose.pick_place_base import load_camera_topics
+
 
 class CenterposeCamera(Node):
     # Converts ZED BGRA8/RGBA8/RGB8 images to BGR8 and relays CameraInfo under a new name.
     def __init__(self):
         super().__init__('centerpose_camera')
 
-        self.declare_parameter('input_topic', '/zed/zed_node/left/image_rect_color')
+        camera = load_camera_topics()
+        self.declare_parameter('input_topic', camera['image'])
         self.declare_parameter('output_topic', '/image')
-        self.declare_parameter('camera_info_input_topic', '/zed/zed_node/left/camera_info')
+        self.declare_parameter('camera_info_input_topic', camera['camera_info'])
         self.declare_parameter('camera_info_output_topic', '/camera_info')
 
         self.input_topic = self.get_parameter('input_topic').value

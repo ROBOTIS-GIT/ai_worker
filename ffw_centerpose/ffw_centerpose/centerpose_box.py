@@ -23,7 +23,7 @@ import numpy as np
 import rclpy
 from rclpy.executors import ExternalShutdownException
 
-from ffw_centerpose.pick_place_base import PickPlaceNodeBase
+from ffw_centerpose.pick_place_base import load_camera_topics, PickPlaceNodeBase
 
 
 class CenterposeBox(PickPlaceNodeBase):
@@ -34,10 +34,12 @@ class CenterposeBox(PickPlaceNodeBase):
     def __init__(self):
         super().__init__('centerpose_box')
 
+        camera = load_camera_topics()
+
         # --- Parameters ---
         self.declare_parameter('detections_topic', '/centerpose/detections')
         self.declare_parameter('camera_info_topic', '/camera_info')
-        self.declare_parameter('depth_topic', '/zed/zed_node/depth/depth_registered')
+        self.declare_parameter('depth_topic', camera['depth'])
         self.declare_parameter('depth_window', 5)
         self.declare_parameter('joint_states_topic', '/joint_states')
         self.declare_parameter('target_frame', 'base_link')
@@ -46,76 +48,12 @@ class CenterposeBox(PickPlaceNodeBase):
         self.declare_parameter('max_grasp_x', 0.7)
         self.declare_parameter('execute_motion', False)
         self.declare_parameter('movel_topic', '/l_goal_move')
-        self.declare_parameter('movel_duration', 10.0)
         self.declare_parameter('pregrasp_distance', 0.11)
-        self.declare_parameter('pregrasp_duration', 4.0)
-        self.declare_parameter('insertion_duration', 3.0)
-        # Real values for this group come from centerpose_box_calibration.yaml.
-        self.declare_parameter('insertion_overshoot_distance', 0.0)
-        self.declare_parameter('movel_subscriber_timeout', 2.0)
-        self.declare_parameter('settle_time', 0.5)
-        self.declare_parameter('eef_link', 'end_effector_l_link')
-        self.declare_parameter('fixed_grasp_z', 0.0)
-        # --- Grasp position/yaw calibration ---
-        self.declare_parameter('grasp_position_offset', [0.0, 0.0, 0.0])
-        self.declare_parameter('grasp_position_y_slope', 0.0)
-        self.declare_parameter('grasp_position_y_reference_pixel', 0.0)
-        self.declare_parameter('grasp_position_x_slope', 0.0)
-        self.declare_parameter('box_depth_center_offset', 0.0)
-        self.declare_parameter('tool_orientation_offset_xyzw', [0.0, 0.0, 0.0, 1.0])
-        self.declare_parameter('box_yaw_reference_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
-        self.declare_parameter('box_yaw_axis_xyz', [0.0, 0.0, 1.0])
-        self.declare_parameter('box_yaw_flip_threshold_deg', 90.0)
-        self.declare_parameter('grasp_fixed_pitch', 0.0)
-        self.declare_parameter('grasp_fixed_yaw', 0.0)
-        self.declare_parameter('grasp_roll_from_yaw_scale', 0.0)
-        self.declare_parameter('grasp_roll_offset', 0.0)
-        self.declare_parameter('box_yaw_zero_offset_deg', 0.0)
-        self.declare_parameter('roll_clamp_min_deg', -60.0)
-        self.declare_parameter('roll_clamp_max_deg', 60.0)
         self.declare_parameter(
             'left_arm_joint_trajectory_topic',
             '/leader/joint_trajectory_command_broadcaster_left/joint_trajectory',
         )
-        self.declare_parameter('left_gripper_joint', 'gripper_l_joint1')
-        self.declare_parameter(
-            'left_arm_joint_names',
-            [
-                'arm_l_joint1',
-                'arm_l_joint2',
-                'arm_l_joint3',
-                'arm_l_joint4',
-                'arm_l_joint5',
-                'arm_l_joint6',
-                'arm_l_joint7',
-                'gripper_l_joint1',
-            ],
-        )
-        self.declare_parameter('gripper_open_position', 0.0)
-        self.declare_parameter('gripper_closed_position', 0.57)
-        self.declare_parameter('gripper_duration', 1.0)
-        self.declare_parameter('gripper_settle_time', 0.2)
-        self.declare_parameter('command_rate_hz', 300.0)
-        self.declare_parameter('lift_height', 0.1)
-        self.declare_parameter('lift_duration', 2.0)
-        # --- Place sequence (values from centerpose_box_calibration.yaml) ---
-        self.declare_parameter('place_hover_position_xyz', [0.0, 0.0, 0.0])
-        self.declare_parameter('place_hover_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
-        self.declare_parameter('place_hover_duration', 4.0)
-        self.declare_parameter('place_position_xyz', [0.0, 0.0, 0.0])
-        self.declare_parameter('place_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
-        self.declare_parameter('place_duration', 6.0)
-        self.declare_parameter('place_release_gripper_position', 0.9)
-        self.declare_parameter('place_retreat_position_xyz', [0.0, 0.0, 0.0])
-        self.declare_parameter('place_retreat_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
-        self.declare_parameter('place_retreat_duration', 2.0)
-        self.declare_parameter('place_push_position_xyz', [0.0, 0.0, 0.0])
-        self.declare_parameter('place_push_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
-        self.declare_parameter('place_push_duration', 2.0)
         self.declare_parameter('return_to_initial', True)
-        self.declare_parameter('home_position_xyz', [0.0, 0.0, 0.0])
-        self.declare_parameter('home_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
-        self.declare_parameter('home_duration', 6.0)
 
         # --- Read parameters ---
         self.detections_topic = self.get_parameter('detections_topic').value
@@ -128,152 +66,65 @@ class CenterposeBox(PickPlaceNodeBase):
         self.max_grasp_x = float(self.get_parameter('max_grasp_x').value)
         self.execute_motion = self._bool_parameter('execute_motion')
         self.movel_topic = self.get_parameter('movel_topic').value
-        self.movel_duration = float(self.get_parameter('movel_duration').value)
+        self.movel_duration = 10.0
         self.pregrasp_distance = float(self.get_parameter('pregrasp_distance').value)
-        self.insertion_overshoot_distance = float(
-            self.get_parameter('insertion_overshoot_distance').value
-        )
-        self.pregrasp_duration = float(self.get_parameter('pregrasp_duration').value)
-        self.insertion_duration = float(self.get_parameter('insertion_duration').value)
-        self.movel_subscriber_timeout = float(
-            self.get_parameter('movel_subscriber_timeout').value
-        )
-        self.settle_time = float(self.get_parameter('settle_time').value)
-        self.eef_link = str(self.get_parameter('eef_link').value)
-        self.fixed_grasp_z = float(self.get_parameter('fixed_grasp_z').value)
-
-        grasp_position_offset = self._list_parameter('grasp_position_offset')
-        if len(grasp_position_offset) != 3:
-            raise ValueError('grasp_position_offset must contain [x, y, z]')
-        self.grasp_position_offset = grasp_position_offset
-        self.grasp_position_y_slope = float(
-            self.get_parameter('grasp_position_y_slope').value
-        )
-        self.grasp_position_y_reference_pixel = float(
-            self.get_parameter('grasp_position_y_reference_pixel').value
-        )
-        self.grasp_position_x_slope = float(
-            self.get_parameter('grasp_position_x_slope').value
-        )
-        self.box_depth_center_offset = float(
-            self.get_parameter('box_depth_center_offset').value
-        )
-
-        tool_orientation_offset = np.asarray(
-            self._list_parameter('tool_orientation_offset_xyzw'), dtype=np.float64
-        )
-        if tool_orientation_offset.shape != (4,):
-            raise ValueError('tool_orientation_offset_xyzw must contain [x, y, z, w]')
-        tool_orientation_norm = np.linalg.norm(tool_orientation_offset)
-        if tool_orientation_norm < 1e-9:
-            raise ValueError('tool_orientation_offset_xyzw must not be zero')
-        self.tool_orientation_offset = tool_orientation_offset / tool_orientation_norm
-
-        box_yaw_reference_orientation = np.asarray(
-            self._list_parameter('box_yaw_reference_orientation_xyzw'), dtype=np.float64
-        )
-        if box_yaw_reference_orientation.shape != (4,):
-            raise ValueError('box_yaw_reference_orientation_xyzw must contain [x, y, z, w]')
-        reference_norm = np.linalg.norm(box_yaw_reference_orientation)
-        if reference_norm < 1e-9:
-            raise ValueError('box_yaw_reference_orientation_xyzw must not be zero')
-        self.box_yaw_reference_orientation = box_yaw_reference_orientation / reference_norm
-
-        box_yaw_axis = np.asarray(self._list_parameter('box_yaw_axis_xyz'), dtype=np.float64)
-        if box_yaw_axis.shape != (3,):
-            raise ValueError('box_yaw_axis_xyz must contain [x, y, z]')
-        box_yaw_axis_norm = np.linalg.norm(box_yaw_axis)
-        if box_yaw_axis_norm < 1e-9:
-            raise ValueError('box_yaw_axis_xyz must not be zero')
-        self.box_yaw_axis = box_yaw_axis / box_yaw_axis_norm
-
-        self.box_yaw_flip_threshold_deg = float(
-            self.get_parameter('box_yaw_flip_threshold_deg').value
-        )
-
-        self.grasp_fixed_pitch = float(self.get_parameter('grasp_fixed_pitch').value)
-        self.grasp_fixed_yaw = float(self.get_parameter('grasp_fixed_yaw').value)
-        self.grasp_roll_from_yaw_scale = float(
-            self.get_parameter('grasp_roll_from_yaw_scale').value
-        )
-        self.grasp_roll_offset = float(self.get_parameter('grasp_roll_offset').value)
-        self.box_yaw_zero_offset_deg = float(
-            self.get_parameter('box_yaw_zero_offset_deg').value
-        )
-        self.roll_clamp_min_deg = float(self.get_parameter('roll_clamp_min_deg').value)
-        self.roll_clamp_max_deg = float(self.get_parameter('roll_clamp_max_deg').value)
-
+        self.pregrasp_duration = 4.0
+        self.insertion_duration = 3.0
         self.left_arm_joint_trajectory_topic = self.get_parameter(
             'left_arm_joint_trajectory_topic'
         ).value
-        self.left_gripper_joint = self.get_parameter('left_gripper_joint').value
-        self.left_arm_joint_names = [
-            str(name) for name in self.get_parameter('left_arm_joint_names').value
-        ]
-        if self.left_gripper_joint not in self.left_arm_joint_names:
-            raise ValueError('left_gripper_joint must be included in left_arm_joint_names')
-
-        self.gripper_open_position = float(self.get_parameter('gripper_open_position').value)
-        self.gripper_closed_position = float(
-            self.get_parameter('gripper_closed_position').value
-        )
-        self.gripper_duration = float(self.get_parameter('gripper_duration').value)
-        self.gripper_settle_time = float(self.get_parameter('gripper_settle_time').value)
-        self.command_rate_hz = float(self.get_parameter('command_rate_hz').value)
-        self.lift_height = float(self.get_parameter('lift_height').value)
-        self.lift_duration = float(self.get_parameter('lift_duration').value)
-
-        self.place_hover_position_xyz = self._list_parameter('place_hover_position_xyz')
-        if len(self.place_hover_position_xyz) != 3:
-            raise ValueError('place_hover_position_xyz must contain [x, y, z]')
-        self.place_hover_orientation_xyzw = self._list_parameter(
-            'place_hover_orientation_xyzw'
-        )
-        if len(self.place_hover_orientation_xyzw) != 4:
-            raise ValueError('place_hover_orientation_xyzw must contain [x, y, z, w]')
-        self.place_hover_duration = float(self.get_parameter('place_hover_duration').value)
-
-        self.place_position_xyz = self._list_parameter('place_position_xyz')
-        if len(self.place_position_xyz) != 3:
-            raise ValueError('place_position_xyz must contain [x, y, z]')
-        self.place_orientation_xyzw = self._list_parameter('place_orientation_xyzw')
-        if len(self.place_orientation_xyzw) != 4:
-            raise ValueError('place_orientation_xyzw must contain [x, y, z, w]')
-        self.place_duration = float(self.get_parameter('place_duration').value)
-
-        self.place_release_gripper_position = float(
-            self.get_parameter('place_release_gripper_position').value
-        )
-
-        self.place_retreat_position_xyz = self._list_parameter('place_retreat_position_xyz')
-        if len(self.place_retreat_position_xyz) != 3:
-            raise ValueError('place_retreat_position_xyz must contain [x, y, z]')
-        self.place_retreat_orientation_xyzw = self._list_parameter(
-            'place_retreat_orientation_xyzw'
-        )
-        if len(self.place_retreat_orientation_xyzw) != 4:
-            raise ValueError('place_retreat_orientation_xyzw must contain [x, y, z, w]')
-        self.place_retreat_duration = float(self.get_parameter('place_retreat_duration').value)
-
-        self.place_push_position_xyz = self._list_parameter('place_push_position_xyz')
-        if len(self.place_push_position_xyz) != 3:
-            raise ValueError('place_push_position_xyz must contain [x, y, z]')
-        self.place_push_orientation_xyzw = self._list_parameter('place_push_orientation_xyzw')
-        if len(self.place_push_orientation_xyzw) != 4:
-            raise ValueError('place_push_orientation_xyzw must contain [x, y, z, w]')
-        self.place_push_duration = float(self.get_parameter('place_push_duration').value)
-
         self.return_to_initial = self._bool_parameter('return_to_initial')
 
-        home_position_xyz = self._list_parameter('home_position_xyz')
-        if len(home_position_xyz) != 3:
-            raise ValueError('home_position_xyz must contain [x, y, z]')
-        self.home_position_xyz = home_position_xyz
-        home_orientation_xyzw = self._list_parameter('home_orientation_xyzw')
-        if len(home_orientation_xyzw) != 4:
-            raise ValueError('home_orientation_xyzw must contain [x, y, z, w]')
-        self.home_orientation_xyzw = home_orientation_xyzw
-        self.home_duration = float(self.get_parameter('home_duration').value)
+        # --- Fixed gripper/motion calibration ---
+        self.gripper_open_position = 0.0
+        self.gripper_closed_position = 0.57
+        self.lift_height = 0.1
+        self.place_release_gripper_position = 0.9
+        self.place_hover_duration = 4.0
+        self.place_duration = 6.0
+        self.place_retreat_duration = 2.0
+        self.place_push_duration = 2.0
+        self.home_duration = 6.0
+
+        # --- Measured calibration ---
+        calib = self._load_calibration('centerpose_box_calibration.yaml')
+
+        # Grasp position offset/slope
+        self.fixed_grasp_z = float(calib['fixed_grasp_z'])
+        self.insertion_overshoot_distance = float(calib['insertion_overshoot_distance'])
+        self.grasp_position_offset = calib['grasp_position_offset']
+        self.grasp_position_y_slope = float(calib['grasp_position_y_slope'])
+        self.grasp_position_y_reference_pixel = float(calib['grasp_position_y_reference_pixel'])
+        self.grasp_position_x_slope = float(calib['grasp_position_x_slope'])
+        self.box_depth_center_offset = float(calib['box_depth_center_offset'])
+        self._depth_center_offset = self.box_depth_center_offset
+
+        # Grasp orientation / yaw calibration
+        self.tool_orientation_offset = self._normalized(calib['tool_orientation_offset_xyzw'])
+        self.box_yaw_reference_orientation = self._normalized(
+            calib['box_yaw_reference_orientation_xyzw']
+        )
+        self.box_yaw_axis = self._normalized(calib['box_yaw_axis_xyz'])
+        self.box_yaw_flip_threshold_deg = float(calib['box_yaw_flip_threshold_deg'])
+        self.grasp_fixed_pitch = float(calib['grasp_fixed_pitch'])
+        self.grasp_fixed_yaw = float(calib['grasp_fixed_yaw'])
+        self.grasp_roll_from_yaw_scale = float(calib['grasp_roll_from_yaw_scale'])
+        self.grasp_roll_offset = float(calib['grasp_roll_offset'])
+        self.box_yaw_zero_offset_deg = float(calib['box_yaw_zero_offset_deg'])
+        self.roll_clamp_min_deg = float(calib['roll_clamp_min_deg'])
+        self.roll_clamp_max_deg = float(calib['roll_clamp_max_deg'])
+
+        # Place / home poses
+        self.place_hover_position_xyz = calib['place_hover_position_xyz']
+        self.place_hover_orientation_xyzw = calib['place_hover_orientation_xyzw']
+        self.place_position_xyz = calib['place_position_xyz']
+        self.place_orientation_xyzw = calib['place_orientation_xyzw']
+        self.place_retreat_position_xyz = calib['place_retreat_position_xyz']
+        self.place_retreat_orientation_xyzw = calib['place_retreat_orientation_xyzw']
+        self.place_push_position_xyz = calib['place_push_position_xyz']
+        self.place_push_orientation_xyzw = calib['place_push_orientation_xyzw']
+        self.home_position_xyz = calib['home_position_xyz']
+        self.home_orientation_xyzw = calib['home_orientation_xyzw']
 
         self._setup_common()
 
@@ -350,30 +201,6 @@ class CenterposeBox(PickPlaceNodeBase):
                 f'roll={math.degrees(roll):.1f} deg'
             )
         return {'pose': pose, 'pixel_u': u, 'box_yaw_deg': box_yaw_deg}
-
-    def _real_camera_point(self, camera_info, u, v, depth_image, depth_msg, log):
-        # Back-project pixel (u, v) + sampled depth into a camera-frame 3D point.
-        fx = camera_info.k[0]
-        fy = camera_info.k[4]
-        cx = camera_info.k[2]
-        cy = camera_info.k[5]
-
-        u_px = int(round(u))
-        v_px = int(round(v))
-
-        depth = self._sample_depth(depth_image, depth_msg, u_px, v_px)
-        if depth is None:
-            if log:
-                self.get_logger().warn(
-                    f'Invalid depth around pixel ({u_px}, {v_px})', throttle_duration_sec=2.0
-                )
-            return None
-
-        depth += self.box_depth_center_offset
-
-        return np.array(
-            [(u - cx) * depth / fx, (v - cy) * depth / fy, depth], dtype=np.float64
-        )
 
     def _execute_queue(self, queue):
         # Pick and place every captured box in order.

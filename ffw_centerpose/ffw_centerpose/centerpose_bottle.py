@@ -23,7 +23,7 @@ import numpy as np
 import rclpy
 from rclpy.executors import ExternalShutdownException
 
-from ffw_centerpose.pick_place_base import PickPlaceNodeBase
+from ffw_centerpose.pick_place_base import load_camera_topics, PickPlaceNodeBase
 
 
 class CenterposeBottle(PickPlaceNodeBase):
@@ -32,10 +32,12 @@ class CenterposeBottle(PickPlaceNodeBase):
     def __init__(self):
         super().__init__('centerpose_bottle')
 
+        camera = load_camera_topics()
+
         # --- Parameters ---
         self.declare_parameter('detections_topic', '/centerpose/detections')
         self.declare_parameter('camera_info_topic', '/camera_info')
-        self.declare_parameter('depth_topic', '/zed/zed_node/depth/depth_registered')
+        self.declare_parameter('depth_topic', camera['depth'])
         self.declare_parameter('depth_window', 5)
         self.declare_parameter('joint_states_topic', '/joint_states')
         self.declare_parameter('target_frame', 'base_link')
@@ -44,53 +46,12 @@ class CenterposeBottle(PickPlaceNodeBase):
         self.declare_parameter('max_grasp_x', 0.7)
         self.declare_parameter('execute_motion', False)
         self.declare_parameter('movel_topic', '/l_goal_move')
-        self.declare_parameter('movel_duration', 5.0)
         self.declare_parameter('pregrasp_distance', 0.08)
-        self.declare_parameter('pregrasp_duration', 2.0)
-        self.declare_parameter('insertion_duration', 1.0)
-        self.declare_parameter('movel_subscriber_timeout', 2.0)
-        self.declare_parameter('settle_time', 0.5)
-        self.declare_parameter('eef_link', 'end_effector_l_link')
-        # Real values for this group come from centerpose_bottle_calibration.yaml.
-        self.declare_parameter('fixed_grasp_z', 0.0)
-        self.declare_parameter('grasp_position_offset', [0.0, 0.0, 0.0])
-        self.declare_parameter('grasp_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
         self.declare_parameter(
             'left_arm_joint_trajectory_topic',
             '/leader/joint_trajectory_command_broadcaster_left/joint_trajectory',
         )
-        self.declare_parameter('left_gripper_joint', 'gripper_l_joint1')
-        self.declare_parameter(
-            'left_arm_joint_names',
-            [
-                'arm_l_joint1',
-                'arm_l_joint2',
-                'arm_l_joint3',
-                'arm_l_joint4',
-                'arm_l_joint5',
-                'arm_l_joint6',
-                'arm_l_joint7',
-                'gripper_l_joint1',
-            ],
-        )
-        self.declare_parameter('gripper_open_position', 0.0)
-        self.declare_parameter('gripper_closed_position', 0.7)
-        self.declare_parameter('gripper_duration', 0.5)
-        self.declare_parameter('gripper_settle_time', 0.2)
-        self.declare_parameter('command_rate_hz', 300.0)
-        self.declare_parameter('lift_height', 0.1)
-        self.declare_parameter('lift_duration', 1.0)
-        # --- Box slot positions (values from centerpose_bottle_calibration.yaml) ---
-        self.declare_parameter('box_slot_1_position_xyz', [0.0, 0.0, 0.0])
-        self.declare_parameter('box_slot_1_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
-        self.declare_parameter('box_slot_2_position_xyz', [0.0, 0.0, 0.0])
-        self.declare_parameter('box_slot_2_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
-        self.declare_parameter('box_duration', 1.5)
-        self.declare_parameter('box_place_z_offset', 0.0)
-        self.declare_parameter('box_place_duration', 1.0)
         self.declare_parameter('return_to_initial', True)
-        self.declare_parameter('home_position_xyz', [0.0, 0.0, 0.0])
-        self.declare_parameter('home_duration', 3.0)
 
         # --- Read parameters ---
         self.detections_topic = self.get_parameter('detections_topic').value
@@ -103,67 +64,40 @@ class CenterposeBottle(PickPlaceNodeBase):
         self.max_grasp_x = float(self.get_parameter('max_grasp_x').value)
         self.execute_motion = self._bool_parameter('execute_motion')
         self.movel_topic = self.get_parameter('movel_topic').value
-        self.movel_duration = float(self.get_parameter('movel_duration').value)
+        self.movel_duration = 5.0
         self.pregrasp_distance = float(self.get_parameter('pregrasp_distance').value)
-        self.pregrasp_duration = float(self.get_parameter('pregrasp_duration').value)
-        self.insertion_duration = float(self.get_parameter('insertion_duration').value)
-        self.movel_subscriber_timeout = float(
-            self.get_parameter('movel_subscriber_timeout').value
-        )
-        self.settle_time = float(self.get_parameter('settle_time').value)
-        self.eef_link = str(self.get_parameter('eef_link').value)
-        self.fixed_grasp_z = float(self.get_parameter('fixed_grasp_z').value)
-
-        grasp_position_offset = self._list_parameter('grasp_position_offset')
-        if len(grasp_position_offset) != 3:
-            raise ValueError('grasp_position_offset must contain [x, y, z]')
-        self.grasp_position_offset = grasp_position_offset
-
-        grasp_orientation = np.asarray(
-            self._list_parameter('grasp_orientation_xyzw'), dtype=np.float64
-        )
-        if grasp_orientation.shape != (4,):
-            raise ValueError('grasp_orientation_xyzw must contain [x, y, z, w]')
-        orientation_norm = np.linalg.norm(grasp_orientation)
-        if orientation_norm < 1e-9:
-            raise ValueError('grasp_orientation_xyzw must not be zero')
-        self.grasp_orientation = grasp_orientation / orientation_norm
-        # --- Approach direction ---
-        self.approach_dir = self._rotate_vector(
-            np.array([0.0, 0.0, -1.0]), self.grasp_orientation
-        )
-
+        self.pregrasp_duration = 5.0
+        self.insertion_duration = 1.0
         self.left_arm_joint_trajectory_topic = self.get_parameter(
             'left_arm_joint_trajectory_topic'
         ).value
-        self.left_gripper_joint = self.get_parameter('left_gripper_joint').value
-        self.left_arm_joint_names = [
-            str(name) for name in self.get_parameter('left_arm_joint_names').value
-        ]
-        if self.left_gripper_joint not in self.left_arm_joint_names:
-            raise ValueError('left_gripper_joint must be included in left_arm_joint_names')
-
-        self.gripper_open_position = float(self.get_parameter('gripper_open_position').value)
-        self.gripper_closed_position = float(
-            self.get_parameter('gripper_closed_position').value
-        )
-        self.gripper_duration = float(self.get_parameter('gripper_duration').value)
-        self.gripper_settle_time = float(self.get_parameter('gripper_settle_time').value)
-        self.command_rate_hz = float(self.get_parameter('command_rate_hz').value)
-        self.lift_height = float(self.get_parameter('lift_height').value)
-        self.lift_duration = float(self.get_parameter('lift_duration').value)
-
-        self.box_slots = [self._build_box_slot(1), self._build_box_slot(2)]
-        self.box_duration = float(self.get_parameter('box_duration').value)
-        self.box_place_z_offset = float(self.get_parameter('box_place_z_offset').value)
-        self.box_place_duration = float(self.get_parameter('box_place_duration').value)
-
         self.return_to_initial = self._bool_parameter('return_to_initial')
-        home_position_xyz = self._list_parameter('home_position_xyz')
-        if len(home_position_xyz) != 3:
-            raise ValueError('home_position_xyz must contain [x, y, z]')
-        self.home_position_xyz = home_position_xyz
-        self.home_duration = float(self.get_parameter('home_duration').value)
+
+        # --- Fixed gripper/motion calibration ---
+        self.gripper_open_position = 0.0
+        self.gripper_closed_position = 0.7
+        self.lift_height = 0.1
+        self.box_duration = 5.0
+        self.box_place_duration = 2.0
+        self.home_duration = 4.0
+
+        # --- Measured calibration ---
+        calib = self._load_calibration('centerpose_bottle_calibration.yaml')
+        self.fixed_grasp_z = float(calib['fixed_grasp_z'])
+        self.grasp_position_offset = calib['grasp_position_offset']
+        self.grasp_orientation = self._normalized(calib['grasp_orientation_xyzw'])
+        self.approach_dir = self._rotate_vector(
+            np.array([0.0, 0.0, -1.0]), self.grasp_orientation
+        )
+        self.box_slots = [
+            {
+                'position': calib[f'box_slot_{index}_position_xyz'],
+                'orientation': self._normalized(calib[f'box_slot_{index}_orientation_xyzw']),
+            }
+            for index in (1, 2)
+        ]
+        self.box_place_z_offset = float(calib['box_place_z_offset'])
+        self.home_position_xyz = calib['home_position_xyz']
 
         self._setup_common()
 
@@ -174,23 +108,6 @@ class CenterposeBottle(PickPlaceNodeBase):
         self.get_logger().info(f'  depth (x/y only): {self.depth_topic}')
         for index, slot in enumerate(self.box_slots, start=1):
             self.get_logger().info(f'  box slot {index} hover: {slot["position"]}')
-
-    def _build_box_slot(self, index):
-        # Read box_slot_{index}_position/orientation into one slot dict.
-        position = self._list_parameter(f'box_slot_{index}_position_xyz')
-        if len(position) != 3:
-            raise ValueError(f'box_slot_{index}_position_xyz must contain [x, y, z]')
-
-        orientation = np.asarray(
-            self._list_parameter(f'box_slot_{index}_orientation_xyzw'), dtype=np.float64
-        )
-        if orientation.shape != (4,):
-            raise ValueError(f'box_slot_{index}_orientation_xyzw must contain [x, y, z, w]')
-        norm = np.linalg.norm(orientation)
-        if norm < 1e-9:
-            raise ValueError(f'box_slot_{index}_orientation_xyzw must not be zero')
-
-        return {'position': position, 'orientation': orientation / norm}
 
     # --- Detection -> pose conversion ---
     def _process_single_detection(
@@ -236,28 +153,6 @@ class CenterposeBottle(PickPlaceNodeBase):
                 f'{pose.pose.position.z:.3f})'
             )
         return {'pose': pose, 'pixel_u': u}
-
-    def _real_camera_point(self, camera_info, u, v, depth_image, depth_msg, log):
-        # Back-project pixel (u, v) + sampled depth into a camera-frame 3D point.
-        fx = camera_info.k[0]
-        fy = camera_info.k[4]
-        cx = camera_info.k[2]
-        cy = camera_info.k[5]
-
-        u_px = int(round(u))
-        v_px = int(round(v))
-
-        depth = self._sample_depth(depth_image, depth_msg, u_px, v_px)
-        if depth is None:
-            if log:
-                self.get_logger().warn(
-                    f'Invalid depth around pixel ({u_px}, {v_px})', throttle_duration_sec=2.0
-                )
-            return None
-
-        return np.array(
-            [(u - cx) * depth / fx, (v - cy) * depth / fy, depth], dtype=np.float64
-        )
 
     def _execute_queue(self, queue):
         # Pick and place every captured bottle in order.

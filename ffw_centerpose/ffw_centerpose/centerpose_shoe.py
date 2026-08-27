@@ -24,7 +24,7 @@ import numpy as np
 import rclpy
 from rclpy.executors import ExternalShutdownException
 
-from ffw_centerpose.pick_place_base import PickPlaceNodeBase
+from ffw_centerpose.pick_place_base import load_camera_topics, PickPlaceNodeBase
 
 
 class CenterposeShoe(PickPlaceNodeBase):
@@ -35,10 +35,12 @@ class CenterposeShoe(PickPlaceNodeBase):
     def __init__(self):
         super().__init__('centerpose_shoe')
 
+        camera = load_camera_topics()
+
         # --- Parameters ---
         self.declare_parameter('detections_topic', '/centerpose/detections')
         self.declare_parameter('camera_info_topic', '/camera_info')
-        self.declare_parameter('depth_topic', '/zed/zed_node/depth/depth_registered')
+        self.declare_parameter('depth_topic', camera['depth'])
         self.declare_parameter('depth_window', 5)
         self.declare_parameter('joint_states_topic', '/joint_states')
         self.declare_parameter('target_frame', 'base_link')
@@ -47,83 +49,11 @@ class CenterposeShoe(PickPlaceNodeBase):
         self.declare_parameter('max_grasp_x', 0.9)
         self.declare_parameter('execute_motion', False)
         self.declare_parameter('movel_topic', '/l_goal_move')
-        self.declare_parameter('movel_duration', 10.0)
-
-        # --- Startup sequence (values from centerpose_shoe_calibration.yaml) ---
-        self.declare_parameter('startup_position_xyz', [0.0, 0.0, 0.0])
-        self.declare_parameter('startup_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
-        self.declare_parameter('startup_duration', 10.0)
-        self.declare_parameter('start_position_xyz', [0.0, 0.0, 0.0])
-        self.declare_parameter('start_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
-        self.declare_parameter('start_duration', 10.0)
-        self.declare_parameter('return_duration', 6.0)
-
-        # --- Approach / insertion ---
         self.declare_parameter('pregrasp_distance', 0.1)
-        self.declare_parameter('pregrasp_duration', 4.0)
-        self.declare_parameter('insertion_duration', 2.0)
-        self.declare_parameter('insertion_overshoot_distance', 0.0)
-        self.declare_parameter('movel_subscriber_timeout', 2.0)
-        self.declare_parameter('settle_time', 0.5)
-        self.declare_parameter('eef_link', 'end_effector_l_link')
-        self.declare_parameter('fixed_grasp_z', 0.0)
-        self.declare_parameter('min_grasp_z', 0.0)
-
-        # --- Shoe hole offset ---
-        self.declare_parameter('grasp_position_offset', [0.0, 0.0, 0.0])
-        self.declare_parameter('grasp_position_y_slope', 0.0)
-        self.declare_parameter('grasp_position_y_reference_pixel', 0.0)
-        self.declare_parameter('second_shoe_grasp_y_offset', 0.0)
-        self.declare_parameter('shoe_depth_center_offset', 0.0)
-        self.declare_parameter('tool_orientation_offset_xyzw', [0.0, 0.0, 0.0, 1.0])
-
-        # --- Shoe yaw -> gripper yaw calibration ---
-        self.declare_parameter('shoe_yaw_reference_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
-        self.declare_parameter('shoe_yaw_axis_xyz', [0.0, 0.0, 1.0])
-        self.declare_parameter('shoe_yaw_flip_threshold_deg', 90.0)
-        self.declare_parameter('grasp_fixed_roll', 0.0)
-        self.declare_parameter('grasp_fixed_pitch', 0.0)
-        self.declare_parameter('grasp_yaw_from_shoe_yaw_scale', 0.0)
-        self.declare_parameter('grasp_yaw_offset', 0.0)
-        self.declare_parameter('yaw_clamp_min_deg', -90.0)
-        self.declare_parameter('yaw_clamp_max_deg', 90.0)
-
         self.declare_parameter(
             'left_arm_joint_trajectory_topic',
             '/leader/joint_trajectory_command_broadcaster_left/joint_trajectory',
         )
-        self.declare_parameter('left_gripper_joint', 'gripper_l_joint1')
-        self.declare_parameter(
-            'left_arm_joint_names',
-            [
-                'arm_l_joint1',
-                'arm_l_joint2',
-                'arm_l_joint3',
-                'arm_l_joint4',
-                'arm_l_joint5',
-                'arm_l_joint6',
-                'arm_l_joint7',
-                'gripper_l_joint1',
-            ],
-        )
-        self.declare_parameter('gripper_open_position', 0.0)
-        self.declare_parameter('gripper_closed_position', 1.1)
-        self.declare_parameter('gripper_release_position', 0.7)
-        self.declare_parameter('gripper_duration', 1.0)
-        self.declare_parameter('gripper_settle_time', 0.2)
-        self.declare_parameter('command_rate_hz', 300.0)
-        self.declare_parameter('lift_height', 0.1)
-        self.declare_parameter('lift_duration', 2.0)
-
-        # --- Place sequence (values from centerpose_shoe_calibration.yaml) ---
-        self.declare_parameter('place_slot_1_position_xyz', [0.0, 0.0, 0.0])
-        self.declare_parameter('place_slot_1_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
-        self.declare_parameter('place_slot_2_position_xyz', [0.0, 0.0, 0.0])
-        self.declare_parameter('place_slot_2_orientation_xyzw', [0.0, 0.0, 0.0, 1.0])
-        self.declare_parameter('place_hover_duration', 4.0)
-        self.declare_parameter('place_lower_distance', 0.0)
-        self.declare_parameter('place_lower_duration', 2.0)
-        self.declare_parameter('place_duration', 1.0)
 
         # --- Read parameters ---
         self.detections_topic = self.get_parameter('detections_topic').value
@@ -136,124 +66,70 @@ class CenterposeShoe(PickPlaceNodeBase):
         self.max_grasp_x = float(self.get_parameter('max_grasp_x').value)
         self.execute_motion = self._bool_parameter('execute_motion')
         self.movel_topic = self.get_parameter('movel_topic').value
-        self.movel_duration = float(self.get_parameter('movel_duration').value)
-
-        self.startup_position_xyz = self._list_parameter('startup_position_xyz')
-        if len(self.startup_position_xyz) != 3:
-            raise ValueError('startup_position_xyz must contain [x, y, z]')
-        self.startup_orientation_xyzw = self._list_parameter('startup_orientation_xyzw')
-        if len(self.startup_orientation_xyzw) != 4:
-            raise ValueError('startup_orientation_xyzw must contain [x, y, z, w]')
-        self.startup_duration = float(self.get_parameter('startup_duration').value)
-
-        self.start_position_xyz = self._list_parameter('start_position_xyz')
-        if len(self.start_position_xyz) != 3:
-            raise ValueError('start_position_xyz must contain [x, y, z]')
-        self.start_orientation_xyzw = self._list_parameter('start_orientation_xyzw')
-        if len(self.start_orientation_xyzw) != 4:
-            raise ValueError('start_orientation_xyzw must contain [x, y, z, w]')
-        self.start_duration = float(self.get_parameter('start_duration').value)
-        self.return_duration = float(self.get_parameter('return_duration').value)
-
         self.pregrasp_distance = float(self.get_parameter('pregrasp_distance').value)
-        self.pregrasp_duration = float(self.get_parameter('pregrasp_duration').value)
-        self.insertion_duration = float(self.get_parameter('insertion_duration').value)
-        self.insertion_overshoot_distance = float(
-            self.get_parameter('insertion_overshoot_distance').value
-        )
-        self.movel_subscriber_timeout = float(
-            self.get_parameter('movel_subscriber_timeout').value
-        )
-        self.settle_time = float(self.get_parameter('settle_time').value)
-        self.eef_link = str(self.get_parameter('eef_link').value)
-        self.fixed_grasp_z = float(self.get_parameter('fixed_grasp_z').value)
-        self.min_grasp_z = float(self.get_parameter('min_grasp_z').value)
-
-        grasp_position_offset = self._list_parameter('grasp_position_offset')
-        if len(grasp_position_offset) != 3:
-            raise ValueError('grasp_position_offset must contain [x, y, z]')
-        self.grasp_position_offset = grasp_position_offset
-        self.grasp_position_y_slope = float(
-            self.get_parameter('grasp_position_y_slope').value
-        )
-        self.grasp_position_y_reference_pixel = float(
-            self.get_parameter('grasp_position_y_reference_pixel').value
-        )
-        self.second_shoe_grasp_y_offset = float(
-            self.get_parameter('second_shoe_grasp_y_offset').value
-        )
-        self.shoe_depth_center_offset = float(
-            self.get_parameter('shoe_depth_center_offset').value
-        )
-
-        tool_orientation_offset = np.asarray(
-            self._list_parameter('tool_orientation_offset_xyzw'), dtype=np.float64
-        )
-        if tool_orientation_offset.shape != (4,):
-            raise ValueError('tool_orientation_offset_xyzw must contain [x, y, z, w]')
-        tool_orientation_norm = np.linalg.norm(tool_orientation_offset)
-        if tool_orientation_norm < 1e-9:
-            raise ValueError('tool_orientation_offset_xyzw must not be zero')
-        self.tool_orientation_offset = tool_orientation_offset / tool_orientation_norm
-
-        shoe_yaw_reference_orientation = np.asarray(
-            self._list_parameter('shoe_yaw_reference_orientation_xyzw'), dtype=np.float64
-        )
-        if shoe_yaw_reference_orientation.shape != (4,):
-            raise ValueError('shoe_yaw_reference_orientation_xyzw must contain [x, y, z, w]')
-        reference_norm = np.linalg.norm(shoe_yaw_reference_orientation)
-        if reference_norm < 1e-9:
-            raise ValueError('shoe_yaw_reference_orientation_xyzw must not be zero')
-        self.shoe_yaw_reference_orientation = shoe_yaw_reference_orientation / reference_norm
-
-        shoe_yaw_axis = np.asarray(self._list_parameter('shoe_yaw_axis_xyz'), dtype=np.float64)
-        if shoe_yaw_axis.shape != (3,):
-            raise ValueError('shoe_yaw_axis_xyz must contain [x, y, z]')
-        shoe_yaw_axis_norm = np.linalg.norm(shoe_yaw_axis)
-        if shoe_yaw_axis_norm < 1e-9:
-            raise ValueError('shoe_yaw_axis_xyz must not be zero')
-        self.shoe_yaw_axis = shoe_yaw_axis / shoe_yaw_axis_norm
-
-        self.shoe_yaw_flip_threshold_deg = float(
-            self.get_parameter('shoe_yaw_flip_threshold_deg').value
-        )
-        self.grasp_fixed_roll = float(self.get_parameter('grasp_fixed_roll').value)
-        self.grasp_fixed_pitch = float(self.get_parameter('grasp_fixed_pitch').value)
-        self.grasp_yaw_from_shoe_yaw_scale = float(
-            self.get_parameter('grasp_yaw_from_shoe_yaw_scale').value
-        )
-        self.grasp_yaw_offset = float(self.get_parameter('grasp_yaw_offset').value)
-        self.yaw_clamp_min_deg = float(self.get_parameter('yaw_clamp_min_deg').value)
-        self.yaw_clamp_max_deg = float(self.get_parameter('yaw_clamp_max_deg').value)
-
         self.left_arm_joint_trajectory_topic = self.get_parameter(
             'left_arm_joint_trajectory_topic'
         ).value
-        self.left_gripper_joint = self.get_parameter('left_gripper_joint').value
-        self.left_arm_joint_names = [
-            str(name) for name in self.get_parameter('left_arm_joint_names').value
+
+        # --- Fixed gripper/motion calibration ---
+        self.movel_duration = 10.0
+        self.startup_duration = 10.0
+        self.start_duration = 10.0
+        self.return_duration = 6.0
+        self.pregrasp_duration = 4.0
+        self.insertion_duration = 2.0
+        self.gripper_open_position = 0.0
+        self.gripper_closed_position = 1.1
+        self.gripper_release_position = 0.7
+        self.lift_height = 0.1
+        self.place_hover_duration = 4.0
+        self.place_lower_duration = 2.0
+        self.place_duration = 1.0
+        self.yaw_clamp_min_deg = -90.0
+        self.yaw_clamp_max_deg = 90.0
+
+        # --- Measured calibration ---
+        calib = self._load_calibration('centerpose_shoe_calibration.yaml')
+
+        # Startup / start poses
+        self.startup_position_xyz = calib['startup_position_xyz']
+        self.startup_orientation_xyzw = calib['startup_orientation_xyzw']
+        self.start_position_xyz = calib['start_position_xyz']
+        self.start_orientation_xyzw = calib['start_orientation_xyzw']
+
+        # Grasp position offset/slope
+        self.insertion_overshoot_distance = float(calib['insertion_overshoot_distance'])
+        self.fixed_grasp_z = float(calib['fixed_grasp_z'])
+        self.min_grasp_z = float(calib['min_grasp_z'])
+        self.grasp_position_offset = calib['grasp_position_offset']
+        self.grasp_position_y_slope = float(calib['grasp_position_y_slope'])
+        self.grasp_position_y_reference_pixel = float(calib['grasp_position_y_reference_pixel'])
+        self.second_shoe_grasp_y_offset = float(calib['second_shoe_grasp_y_offset'])
+        # TODO: shoe_depth_center_offset unmeasured.
+        self.shoe_depth_center_offset = float(calib['shoe_depth_center_offset'])
+        self._depth_center_offset = self.shoe_depth_center_offset
+
+        # Grasp orientation / yaw calibration
+        self.tool_orientation_offset = self._normalized(calib['tool_orientation_offset_xyzw'])
+        self.shoe_yaw_reference_orientation = self._normalized(
+            calib['shoe_yaw_reference_orientation_xyzw']
+        )
+        self.shoe_yaw_axis = self._normalized(calib['shoe_yaw_axis_xyz'])
+        self.shoe_yaw_flip_threshold_deg = float(calib['shoe_yaw_flip_threshold_deg'])
+        self.grasp_fixed_roll = float(calib['grasp_fixed_roll'])
+        self.grasp_fixed_pitch = float(calib['grasp_fixed_pitch'])
+        self.grasp_yaw_from_shoe_yaw_scale = float(calib['grasp_yaw_from_shoe_yaw_scale'])
+        self.grasp_yaw_offset = float(calib['grasp_yaw_offset'])
+
+        # Place poses
+        self.place_slots = [
+            {
+                'position': calib[f'place_slot_{index}_position_xyz'],
+                'orientation': self._normalized(calib[f'place_slot_{index}_orientation_xyzw']),
+            }
+            for index in (1, 2)
         ]
-        if self.left_gripper_joint not in self.left_arm_joint_names:
-            raise ValueError('left_gripper_joint must be included in left_arm_joint_names')
-
-        self.gripper_open_position = float(self.get_parameter('gripper_open_position').value)
-        self.gripper_closed_position = float(
-            self.get_parameter('gripper_closed_position').value
-        )
-        self.gripper_release_position = float(
-            self.get_parameter('gripper_release_position').value
-        )
-        self.gripper_duration = float(self.get_parameter('gripper_duration').value)
-        self.gripper_settle_time = float(self.get_parameter('gripper_settle_time').value)
-        self.command_rate_hz = float(self.get_parameter('command_rate_hz').value)
-        self.lift_height = float(self.get_parameter('lift_height').value)
-        self.lift_duration = float(self.get_parameter('lift_duration').value)
-
-        self.place_slots = [self._build_place_slot(1), self._build_place_slot(2)]
-        self.place_hover_duration = float(self.get_parameter('place_hover_duration').value)
-        self.place_lower_distance = float(self.get_parameter('place_lower_distance').value)
-        self.place_lower_duration = float(self.get_parameter('place_lower_duration').value)
-        self.place_duration = float(self.get_parameter('place_duration').value)
+        self.place_lower_distance = float(calib['place_lower_distance'])
 
         self._setup_common()
 
@@ -301,23 +177,6 @@ class CenterposeShoe(PickPlaceNodeBase):
 
             self.get_logger().info('Startup sequence finished; holding start pose')
             self.execution_step = 'idle'
-
-    def _build_place_slot(self, index):
-        # Read place_slot_{index}_position/orientation into one slot dict.
-        position = self._list_parameter(f'place_slot_{index}_position_xyz')
-        if len(position) != 3:
-            raise ValueError(f'place_slot_{index}_position_xyz must contain [x, y, z]')
-
-        orientation = np.asarray(
-            self._list_parameter(f'place_slot_{index}_orientation_xyzw'), dtype=np.float64
-        )
-        if orientation.shape != (4,):
-            raise ValueError(f'place_slot_{index}_orientation_xyzw must contain [x, y, z, w]')
-        norm = np.linalg.norm(orientation)
-        if norm < 1e-9:
-            raise ValueError(f'place_slot_{index}_orientation_xyzw must not be zero')
-
-        return {'position': position, 'orientation': orientation / norm}
 
     # --- Detection -> pose conversion ---
     def _process_single_detection(
@@ -372,31 +231,6 @@ class CenterposeShoe(PickPlaceNodeBase):
                 f'gripper_yaw={math.degrees(gripper_yaw):.1f} deg'
             )
         return {'pose': pose, 'pixel_u': u}
-
-    def _real_camera_point(self, camera_info, u, v, depth_image, depth_msg, log):
-        # Back-project pixel (u, v) + sampled depth into a camera-frame 3D point.
-        # TODO: shoe_depth_center_offset unmeasured.
-        fx = camera_info.k[0]
-        fy = camera_info.k[4]
-        cx = camera_info.k[2]
-        cy = camera_info.k[5]
-
-        u_px = int(round(u))
-        v_px = int(round(v))
-
-        depth = self._sample_depth(depth_image, depth_msg, u_px, v_px)
-        if depth is None:
-            if log:
-                self.get_logger().warn(
-                    f'Invalid depth around pixel ({u_px}, {v_px})', throttle_duration_sec=2.0
-                )
-            return None
-
-        depth += self.shoe_depth_center_offset
-
-        return np.array(
-            [(u - cx) * depth / fx, (v - cy) * depth / fy, depth], dtype=np.float64
-        )
 
     def _execute_queue(self, queue):
         # Pick and place every captured shoe in order, then return to start pose.
