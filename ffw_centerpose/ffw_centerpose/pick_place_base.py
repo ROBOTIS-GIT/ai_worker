@@ -16,11 +16,12 @@
 #
 # Author: Seongjin Jeong
 
-import ast
 import math
+import os
 import threading
 import time
 
+from ament_index_python.packages import get_package_share_directory
 from cv_bridge import CvBridge, CvBridgeError
 from geometry_msgs.msg import PoseStamped
 import numpy as np
@@ -30,15 +31,47 @@ from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPo
 from robotis_interfaces.msg import MoveL
 from sensor_msgs.msg import CameraInfo, Image, JointState
 from std_srvs.srv import Trigger
-from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 import tf2_ros
 from tf2_ros import TransformException
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from vision_msgs.msg import Detection3DArray
+import yaml
+
+
+def load_camera_topics():
+    path = os.path.join(
+        get_package_share_directory('ffw_centerpose'), 'config', 'camera_topics.yaml'
+    )
+    with open(path) as f:
+        return yaml.safe_load(f)
 
 
 class PickPlaceNodeBase(Node):
     # Overridden by subclasses, e.g. 'bottle(s)', 'box(es)'.
     _OBJECT_LABEL_PLURAL = 'object(s)'
+
+    # Sampled depth correction; overridden by subclasses that measure one.
+    _depth_center_offset = 0.0
+
+    # Fixed robot wiring, identical across every object node.
+    eef_link = 'end_effector_l_link'
+    left_gripper_joint = 'gripper_l_joint1'
+    left_arm_joint_names = [
+        'arm_l_joint1',
+        'arm_l_joint2',
+        'arm_l_joint3',
+        'arm_l_joint4',
+        'arm_l_joint5',
+        'arm_l_joint6',
+        'arm_l_joint7',
+        'gripper_l_joint1',
+    ]
+    settle_time = 0.5
+    lift_duration = 2.0
+    gripper_duration = 1.0
+    gripper_settle_time = 0.2
+    command_rate_hz = 400.0
+    movel_subscriber_timeout = 2.0
 
     # --- Setup ---
     def _setup_common(self):
@@ -258,6 +291,30 @@ class PickPlaceNodeBase(Node):
         v = fy * (position.y / position.z) + cy
         return u, v
 
+    def _real_camera_point(self, camera_info, u, v, depth_image, depth_msg, log):
+        # Back-project pixel (u, v) + sampled depth into a camera-frame 3D point.
+        fx = camera_info.k[0]
+        fy = camera_info.k[4]
+        cx = camera_info.k[2]
+        cy = camera_info.k[5]
+
+        u_px = int(round(u))
+        v_px = int(round(v))
+
+        depth = self._sample_depth(depth_image, depth_msg, u_px, v_px)
+        if depth is None:
+            if log:
+                self.get_logger().warn(
+                    f'Invalid depth around pixel ({u_px}, {v_px})', throttle_duration_sec=2.0
+                )
+            return None
+
+        depth += self._depth_center_offset
+
+        return np.array(
+            [(u - cx) * depth / fx, (v - cy) * depth / fy, depth], dtype=np.float64
+        )
+
     def _sample_depth(self, depth_image, depth_msg, u, v):
         # Median depth in a small window around pixel (u, v).
         height, width = depth_image.shape[:2]
@@ -383,7 +440,8 @@ class PickPlaceNodeBase(Node):
         )
 
     def _stream_trajectory(self, publisher, joint_names, position_fn, rate_hz, total_duration):
-        # Repeatedly publish position_fn's output until total_duration elapses (continuous re-send).
+        # Repeatedly publish position_fn's output until total_duration elapses (continuous
+        # re-send).
         period = 1.0 / rate_hz
         point_time = max(period * 2.0, 0.05)
         point_duration = self._duration(point_time)
@@ -425,12 +483,22 @@ class PickPlaceNodeBase(Node):
         return True
 
     # --- Parameter / quaternion / pose utilities ---
-    def _list_parameter(self, name):
-        # Read a parameter as a list, whether it arrived as a real list or a string.
-        value = self.get_parameter(name).value
-        if isinstance(value, str):
-            return list(ast.literal_eval(value))
-        return list(value)
+    def _load_calibration(self, filename):
+        # Read this node's measured calibration (positions/orientations/offsets) directly
+        # from a YAML file, bypassing the ROS parameter system.
+        path = os.path.join(
+            get_package_share_directory('ffw_centerpose'),
+            'config', 'ffw_sg2_rev1_follower', filename,
+        )
+        with open(path) as f:
+            data = yaml.safe_load(f)
+        return data[self.get_name()]['ros__parameters']
+
+    @staticmethod
+    def _normalized(values):
+        # Normalize a quaternion or axis vector to unit length.
+        v = np.asarray(values, dtype=np.float64)
+        return v / np.linalg.norm(v)
 
     def _bool_parameter(self, name):
         # Read a parameter as a bool, whether it arrived as a real bool or a string.

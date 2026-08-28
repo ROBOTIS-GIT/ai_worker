@@ -4,6 +4,13 @@ CenterPose-based pick-and-place for the AI Worker (bottle / box / shoe). This pa
 
 This setup spans three machines/containers: the AI Worker (robot), and an Isaac ROS container + a worker container on a separate GPU user PC, bridged over the network with Zenoh RMW.
 
+## Package Contents
+
+- `centerpose_camera.py` — relays the ZED's raw image/CameraInfo under a fixed topic name that Isaac ROS CenterPose consumes, converting BGRA8/RGBA8/RGB8 to BGR8 if needed.
+- `centerpose_pointcloud.py` — crops the point cloud to the robot's reachable area, fits the table plane, and publishes the bbox markers used to visualize each detection.
+- `centerpose_bottle.py` / `centerpose_box.py` / `centerpose_shoe.py` — one pick-and-place node per object type. Each subscribes to CenterPose detections, converts the detection into a grasp pose (position via depth sampling + calibrated offset, orientation via the object's yaw), and exposes `~/capture`, `~/execute`, `~/cancel` services to run the pick-and-place sequence. All three share the common motion/TF/quaternion logic in `pick_place_base.py` and differ mainly in their calibration YAML and place sequence.
+- `pick_place_base.py` — shared base class + `load_camera_topics()` helper used by all of the above.
+
 ## Environment Setup
 
 ### Isaac ROS CenterPose
@@ -154,6 +161,10 @@ ros2 service call /centerpose_shoe/cancel std_srvs/srv/Trigger {}
 
 > `~/capture` takes a single snapshot of the object's position at that moment — it isn't continuous tracking, so make sure the object is visible and settled when you call it. It only succeeds if there is a fresh detection (within `detection_timeout`), a valid `CameraInfo`, and a resolvable camera→base TF. If it fails, check that `isaac_ros_centerpose` and `centerpose_camera` are both publishing, and that the Zenoh bridge is actually up (`ros2 topic hz /centerpose/detections` from the worker container).
 
+### Why the Calibration Offsets
+
+Each object node loads a per-object calibration YAML (`grasp_position_offset`, `*_depth_center_offset`, `fixed_grasp_z`, etc.). These aren't arbitrary tuning — the ZED's depth readout comes out tilted across the frame rather than flat/uniform, so raw CenterPose position + depth alone isn't reliable enough for a stable grasp. The offsets correct for that measured bias instead of trusting the raw depth value directly.
+
 ### Optional: Freeze the Table Plane
 
 `freeze_table_plane` computes the table plane once and keeps republishing it, useful once the camera/table setup is fixed and you don't want per-frame RANSAC noise:
@@ -161,3 +172,5 @@ ros2 service call /centerpose_shoe/cancel std_srvs/srv/Trigger {}
 ```bash
 ros2 launch ffw_centerpose centerpose_pointcloud.launch.py freeze_table_plane:=true
 ```
+
+Launch this with the table still empty, so the RANSAC fit only sees the bare table plane. Once it's frozen, place the object on the table — that keeps the captured point cloud clean instead of picking up the object itself as part of the table fit.

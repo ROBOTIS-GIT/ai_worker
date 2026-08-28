@@ -18,6 +18,7 @@
 
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
+from ffw_centerpose.pick_place_base import load_camera_topics
 import rclpy
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
@@ -29,9 +30,10 @@ class CenterposeCamera(Node):
     def __init__(self):
         super().__init__('centerpose_camera')
 
-        self.declare_parameter('input_topic', '/zedm/zed_node/left/image_rect_color')
+        camera = load_camera_topics()
+        self.declare_parameter('input_topic', camera['image'])
         self.declare_parameter('output_topic', '/image')
-        self.declare_parameter('camera_info_input_topic', '/zedm/zed_node/left/camera_info')
+        self.declare_parameter('camera_info_input_topic', camera['camera_info'])
         self.declare_parameter('camera_info_output_topic', '/camera_info')
 
         self.input_topic = self.get_parameter('input_topic').value
@@ -59,7 +61,8 @@ class CenterposeCamera(Node):
         try:
             frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
         except CvBridgeError as exc:
-            self.get_logger().error(f'cv_bridge conversion failed: {exc}', throttle_duration_sec=2.0)
+            self.get_logger().error(
+                f'cv_bridge conversion failed: {exc}', throttle_duration_sec=2.0)
             return
 
         if msg.encoding.lower() in ('bgra8', 'rgba8'):

@@ -1,0 +1,7 @@
+# Camera topic namespace shared by every centerpose node/launch file.
+# Change these here to repoint the whole package at a different camera setup.
+image: /zed/zed_node/left/image_rect_color
+image_compressed: /zed/zed_node/left/image_rect_color/compressed
+camera_info: /zed/zed_node/left/camera_info
+depth: /zed/zed_node/depth/depth_registered
+point_cloud: /zed/zed_node/point_cloud/cloud_registered

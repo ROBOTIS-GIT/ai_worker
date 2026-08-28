@@ -22,6 +22,7 @@ import threading
 from builtin_interfaces.msg import Duration
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
+from ffw_centerpose.pick_place_base import load_camera_topics
 from geometry_msgs.msg import Point
 import numpy as np
 import rclpy
@@ -48,11 +49,14 @@ _DATATYPE_TO_NUMPY = {
 
 
 class CenterposePointcloud(Node):
+
     def __init__(self):
         super().__init__('centerpose_pointcloud')
 
+        camera = load_camera_topics()
+
         # --- Crop ---
-        self.declare_parameter('input_topic', '/zedm/zed_node/point_cloud/cloud_registered')
+        self.declare_parameter('input_topic', camera['point_cloud'])
         self.declare_parameter('output_topic', '/centerpose/cloud_cropped')
         self.declare_parameter('target_frame', 'base_link')
         self.declare_parameter('x_max', 1.2)
@@ -61,37 +65,37 @@ class CenterposePointcloud(Node):
         self.declare_parameter('z_max', 10.0)
 
         # --- Table plane ---
-        self.declare_parameter('publish_table_plane', True)
         self.declare_parameter('table_plane_topic', '/centerpose/table_plane')
-        self.declare_parameter('table_plane_distance_threshold', 0.01)
-        self.declare_parameter('table_plane_ransac_iterations', 150)
-        self.declare_parameter('table_plane_min_inliers', 200)
-        self.declare_parameter('table_plane_max_ransac_points', 20000)
-        self.declare_parameter('table_plane_normal_z_min', 0.8)
-        self.declare_parameter('table_plane_smoothing_alpha', 0.15)
-        self.declare_parameter('table_plane_grid_resolution', 0.004)
-        self.declare_parameter('color_topic', '/zedm/zed_node/left/image_rect_color/compressed')
-        self.declare_parameter('below_table_margin', 0.02)
+        self.declare_parameter('color_topic', camera['image_compressed'])
         self.declare_parameter('freeze_table_plane', False)
-
-        # --- Wall ---
-        self.declare_parameter('enable_wall', True)
-        self.declare_parameter('wall_min_height', 0.02)
-        self.declare_parameter('wall_max_height', 2.0)
 
         # --- Bbox markers ---
         self.declare_parameter('detections_topic', '/centerpose/detections')
-        self.declare_parameter('camera_info_topic', '/zedm/zed_node/left/camera_info')
-        self.declare_parameter('depth_topic', '/zedm/zed_node/depth/depth_registered')
-        self.declare_parameter('depth_window', 5)
+        self.declare_parameter('camera_info_topic', camera['camera_info'])
+        self.declare_parameter('depth_topic', camera['depth'])
         self.declare_parameter('marker_topic', '/centerpose/bbox_markers')
-        self.declare_parameter('marker_color_rgba', [1.0, 0.3, 0.0, 0.35])
-        self.declare_parameter('bbox_size_scale', 0.2)
-        self.declare_parameter('marker_lifetime', 2.0)
-        self.declare_parameter('marker_hold_timeout', 1.0)
-        self.declare_parameter('show_marker_axes', True)
-        self.declare_parameter('marker_axis_length', 0.15)
-        self.declare_parameter('marker_axis_width', 0.006)
+
+        # --- Fixed feature toggles / tuning constants (never re-tuned per robot) ---
+        self.publish_table_plane = True
+        self.enable_wall = True
+        self.depth_window = 5
+        self.table_plane_distance_threshold = 0.01
+        self.table_plane_ransac_iterations = 150
+        self.table_plane_min_inliers = 200
+        self.table_plane_max_ransac_points = 20000
+        self.table_plane_normal_z_min = 0.8
+        self.table_plane_smoothing_alpha = 0.15
+        self.table_plane_grid_resolution = 0.004
+        self.below_table_margin = 0.02
+        self.wall_min_height = 0.02
+        self.wall_max_height = 2.0
+        self.marker_color_rgba = [1.0, 0.3, 0.0, 0.60]
+        self.bbox_size_scale = 0.2
+        self.marker_lifetime = 2.0
+        self.marker_hold_timeout = 1.0
+        self.show_marker_axes = True
+        self.marker_axis_length = 0.15
+        self.marker_axis_width = 0.006
 
         self.input_topic = self.get_parameter('input_topic').value
         self.output_topic = self.get_parameter('output_topic').value
@@ -107,36 +111,10 @@ class CenterposePointcloud(Node):
         self.z_min = float(self.get_parameter('z_min').value)
         self.z_max = float(self.get_parameter('z_max').value)
 
-        self.publish_table_plane = bool(self.get_parameter('publish_table_plane').value)
         self.table_plane_topic = self.get_parameter('table_plane_topic').value
-        self.table_plane_distance_threshold = float(
-            self.get_parameter('table_plane_distance_threshold').value
-        )
-        self.table_plane_ransac_iterations = max(
-            1, int(self.get_parameter('table_plane_ransac_iterations').value)
-        )
-        self.table_plane_min_inliers = max(
-            3, int(self.get_parameter('table_plane_min_inliers').value)
-        )
-        self.table_plane_max_ransac_points = max(
-            3, int(self.get_parameter('table_plane_max_ransac_points').value)
-        )
-        self.table_plane_normal_z_min = float(
-            self.get_parameter('table_plane_normal_z_min').value
-        )
-        self.table_plane_smoothing_alpha = float(
-            self.get_parameter('table_plane_smoothing_alpha').value
-        )
-        self.table_plane_grid_resolution = float(
-            self.get_parameter('table_plane_grid_resolution').value
-        )
         self.color_topic = self.get_parameter('color_topic').value
-        self.below_table_margin = float(self.get_parameter('below_table_margin').value)
         self.freeze_table_plane = bool(self.get_parameter('freeze_table_plane').value)
         self._frozen_table_cloud = None
-        self.enable_wall = bool(self.get_parameter('enable_wall').value)
-        self.wall_min_height = float(self.get_parameter('wall_min_height').value)
-        self.wall_max_height = float(self.get_parameter('wall_max_height').value)
         self.rng = np.random.default_rng()
         self._table_centroid_ema = None
         self._table_normal_ema = None
@@ -147,18 +125,7 @@ class CenterposePointcloud(Node):
         self.detections_topic = self.get_parameter('detections_topic').value
         self.camera_info_topic = self.get_parameter('camera_info_topic').value
         self.depth_topic = self.get_parameter('depth_topic').value
-        self.depth_window = int(self.get_parameter('depth_window').value)
         self.marker_topic = self.get_parameter('marker_topic').value
-        marker_color_rgba = [float(v) for v in self.get_parameter('marker_color_rgba').value]
-        if len(marker_color_rgba) != 4:
-            raise ValueError('marker_color_rgba must contain [r, g, b, a]')
-        self.marker_color_rgba = marker_color_rgba
-        self.bbox_size_scale = float(self.get_parameter('bbox_size_scale').value)
-        self.marker_lifetime = float(self.get_parameter('marker_lifetime').value)
-        self.marker_hold_timeout = float(self.get_parameter('marker_hold_timeout').value)
-        self.show_marker_axes = bool(self.get_parameter('show_marker_axes').value)
-        self.marker_axis_length = float(self.get_parameter('marker_axis_length').value)
-        self.marker_axis_width = float(self.get_parameter('marker_axis_width').value)
 
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
@@ -267,7 +234,8 @@ class CenterposePointcloud(Node):
         kept = points[finite][in_box]
         kept_target_xyz = target_xyz[in_box]
 
-        if self.publish_table_plane and not (self.freeze_table_plane and self._frozen_table_cloud is not None):
+        frozen = self.freeze_table_plane and self._frozen_table_cloud is not None
+        if self.publish_table_plane and not frozen:
             self._update_table_plane_state(kept_target_xyz)
 
         if self._table_z_ema is not None:
@@ -358,7 +326,9 @@ class CenterposePointcloud(Node):
         grid_pv = grid_pv.reshape(-1)
 
         table_positions_target = (
-            centroid[None, :] + grid_pu[:, None] * u_hat[None, :] + grid_pv[:, None] * v_hat[None, :]
+            centroid[None, :]
+            + grid_pu[:, None] * u_hat[None, :]
+            + grid_pv[:, None] * v_hat[None, :]
         )
 
         intrinsics = self._scaled_intrinsics(camera_info, bgr.shape)
