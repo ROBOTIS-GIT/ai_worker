@@ -6,10 +6,6 @@
 
       joint_state_broadcaster:
         type: joint_state_broadcaster/JointStateBroadcaster
-
-      ffw_joint_state_broadcaster:
-        type: ffw_joint_state_broadcaster/FFWJointStateBroadcaster
-
       joint_trajectory_command_broadcaster:
         type: joint_trajectory_command_broadcaster/JointTrajectoryCommandBroadcaster
 
@@ -61,8 +57,6 @@
         - 0.0
         - 0.0
         - 0.3
-      left_joint_states_stamped_topic: "/robot/arm_left_leader/joint_states"
-      right_joint_states_stamped_topic: "/robot/arm_right_leader/joint_states"
       trigger_threshold: -0.5
 
 /**:
@@ -111,8 +105,6 @@
       joint_states_topic: "/joint_states"
       sensorxel_l_joy_joint_trajectory_topic: "/leader/joystick_controller_left/joint_trajectory"
       sensorxel_r_joy_joint_trajectory_topic: "/leader/joystick_controller_right/joint_trajectory"
-      sensorxel_l_joy_joint_states_stamped_topic: "/robot/head_leader/joint_states"
-      sensorxel_r_joy_joint_states_stamped_topic: "/robot/lift_leader/joint_states"
       sensorxel_l_joy_jog_scale: 0.06
       sensorxel_r_joy_jog_scale: 0.01
       deadzone: 0.90

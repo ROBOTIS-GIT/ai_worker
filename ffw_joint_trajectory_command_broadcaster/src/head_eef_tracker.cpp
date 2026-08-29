@@ -25,7 +25,6 @@
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/point.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
-#include "sensor_msgs/msg/joint_state.hpp"
 #include "std_msgs/msg/color_rgba.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "tf2_ros/buffer.h"
@@ -62,8 +61,6 @@ public:
     joint_trajectory_topic_ = declare_parameter<std::string>(
       "joint_trajectory_topic",
       "/leader/joystick_controller_left/joint_trajectory");
-    joint_states_topic_ = declare_parameter<std::string>(
-      "joint_states_topic", "/robot/head_leader/joint_states");
     robot_description_topic_ = declare_parameter<std::string>(
       "robot_description_topic", "/robot_description");
     visualization_topic_ = declare_parameter<std::string>(
@@ -93,8 +90,6 @@ public:
     // Publishers
     joint_trajectory_pub_ = create_publisher<trajectory_msgs::msg::JointTrajectory>(
       joint_trajectory_topic_, 10);
-    joint_states_pub_ = create_publisher<sensor_msgs::msg::JointState>(
-      joint_states_topic_, 10);
 
     if (enable_visualization_) {
       marker_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>(
@@ -546,13 +541,6 @@ private:
     trajectory_msg.points = {point};
     joint_trajectory_pub_->publish(trajectory_msg);
 
-    // Publish joint state
-    sensor_msgs::msg::JointState joint_state_msg;
-    joint_state_msg.header.stamp = this->now();
-    joint_state_msg.name = joint_names_;
-    joint_state_msg.position = {head_joint1_angle, head_joint2_angle};
-    joint_states_pub_->publish(joint_state_msg);
-
     create_visualization_markers(head_joint1_pos_, center_point, pos_l, pos_r);
 
     if (should_debug) {
@@ -578,7 +566,6 @@ private:
   std::string head_joint1_name_;
   std::string head_joint2_name_;
   std::string joint_trajectory_topic_;
-  std::string joint_states_topic_;
   std::string robot_description_topic_;
   std::string visualization_topic_;
   bool enable_visualization_;
@@ -610,7 +597,6 @@ private:
   // ROS interfaces
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr robot_description_sub_;
   rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr joint_trajectory_pub_;
-  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_states_pub_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
 };

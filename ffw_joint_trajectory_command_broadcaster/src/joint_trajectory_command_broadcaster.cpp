@@ -44,9 +44,7 @@ class State;
 namespace joint_trajectory_command_broadcaster
 {
 const auto kUninitializedValue = std::numeric_limits<double>::quiet_NaN();
-using hardware_interface::HW_IF_EFFORT;
 using hardware_interface::HW_IF_POSITION;
-using hardware_interface::HW_IF_VELOCITY;
 
 JointTrajectoryCommandBroadcaster::JointTrajectoryCommandBroadcaster() {}
 
@@ -158,28 +156,6 @@ controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_confi
         "Created joint trajectory publisher for group '%s' on topic: %s with %zu joints",
         group_name.c_str(), topic_name.c_str(), group_joints.size());
 
-      // Create joint state publisher for this group with timestamp from update() function
-      std::string joint_state_topic_name;
-      if (group_name == "left" && !params_.left_joint_states_stamped_topic.empty()) {
-        joint_state_topic_name = params_.left_joint_states_stamped_topic;
-      } else if (group_name == "right" && !params_.right_joint_states_stamped_topic.empty()) {
-        joint_state_topic_name = params_.right_joint_states_stamped_topic;
-      } else {
-        joint_state_topic_name =
-          "joint_trajectory_command_broadcaster_" + group_name + "/joint_states_stamped";
-      }
-      joint_state_stamped_publishers_[group_name] =
-        get_node()->create_publisher<sensor_msgs::msg::JointState>(
-        joint_state_topic_name, rclcpp::SystemDefaultsQoS());
-
-      realtime_joint_state_stamped_publishers_[group_name] =
-        std::make_shared<realtime_tools::RealtimePublisher<sensor_msgs::msg::JointState>>(
-        joint_state_stamped_publishers_[group_name]);
-
-      RCLCPP_INFO(
-        get_node()->get_logger(),
-        "Created joint state stamped publisher for group '%s' on topic: %s",
-        group_name.c_str(), joint_state_topic_name.c_str());
     }
 
     // Store the groups for later use
@@ -387,32 +363,6 @@ controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_activ
       group_name.c_str(), num_joints, group_joint_offsets_[group_name].size());
   }
 
-  // Pre-allocate joint state message size for each group (real-time safety)
-  // Must be done after init_joint_data() so group_joint_names_ is populated
-  for (const auto & group_name : trajectory_groups_) {
-    const auto & group_joints = group_joint_names_[group_name];
-
-    auto it = realtime_joint_state_stamped_publishers_.find(group_name);
-    if (it != realtime_joint_state_stamped_publishers_.end() && it->second) {
-      auto & msg = it->second->msg_;
-      const size_t num_joints = group_joints.size();
-      msg.name.resize(num_joints);
-      msg.position.resize(num_joints, std::numeric_limits<double>::quiet_NaN());
-      msg.velocity.resize(num_joints, std::numeric_limits<double>::quiet_NaN());
-      msg.effort.resize(num_joints, std::numeric_limits<double>::quiet_NaN());
-
-      // Set joint names once (done in on_activate, not in update loop)
-      for (size_t i = 0; i < num_joints; ++i) {
-        msg.name[i] = group_joints[i];
-      }
-
-      RCLCPP_INFO(
-        get_node()->get_logger(),
-        "Pre-allocated joint state message for group '%s' with %zu joints",
-        group_name.c_str(), num_joints);
-    }
-  }
-
   return CallbackReturn::SUCCESS;
 }
 
@@ -496,7 +446,7 @@ double get_value(
 }
 
 controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
-  const rclcpp::Time & time, const rclcpp::Duration & /*period*/)
+  const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
   // Update stored values
   for (const auto & state_interface : state_interfaces_) {
@@ -622,68 +572,6 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
       realtime_publisher->try_publish(traj_msg);
     }
 
-    // Publish joint state for this group with timestamp from update() function
-    // Real-time safe: message size pre-allocated in on_activate(), only copy values here
-    // Apply same transformations (reverse, offsets) as joint_trajectory
-    auto joint_state_pub_it = realtime_joint_state_stamped_publishers_.find(group_name);
-      if (joint_state_pub_it != realtime_joint_state_stamped_publishers_.end() &&
-        joint_state_pub_it->second)
-      {
-        auto & realtime_joint_state_publisher = joint_state_pub_it->second;
-        if (realtime_joint_state_publisher->trylock()) {
-        auto & msg = realtime_joint_state_publisher->msg_;
-
-        // Set timestamp from update() function argument (actual sensor read time)
-        msg.header.stamp = time;
-        msg.header.frame_id = "";
-
-        // Copy values from name_if_value_mapping_ to pre-allocated message
-        // Apply same reverse and offset transformations as joint_trajectory
-        // No string operations, no dynamic allocation - only value copying
-        for (size_t i = 0; i < group_joints.size() && i < msg.name.size(); ++i) {
-          const std::string & joint_name = group_joints[i];
-          double pos_value = (i < last_target.size()) ? last_target[i] :
-            std::numeric_limits<double>::quiet_NaN();
-
-          msg.position[i] = std::isnan(pos_value) ? std::numeric_limits<double>::quiet_NaN() :
-            pos_value;
-
-          // Get velocity if available (no reverse/offset for velocity)
-          if (name_if_value_mapping_.count(joint_name) > 0) {
-            const auto & interfaces = name_if_value_mapping_.at(joint_name);
-            auto vel_it = interfaces.find(HW_IF_VELOCITY);
-            if (vel_it != interfaces.end() && !std::isnan(vel_it->second)) {
-              // Apply reverse sign to velocity if joint is reversed
-              double vel_value = vel_it->second;
-              if (
-                std::find(
-                  group_reverse_joints.begin(),
-                  group_reverse_joints.end(),
-                  joint_name) != group_reverse_joints.end())
-              {
-                vel_value = -vel_value;
-              }
-              msg.velocity[i] = vel_value;
-            } else {
-              msg.velocity[i] = std::numeric_limits<double>::quiet_NaN();
-            }
-
-            // Get effort if available (no reverse/offset for effort)
-            auto eff_it = interfaces.find(HW_IF_EFFORT);
-            if (eff_it != interfaces.end() && !std::isnan(eff_it->second)) {
-              msg.effort[i] = eff_it->second;
-            } else {
-              msg.effort[i] = std::numeric_limits<double>::quiet_NaN();
-            }
-          } else {
-            msg.velocity[i] = std::numeric_limits<double>::quiet_NaN();
-            msg.effort[i] = std::numeric_limits<double>::quiet_NaN();
-          }
-        }
-
-        realtime_joint_state_publisher->unlockAndPublish();
-      }
-    }
   }
 
   return controller_interface::return_type::OK;

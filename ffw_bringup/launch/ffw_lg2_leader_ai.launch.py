@@ -86,7 +86,6 @@ def generate_launch_description():
             'spring_actuator_controller_right',
             'joystick_controller',
             'joint_state_broadcaster',
-            'ffw_joint_state_broadcaster',
         ],
         parameters=[robot_description],
     )

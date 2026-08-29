@@ -74,18 +74,6 @@ joystick_controller:
     description: "Topic to publish joint trajectory commands",
     read_only: true
   }
-  sensorxel_l_joy_joint_states_stamped_topic: {
-    type: string,
-    default_value: "",
-    description: "Topic to publish stamped joint states for the left joystick. If empty, derive from the joint trajectory topic.",
-    read_only: true
-  }
-  sensorxel_r_joy_joint_states_stamped_topic: {
-    type: string,
-    default_value: "",
-    description: "Topic to publish stamped joint states for the right joystick. If empty, derive from the joint trajectory topic.",
-    read_only: true
-  }
   sensorxel_l_joy_jog_scale: {
     type: double,
     default_value: 0.1,

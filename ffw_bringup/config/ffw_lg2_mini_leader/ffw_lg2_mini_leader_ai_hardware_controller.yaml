@@ -60,8 +60,6 @@
         - 0.0
         - 0.0
         - 0.1
-      left_joint_states_stamped_topic: "/robot/arm_left_leader/joint_states"
-      right_joint_states_stamped_topic: "/robot/arm_right_leader/joint_states"
       save_pose_duration: 2.0
       save_pose_ids: [3, 4]
       # s r r s r s r

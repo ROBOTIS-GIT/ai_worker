@@ -115,14 +115,6 @@ protected:
   // RT messages for trajectory (one per group)
   std::unordered_map<std::string, trajectory_msgs::msg::JointTrajectory> group_traj_msgs_;
 
-  // Joint state publishers with timestamp from update() function (one per group)
-  std::unordered_map<std::string,
-    std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::JointState>>>
-  joint_state_stamped_publishers_;
-  std::unordered_map<std::string,
-    std::shared_ptr<realtime_tools::RealtimePublisher<sensor_msgs::msg::JointState>>>
-  realtime_joint_state_stamped_publishers_;
-
   // Joint groups configuration
   std::unordered_map<std::string, std::vector<std::string>> group_joint_names_;
   std::unordered_map<std::string, std::vector<double>> group_joint_offsets_;

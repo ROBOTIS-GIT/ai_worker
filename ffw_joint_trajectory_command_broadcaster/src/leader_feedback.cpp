@@ -78,9 +78,9 @@ public:
     right_enable_topic_ = declare_parameter<std::string>(
       "right_enable_topic", "/leader/right_command");
     left_follower_topic_ = declare_parameter<std::string>(
-      "left_follower_joint_states_topic", "/robot/arm_left_follower/joint_states");
+      "left_follower_joint_states_topic", "/joint_states");
     right_follower_topic_ = declare_parameter<std::string>(
-      "right_follower_joint_states_topic", "/robot/arm_right_follower/joint_states");
+      "right_follower_joint_states_topic", "/joint_states");
     torque_service_name_ = declare_parameter<std::string>(
       "torque_service", "/leader/dynamixel_hardware_interface/set_dxl_data");
 

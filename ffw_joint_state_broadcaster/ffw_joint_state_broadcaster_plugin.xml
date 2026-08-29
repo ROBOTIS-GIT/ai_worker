@@ -1,9 +1,0 @@
-<library path="ffw_joint_state_broadcaster">
-  <class name="ffw_joint_state_broadcaster/FFWJointStateBroadcaster" type="ffw_joint_state_broadcaster::FFWJointStateBroadcaster" base_class_type="controller_interface::ControllerInterface">
-  <description>
-    The FFW joint state broadcaster publishes state interfaces from ros2_control system
-    as separate joint_states topics for each arm (left/right, leader/follower).
-    The timestamp in the header is set to the actual time when sensor data was read.
-  </description>
-  </class>
-</library>

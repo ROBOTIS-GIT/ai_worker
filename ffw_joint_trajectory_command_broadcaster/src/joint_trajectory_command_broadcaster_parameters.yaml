@@ -57,11 +57,6 @@ joint_trajectory_command_broadcaster:
     default_value: [],
     description: "Reverse joints for left arm group."
   }
-  left_joint_states_stamped_topic: {
-    type: string,
-    default_value: "",
-    description: "Topic to publish stamped joint states for the left group. If empty, derive from the group name."
-  }
   right_joints: {
     type: string_array,
     default_value: [],
@@ -77,11 +72,6 @@ joint_trajectory_command_broadcaster:
     default_value: [],
     description: "Reverse joints for right arm group."
   }
-  right_joint_states_stamped_topic: {
-    type: string,
-    default_value: "",
-    description: "Topic to publish stamped joint states for the right group. If empty, derive from the group name."
-  }
   left_enabled_init: {
     type: bool,
     default_value: false,
@@ -94,12 +84,12 @@ joint_trajectory_command_broadcaster:
   }
   left_follower_joint_states_topic: {
     type: string,
-    default_value: "/robot/arm_left_follower/joint_states",
+    default_value: "/joint_states",
     description: "Follower joint states topic for left arm (used to init last_target once at startup)."
   }
   right_follower_joint_states_topic: {
     type: string,
-    default_value: "/robot/arm_right_follower/joint_states",
+    default_value: "/joint_states",
     description: "Follower joint states topic for right arm (used to init last_target once at startup)."
   }
   follower_robot_description_topic: {

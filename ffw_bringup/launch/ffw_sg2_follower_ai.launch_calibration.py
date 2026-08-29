@@ -148,14 +148,6 @@ def generate_launch_description():
         arguments=['joint_state_broadcaster'],
         output='screen'
     )
-
-    ffw_joint_state_broadcaster_spawner = Node(
-        package='controller_manager',
-        executable='spawner',
-        arguments=['ffw_joint_state_broadcaster'],
-        output='screen'
-    )
-
     robot_controller_spawner = Node(
         package='controller_manager',
         executable='spawner',
@@ -400,7 +392,6 @@ def generate_launch_description():
             control_node,
             robot_state_pub_node,
             joint_state_broadcaster_spawner,
-            ffw_joint_state_broadcaster_spawner,
             delay_rviz_after_joint_state_broadcaster_spawner,
             robot_controller_spawner,
             swerve_steering_initial_position_spawner,

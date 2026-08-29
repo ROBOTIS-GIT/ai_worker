@@ -16,7 +16,7 @@ from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import JointState
 from std_srvs.srv import SetBool
 
-TOPIC = '/robot/arm_right_follower/joint_states'
+TOPIC = '/joint_states'
 JOINT_NAME = 'arm_r_joint6'
 # THRESHOLD = -0.7
 # THRESHOLD = 3.5

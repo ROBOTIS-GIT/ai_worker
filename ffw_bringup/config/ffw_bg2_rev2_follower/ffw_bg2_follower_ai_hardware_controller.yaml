@@ -18,10 +18,6 @@
 
       joint_state_broadcaster:
         type: joint_state_broadcaster/JointStateBroadcaster
-
-      ffw_joint_state_broadcaster:
-        type: ffw_joint_state_broadcaster/FFWJointStateBroadcaster
-
 /**:
   arm_l_controller:
     ros__parameters:
@@ -87,44 +83,3 @@
         - position
         - velocity
       allow_nonzero_velocity_at_trajectory_end: true
-
-/**:
-  ffw_joint_state_broadcaster:
-    ros__parameters:
-      joint_group_names:
-        - arm_left_follower
-        - arm_right_follower
-        - head_follower
-        - lift_follower
-      joint_groups:
-        arm_left_follower:
-          topic_name: "/robot/arm_left_follower/joint_states"
-          joints:
-            - arm_l_joint1
-            - arm_l_joint2
-            - arm_l_joint3
-            - arm_l_joint4
-            - arm_l_joint5
-            - arm_l_joint6
-            - arm_l_joint7
-            - gripper_l_joint1
-        arm_right_follower:
-          topic_name: "/robot/arm_right_follower/joint_states"
-          joints:
-            - arm_r_joint1
-            - arm_r_joint2
-            - arm_r_joint3
-            - arm_r_joint4
-            - arm_r_joint5
-            - arm_r_joint6
-            - arm_r_joint7
-            - gripper_r_joint1
-        head_follower:
-          topic_name: "/robot/head_follower/joint_states"
-          joints:
-            - head_joint1
-            - head_joint2
-        lift_follower:
-          topic_name: "/robot/lift_follower/joint_states"
-          joints:
-            - lift_joint
