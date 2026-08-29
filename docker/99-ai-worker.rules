@@ -3,7 +3,3 @@ SUBSYSTEM=="tty", ENV{ID_SERIAL}=="FTDI_USB__-__Serial_Converter_FOLLOWER", SYML
 # leader
 SUBSYSTEM=="tty", ENV{ID_SERIAL}=="FTDI_USB__-__Serial_Converter_LEADER_LEFT", SYMLINK+="left_leader", MODE="0666", ATTR{device/latency_timer}="1"
 SUBSYSTEM=="tty", ENV{ID_SERIAL}=="FTDI_USB__-__Serial_Converter_LEADER_RIGHT", SYMLINK+="right_leader", MODE="0666", ATTR{device/latency_timer}="1"
-
-SUBSYSTEM=="tty", ENV{ID_SERIAL}=="ROBOTIS_OpenRB-150_00000002", SYMLINK+="left_leader", MODE="0666"
-
-SUBSYSTEM=="tty", ENV{ID_SERIAL}=="ROBOTIS_OpenRB-150_00000001", SYMLINK+="right_leader", MODE="0666"

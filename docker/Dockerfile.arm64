@@ -1,4 +1,4 @@
-FROM robotis/ros:jazzy-ros-base-torch2.7.0-cuda12.8.0 AS librealsense-builder
+FROM robotis/ros:jazzy-ros-base-torch2.7.0-cuda12.8.0-v3 AS librealsense-builder
 
 ARG TARGETARCH
 
@@ -59,7 +59,7 @@ RUN cd /usr/src/librealsense \
 
 RUN cp -r /opt/venv/lib/python3.12/site-packages/pyrealsense2 /usr/local/lib/python3.12/dist-packages/
 
-FROM robotis/ros:jazzy-ros-base-torch2.7.0-cuda12.8.0 AS ai-worker
+FROM robotis/ros:jazzy-ros-base-torch2.7.0-cuda12.8.0-v3 AS ai-worker
 
 ARG TARGETARCH
 ARG S6_OVERLAY_VERSION=3.2.1.0
@@ -84,7 +84,7 @@ COPY --from=librealsense-builder /opt/librealsense /usr/local/
 COPY --from=librealsense-builder /usr/local/lib/python3.12/dist-packages/pyrealsense2 /usr/local/lib/python3.12/dist-packages/pyrealsense2
 COPY --from=librealsense-builder /usr/src/librealsense/config/99-realsense-libusb.rules /etc/udev/rules.d/
 COPY --from=librealsense-builder /usr/src/librealsense/config/99-realsense-d4xx-mipi-dfu.rules /etc/udev/rules.d/
-ENV PYTHONPATH=$PYTHONPATH:/usr/local/lib
+ENV PYTHONPATH=/usr/local/lib
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
@@ -134,6 +134,9 @@ RUN mkdir -p ${COLCON_WS}/src && \
     git clone -b jazzy https://github.com/ROBOTIS-GIT/DynamixelSDK.git && \
     git clone -b jazzy https://github.com/ROBOTIS-GIT/ai_worker.git && \
     git clone -b jazzy https://github.com/ROBOTIS-GIT/Lakibeam_ROS2_Driver.git && \
+    git clone -b jazzy https://github.com/ROBOTIS-GIT/cyclo_control.git && \
+    git clone -b jazzy https://github.com/ROBOTIS-GIT/robotis_hand.git && \
+    git clone -b jazzy https://github.com/ROBOTIS-GIT/robotis_interfaces.git && \
     git clone -b r/4.56.4 https://github.com/IntelRealSense/realsense-ros.git && \
     cd realsense-ros && git checkout cbd8b8487d4c0126bb590822db9469414496e62a && \
     cd ${COLCON_WS}/src && \
@@ -159,18 +162,30 @@ RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc  && \
     echo "alias ffw_sg2_follower_ai='ros2 launch ffw_bringup ffw_sg2_follower_ai.launch.py'" >> ~/.bashrc && \
     echo "alias ffw_bg2_ai='ros2 launch ffw_bringup ffw_bg2_ai.launch.py'" >> ~/.bashrc && \
     echo "alias ffw_sg2_ai='ros2 launch ffw_bringup ffw_sg2_ai.launch.py'" >> ~/.bashrc && \
+    echo "alias ffw_sh5_follower_ai='ros2 launch ffw_bringup ffw_sh5_follower_ai.launch.py'" >> ~/.bashrc && \
+    echo "alias ffw_bh5_follower_ai='ros2 launch ffw_bringup ffw_bh5_follower_ai.launch.py'" >> ~/.bashrc && \
+    echo "alias motion_controller='ros2 launch cyclo_motion_controller_ros ai_worker_controller.launch.py'" >> ~/.bashrc && \
+    echo "alias motion_controller_hand='ros2 launch cyclo_motion_controller_ros ai_worker_controller.launch.py controller_type:=vr hand:=true'" >> ~/.bashrc && \
+    echo "alias ffw_f2_follower_ai='ros2 launch ffw_bringup ffw_f2_follower_ai.launch.py'" >> ~/.bashrc && \
+    echo "alias ffw_f1_follower_ai='ros2 launch ffw_bringup ffw_f1_follower_ai.launch.py'" >> ~/.bashrc && \
+    echo "alias ffw_f2_ai='ros2 launch ffw_bringup ffw_f2_ai.launch.py'" >> ~/.bashrc && \
+    echo "alias ffw_f1_ai='ros2 launch ffw_bringup ffw_f1_ai.launch.py'" >> ~/.bashrc && \
+    echo "alias zenohd='ros2 run rmw_zenoh_cpp rmw_zenohd'" >> ~/.bashrc && \
+    echo "export RMW_IMPLEMENTATION=rmw_zenoh_cpp" >> ~/.bashrc && \
     echo "export ROS_DOMAIN_ID=30" >> ~/.bashrc
+
+RUN echo "export C_INCLUDE_PATH=$C_INCLUDE_PATH:/opt/venv/lib/python3.12/site-packages/numpy/core/include" >> ~/.bashrc  && \
+    echo "export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:/opt/venv/lib/python3.12/site-packages/numpy/core/include" >> ~/.bashrc
 
 # Create directory for agent Unix Domain Socket
 RUN mkdir -p /var/run/agent && \
     chmod 777 /var/run/agent
 
-RUN git clone https://github.com/ROBOTIS-GIT/talos_system_manager.git /opt/talos_system_manager
+RUN git clone https://github.com/ROBOTIS-GIT/cyclo_manager.git /opt/cyclo_manager
 
-ENV PYTHONPATH=/opt/talos_system_manager:${PYTHONPATH}
+ENV PYTHONPATH=/opt/cyclo_manager:${PYTHONPATH}
 
-# Install requirements.txt. tqdm (transitive dep e.g. from zenoh-ros2-sdk) is already installed by ros-jazzy-rmw-zenoh-cpp; pip reuses it.
-RUN pip install --no-cache-dir --ignore-installed -r /opt/talos_system_manager/requirements.txt
+RUN pip install --no-cache-dir --ignore-installed -r /opt/cyclo_manager/requirements-agent.txt
 
 # New-style s6-rc services (recommended in s6-overlay v3 docs)
 # Define services under /etc/s6-overlay/s6-rc.d and add them to the user bundle.
@@ -179,7 +194,8 @@ RUN pip install --no-cache-dir --ignore-installed -r /opt/talos_system_manager/r
 COPY docker/s6-agent /etc/s6-overlay/s6-rc.d/s6-agent
 
 # Define ROS2 services
-ARG ROS2_SERVICES="ffw_bg2_follower_ai ffw_lg2_leader_ai ffw_sg2_follower_ai"
+ARG ROS2_SERVICES="ai_worker_bringup avatar_bringup ai_worker_navigation"
+ARG ROS2_ONESHOT_SERVICES="ai_worker_map_save"
 
 # Copy all ROS2 service directories directly to s6-rc.d
 COPY docker/s6-services/ /etc/s6-overlay/s6-rc.d/
@@ -191,6 +207,9 @@ RUN for service in ${ROS2_SERVICES}; do \
     mkdir -p /var/log/${service} && \
     chown nobody:nogroup /var/log/${service} && \
     chmod 02755 /var/log/${service}; \
+    done && \
+    for service in ${ROS2_ONESHOT_SERVICES}; do \
+    chmod +x /etc/s6-overlay/s6-rc.d/${service}/run; \
     done && \
     # Remove common directory from s6-rc.d (it's copied separately below)
     rm -rf /etc/s6-overlay/s6-rc.d/common
@@ -209,3 +228,6 @@ RUN mkdir -p /etc/s6-overlay/s6-rc.d/user/contents.d && \
 
 # Set s6-overlay as entrypoint
 ENTRYPOINT ["/init"]
+
+# Install numpy<2 for cyclo_control retargeting
+RUN pip install "numpy<2"

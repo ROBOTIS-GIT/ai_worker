@@ -52,5 +52,6 @@ if [ -f "${PGID_FILE}" ]; then
         fi
     fi
 fi
+s6-rc -d change "${SERVICE_NAME}-log" 2>/dev/null && echo "[${SERVICE_NAME} finish] ${SERVICE_NAME}-log stopped" || echo "[${SERVICE_NAME} finish] ${SERVICE_NAME}-log not running or already stopped"
 
 exit 0

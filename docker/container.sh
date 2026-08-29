@@ -33,23 +33,16 @@ start_container() {
     fi
 
     echo "Starting ai_worker container..."
-
-    # Ensure talos-system-manager (talos CLI) is installed
-    if ! pip show talos-system-manager &>/dev/null; then
-        echo "Installing talos-system-manager (talos CLI)..."
-        pip install talos-system-manager
-        talos up
-    fi
-
-    # Notice: rmw_zenoh_cpp is default from 1.2.0
-    #print_notice
-
     # Notify if an update is available (meta package version vs GitHub latest release)
     CURRENT_VER=$(get_current_version)
     LATEST_VER=$(get_latest_version)
     if update_available "${CURRENT_VER}" "${LATEST_VER}"; then
         print_update_notice "${CURRENT_VER}" "${LATEST_VER}"
     fi
+
+    ### rmw_zenoh notice (remove later)
+    print_rmw_zenoh_notice
+    ### rmw_zenoh notice (remove later)
 
     # Copy udev rule for FTDI (U2D2)
     sudo cp "${SCRIPT_DIR}/99-u2d2.rules" /etc/udev/rules.d/99-u2d2.rules
@@ -83,15 +76,16 @@ enter_container() {
         exit 1
     fi
 
-    # Notice
-    # print_notice
-
     # Notify if an update is available (meta package version vs git tag)
     CURRENT_VER=$(get_current_version)
     GIT_VER=$(get_latest_version)
     if update_available "${CURRENT_VER}" "${GIT_VER}"; then
         print_update_notice "${CURRENT_VER}" "${GIT_VER}"
     fi
+
+    ### rmw_zenoh notice (remove later)
+    print_rmw_zenoh_notice
+    ### rmw_zenoh notice (remove later)
 
     docker exec -it "$CONTAINER_NAME" bash
 }
@@ -134,22 +128,22 @@ print_update_notice() {
     echo ""
 }
 
-print_notice() {
-    W=58
+### rmw_zenoh notice (remove later)
+print_rmw_zenoh_notice() {
+    W=52
     BAR=$(printf '%*s' $W '' | tr ' ' '=')
-    # Current host (robot) IP for Talos UI URL
-    HOST_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
-    [ -z "$HOST_IP" ] && HOST_IP=$(ip -4 route get 8.8.8.8 2>/dev/null | grep -oP 'src \K\S+')
-    [ -z "$HOST_IP" ] && HOST_IP="<host-ip>"
-    LINE1="From 1.2.0, rmw_zenoh_cpp is used by default."
-    LINE2="Enter TALOS System Manager: http://${HOST_IP}:3000"
+    LINE1="Since v2.0.0, rmw_zenoh_cpp is the default RMW."
+    LINE2="RMW_IMPLEMENTATION is set in ~/.bashrc inside the"
+    LINE3="container."
     echo ""
     echo "  +${BAR}+"
     printf "  |  %-$((W-2))s|\n" "$LINE1"
     printf "  |  %-$((W-2))s|\n" "$LINE2"
+    printf "  |  %-$((W-2))s|\n" "$LINE3"
     echo "  +${BAR}+"
     echo ""
 }
+### rmw_zenoh notice (remove later)
 
 get_current_version() {
     local ver

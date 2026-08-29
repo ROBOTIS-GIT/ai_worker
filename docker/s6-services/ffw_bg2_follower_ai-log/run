@@ -1,6 +1,0 @@
-#!/command/with-contenv sh
-# Logging service for ffw_bg2_follower_ai
-# Uses logutil-service which wraps s6-log with proper configuration
-
-exec logutil-service /var/log/ffw_bg2_follower_ai
-
