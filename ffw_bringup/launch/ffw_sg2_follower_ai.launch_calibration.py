@@ -121,16 +121,9 @@ def generate_launch_description():
     )
 
     robot_state_pub_node = Node(
-        package='ffw_robot_state_publisher',
-        executable='ffw_robot_state_publisher',
-        parameters=[
-            robot_description,
-            {'use_sim_time': use_sim},
-            {'left_arm.base_link': 'base_link'},
-            {'left_arm.end_effector_link': 'end_effector_l_link'},
-            {'right_arm.base_link': 'base_link'},
-            {'right_arm.end_effector_link': 'end_effector_r_link'},
-        ],
+        package='robot_state_publisher',
+        executable='robot_state_publisher',
+        parameters=[robot_description, {'use_sim_time': use_sim}],
         output='screen'
     )
 
