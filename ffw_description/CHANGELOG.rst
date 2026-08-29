@@ -2,6 +2,86 @@
 Changelog for package ffw_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.5 (2026-08-19)
+------------------
+* Corrected left and right joint7 position limits in URDF and ros2_control configurations for SG2, SH5, BG2, BH5, F1, and F2
+* Contributors: Yeonguk Kim
+
+2.2.4 (2026-08-12)
+------------------
+* None
+
+2.2.3 (2026-08-12)
+------------------
+* Fixed SH5 ros2_control xacro file
+* Contributors: Hyunwoo Nam
+
+2.2.2 (2026-08-10)
+------------------
+* Updated head and wrist camera TF frame names
+* Contributors: Yeonguk Kim
+
+2.2.1 (2026-08-03)
+------------------
+* None
+
+2.2.0 (2026-07-22)
+------------------
+* Updated SH5 ros2_control and urdf xacro
+* Contributors: Hyunwoo Nam
+
+2.1.0 (2026-07-14)
+------------------
+* Added support for F1 and F2
+* Contributors: Yeonguk Kim
+
+2.0.2 (2026-07-09)
+------------------
+* Added mobile base URDF xacro
+* Added mobile base ros2_control xacro for steer joints and Dynamixel hardware
+* Contributors: Howon Kim
+
+2.0.1 (2026-06-30)
+------------------
+* Fixed zenohd alias command to run rmw_zenoh_cpp rmw_zenohd
+* Contributors: kimtaehyeong99
+
+2.0.0 (2026-06-17)
+------------------
+* Set rmw_zenoh_cpp as the default RMW in Docker images
+* Contributors: Hyungyu Kim
+
+1.3.2 (2026-06-02)
+------------------
+* None
+
+1.3.1 (2026-05-14)
+------------------
+* None
+
+1.3.0 (2026-05-04)
+------------------
+* Extended neck downward angle by 10 degrees
+* Contributors: Sungho Woo
+
+1.2.2 (2026-04-27)
+------------------
+* None
+
+1.2.1 (2026-04-09)
+------------------
+* Fixed palm joint name for HX5
+* Contributors: Hyunwoo Nam
+
+1.2.0 (2026-04-01)
+------------------
+* Added support for SH5, BH5
+* Contributors: Hyunwoo Nam
+
+1.1.21 (2026-03-26)
+-------------------
+* None
+
 1.1.20 (2026-03-12)
 -------------------
 * None

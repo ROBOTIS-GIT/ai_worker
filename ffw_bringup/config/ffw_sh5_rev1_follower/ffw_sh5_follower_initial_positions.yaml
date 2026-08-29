@@ -9,12 +9,9 @@
         - arm_l_joint5
         - arm_l_joint6
         - arm_l_joint7
-        - gripper_l_joint1
       step_names: [step0, step1]
-      step0: [1.57, 0.0, 0.0, -2.8, 0.0, 0.0, 0.0, 0.0]
-      step1: [0.0, 0.0, 0.0, -1.57, 0.0, 0.0, 0.0, 0.0]
-      # step_names: [zero]
-      # zero: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      step0: [1.57, 0.0, 0.0, -2.8, 0.0, 0.0, 0.0]
+      step1: [0.0, 0.0, 0.0, -1.57, 0.0, 0.0, 0.0]
       duration: 5.0
       position_tolerance: 0.1
       velocity_tolerance: 0.01
@@ -32,12 +29,9 @@
         - arm_r_joint5
         - arm_r_joint6
         - arm_r_joint7
-        - gripper_r_joint1
       step_names: [step0, step1]
-      step0: [1.57, 0.0, 0.0, -2.8, 0.0, 0.0, 0.0, 0.0]
-      step1: [0.0, 0.0, 0.0, -1.57, 0.0, 0.0, 0.0, 0.0]
-      # step_names: [zero]
-      # zero: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      step0: [1.57, 0.0, 0.0, -2.8, 0.0, 0.0, 0.0]
+      step1: [0.0, 0.0, 0.0, -1.57, 0.0, 0.0, 0.0]
       duration: 5.0
       position_tolerance: 0.1
       velocity_tolerance: 0.01
@@ -64,11 +58,8 @@
       joint_names:
         - lift_joint
       step_names: [step1, step2]
-      step1: [-0.05]
-      step2: [-0.1]
-      # step2: [-0.24] # ROSCon KR
-      # step_names: [zero]
-      # zero: [0.0]
+      step1: [-0.01]
+      step2: [0.0]
       duration: 10.0
       position_tolerance: 0.01
       velocity_tolerance: 0.01
@@ -135,7 +126,7 @@
         - finger_l_joint19
         - finger_l_joint20
       step_names: [step1]
-      step1: [0.0, 1.57, 0.0, 0.0,
+      step1: [0.0, 0.0, 0.0, 0.0,
           0.0, 0.0, 0.0, 0.0,
           0.0, 0.0, 0.0, 0.0,
           0.0, 0.0, 0.0, 0.0,

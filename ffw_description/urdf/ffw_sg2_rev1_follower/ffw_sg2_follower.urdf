@@ -174,8 +174,8 @@
       <inertia ixx="8.907301100e-04" ixy="-5.211330800e-06" ixz="1.758054200e-05" iyy="7.631788100e-04" iyz="-1.022156300e-06" izz="1.339403400e-03"/>
     </inertial>
   </link>
-  <link name="zedm_camera_link"/>
-  <link name="zedm_camera_center">
+  <link name="zed_camera_link"/>
+  <link name="zed_camera_center">
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
@@ -192,38 +192,38 @@
       </geometry>
     </collision>
   </link>
-  <joint name="zedm_camera_center_joint" type="fixed">
-    <parent link="zedm_camera_link"/>
-    <child link="zedm_camera_center"/>
+  <joint name="zed_camera_center_joint" type="fixed">
+    <parent link="zed_camera_link"/>
+    <child link="zed_camera_center"/>
     <origin rpy="0 0 0" xyz="0 0 0.01325"/>
   </joint>
-  <link name="zedm_left_camera_frame"/>
-  <joint name="zedm_left_camera_joint" type="fixed">
-    <parent link="zedm_camera_center"/>
-    <child link="zedm_left_camera_frame"/>
+  <link name="zed_left_camera_frame"/>
+  <joint name="zed_left_camera_joint" type="fixed">
+    <parent link="zed_camera_center"/>
+    <child link="zed_left_camera_frame"/>
     <origin rpy="0 0 0" xyz="0 0.0315 0"/>
   </joint>
-  <link name="zedm_left_camera_optical_frame"/>
-  <joint name="zedm_left_camera_optical_joint" type="fixed">
+  <link name="zed_left_camera_optical_frame"/>
+  <joint name="zed_left_camera_optical_joint" type="fixed">
     <origin rpy="-1.57079632679 0.0 -1.57079632679" xyz="0 0 0"/>
-    <parent link="zedm_left_camera_frame"/>
-    <child link="zedm_left_camera_optical_frame"/>
+    <parent link="zed_left_camera_frame"/>
+    <child link="zed_left_camera_optical_frame"/>
   </joint>
-  <link name="zedm_right_camera_frame"/>
-  <joint name="zedm_right_camera_joint" type="fixed">
-    <parent link="zedm_camera_center"/>
-    <child link="zedm_right_camera_frame"/>
+  <link name="zed_right_camera_frame"/>
+  <joint name="zed_right_camera_joint" type="fixed">
+    <parent link="zed_camera_center"/>
+    <child link="zed_right_camera_frame"/>
     <origin rpy="0 0 0" xyz="0 -0.0315 0"/>
   </joint>
-  <link name="zedm_right_camera_optical_frame"/>
-  <joint name="zedm_right_camera_optical_joint" type="fixed">
+  <link name="zed_right_camera_optical_frame"/>
+  <joint name="zed_right_camera_optical_joint" type="fixed">
     <origin rpy="-1.57079632679 0.0 -1.57079632679" xyz="0 0 0"/>
-    <parent link="zedm_right_camera_frame"/>
-    <child link="zedm_right_camera_optical_frame"/>
+    <parent link="zed_right_camera_frame"/>
+    <child link="zed_right_camera_optical_frame"/>
   </joint>
-  <joint name="zedm_joint" type="fixed">
+  <joint name="zed_joint" type="fixed">
     <parent link="head_link2"/>
-    <child link="zedm_camera_link"/>
+    <child link="zed_camera_link"/>
     <origin rpy="0 0 0" xyz="0.0238122 -0.00651797 -0.0242094"/>
   </joint>
   <joint name="arm_l_joint1" type="revolute">
@@ -411,7 +411,7 @@
     <child link="arm_l_link7"/>
     <origin rpy="0 0 0" xyz="0 0 -0.0885"/>
     <axis xyz="1 0 0"/>
-    <limit effort="1000" lower="-1.8201" upper="1.5804" velocity="4.8"/>
+    <limit effort="1000" lower="-1.5804" upper="1.8201" velocity="4.8"/>
     <dynamics damping="0.1"/>
   </joint>
   <link name="arm_l_link7">
@@ -437,18 +437,18 @@
     </inertial>
   </link>
   <!-- camera body, with origin at bottom screw mount -->
-  <joint name="camera_l_joint" type="fixed">
+  <joint name="camera_left_joint" type="fixed">
     <origin rpy="-1.57079632679 1.66678943569 0" xyz="0.108236 -0.021 -0.062552"/>
     <parent link="arm_l_link7"/>
-    <child link="camera_l_bottom_screw_frame"/>
+    <child link="camera_left_bottom_screw_frame"/>
   </joint>
-  <link name="camera_l_bottom_screw_frame"/>
-  <joint name="camera_l_link_joint" type="fixed">
+  <link name="camera_left_bottom_screw_frame"/>
+  <joint name="camera_left_link_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0.01085 0.009 0.021"/>
-    <parent link="camera_l_bottom_screw_frame"/>
-    <child link="camera_l_link"/>
+    <parent link="camera_left_bottom_screw_frame"/>
+    <child link="camera_left_link"/>
   </joint>
-  <link name="camera_l_link">
+  <link name="camera_left_link">
     <visual>
       <!-- the mesh origin is at front plate in between the two infrared camera axes -->
       <origin rpy="1.5707963267948966 0 1.5707963267948966" xyz="0.0038 -0.009 0"/>
@@ -654,7 +654,7 @@
     <child link="arm_r_link7"/>
     <origin rpy="0 0 0" xyz="0 0 -0.0885"/>
     <axis xyz="1 0 0"/>
-    <limit effort="1000" lower="-1.5804" upper="1.8201" velocity="4.8"/>
+    <limit effort="1000" lower="-1.8201" upper="1.5804" velocity="4.8"/>
     <dynamics damping="0.1"/>
   </joint>
   <link name="arm_r_link7">
@@ -680,18 +680,18 @@
     </inertial>
   </link>
   <!-- camera body, with origin at bottom screw mount -->
-  <joint name="camera_r_joint" type="fixed">
+  <joint name="camera_right_joint" type="fixed">
     <origin rpy="-1.57079632679 1.66678943569 0" xyz="0.108236 -0.021 -0.062552"/>
     <parent link="arm_r_link7"/>
-    <child link="camera_r_bottom_screw_frame"/>
+    <child link="camera_right_bottom_screw_frame"/>
   </joint>
-  <link name="camera_r_bottom_screw_frame"/>
-  <joint name="camera_r_link_joint" type="fixed">
+  <link name="camera_right_bottom_screw_frame"/>
+  <joint name="camera_right_link_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0.01085 0.009 0.021"/>
-    <parent link="camera_r_bottom_screw_frame"/>
-    <child link="camera_r_link"/>
+    <parent link="camera_right_bottom_screw_frame"/>
+    <child link="camera_right_link"/>
   </joint>
-  <link name="camera_r_link">
+  <link name="camera_right_link">
     <visual>
       <!-- the mesh origin is at front plate in between the two infrared camera axes -->
       <origin rpy="1.5707963267948966 0 1.5707963267948966" xyz="0.0038 -0.009 0"/>

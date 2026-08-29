@@ -1,0 +1,137 @@
+/**:
+  arm_l_joint_trajectory_executor:
+    ros__parameters:
+      joint_names:
+        - arm_l_joint1
+        - arm_l_joint2
+        - arm_l_joint3
+        - arm_l_joint4
+        - arm_l_joint5
+        - arm_l_joint6
+        - arm_l_joint7
+      step_names: [step0, step1]
+      step0: [1.57, 0.0, 0.0, -2.8, 0.0, 0.0, 0.0]
+      step1: [0.0, 0.0, 0.0, -1.57, 0.0, 0.0, 0.0]
+      duration: 5.0
+      position_tolerance: 0.1
+      velocity_tolerance: 0.01
+      action_topic: '/arm_l_controller/follow_joint_trajectory'
+      joint_states_topic: '/joint_states'
+
+/**:
+  arm_r_joint_trajectory_executor:
+    ros__parameters:
+      joint_names:
+        - arm_r_joint1
+        - arm_r_joint2
+        - arm_r_joint3
+        - arm_r_joint4
+        - arm_r_joint5
+        - arm_r_joint6
+        - arm_r_joint7
+      step_names: [step0, step1]
+      step0: [1.57, 0.0, 0.0, -2.8, 0.0, 0.0, 0.0]
+      step1: [0.0, 0.0, 0.0, -1.57, 0.0, 0.0, 0.0]
+      duration: 5.0
+      position_tolerance: 0.1
+      velocity_tolerance: 0.01
+      action_topic: '/arm_r_controller/follow_joint_trajectory'
+      joint_states_topic: '/joint_states'
+
+/**:
+  head_joint_trajectory_executor:
+    ros__parameters:
+      joint_names:
+        - head_joint1
+        - head_joint2
+      step_names: [step1]
+      step1: [0.0, 0.0]
+      duration: 5.0
+      position_tolerance: 0.1
+      velocity_tolerance: 0.01
+      action_topic: '/head_controller/follow_joint_trajectory'
+      joint_states_topic: '/joint_states'
+
+/**:
+  lift_joint_trajectory_executor:
+    ros__parameters:
+      joint_names:
+        - lift_joint
+      step_names: [step1, step2]
+      step1: [-0.01]
+      step2: [0.0]
+      duration: 10.0
+      position_tolerance: 0.01
+      velocity_tolerance: 0.01
+      action_topic: '/lift_controller/follow_joint_trajectory'
+      joint_states_topic: '/joint_states'
+
+/**:
+  hand_r_joint_trajectory_executor:
+    ros__parameters:
+      joint_names:
+        - finger_r_joint1
+        - finger_r_joint2
+        - finger_r_joint3
+        - finger_r_joint4
+        - finger_r_joint5
+        - finger_r_joint6
+        - finger_r_joint7
+        - finger_r_joint8
+        - finger_r_joint9
+        - finger_r_joint10
+        - finger_r_joint11
+        - finger_r_joint12
+        - finger_r_joint13
+        - finger_r_joint14
+        - finger_r_joint15
+        - finger_r_joint16
+        - finger_r_joint17
+        - finger_r_joint18
+        - finger_r_joint19
+        - finger_r_joint20
+      step_names: [step1]
+      step1: [0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0]
+      duration: 5.0
+      epsilon: 0.2
+      action_topic: '/hand_r_controller/follow_joint_trajectory'
+      joint_states_topic: '/joint_states'
+
+/**:
+  hand_l_joint_trajectory_executor:
+    ros__parameters:
+      joint_names:
+        - finger_l_joint1
+        - finger_l_joint2
+        - finger_l_joint3
+        - finger_l_joint4
+        - finger_l_joint5
+        - finger_l_joint6
+        - finger_l_joint7
+        - finger_l_joint8
+        - finger_l_joint9
+        - finger_l_joint10
+        - finger_l_joint11
+        - finger_l_joint12
+        - finger_l_joint13
+        - finger_l_joint14
+        - finger_l_joint15
+        - finger_l_joint16
+        - finger_l_joint17
+        - finger_l_joint18
+        - finger_l_joint19
+        - finger_l_joint20
+      step_names: [step1]
+      step1: [0.0, 0.0, 0.0, 0.0,
+          0.0, 0.0, 0.0, 0.0,
+          0.0, 0.0, 0.0, 0.0,
+          0.0, 0.0, 0.0, 0.0,
+          0.0, 0.0, 0.0, 0.0]
+      duration: 5.0
+      epsilon: 0.2
+      action_topic: '/hand_l_controller/follow_joint_trajectory'
+      joint_states_topic: '/joint_states'

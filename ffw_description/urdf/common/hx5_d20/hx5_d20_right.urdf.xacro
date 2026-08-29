@@ -36,6 +36,22 @@
             izz="2.1011567e-04" />
          </inertial>
       </link>
+      <joint name="${prefix}r_palm" type="fixed">
+         <parent link="${prefix}hx5_d20_right_base" />
+         <child link="end_effector_r_link" />
+         <origin xyz="0.0 0.0 0.054" rpy="0 0 0" />
+      </joint>
+      <link name="end_effector_r_link">
+         <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+            <box size="0.01 0.01 0.01" />
+            </geometry>
+            <material name="red">
+            <color rgba="1.0 0.0 0.0 1"/>
+            </material>
+         </visual>
+      </link>
       <!-- THUMB -->
       <joint name="${prefix}finger_r_joint1" type="revolute">
          <parent link="${prefix}hx5_d20_right_base" />

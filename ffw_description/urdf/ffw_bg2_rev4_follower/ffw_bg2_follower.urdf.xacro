@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ffw_bg2_follower">
   <xacro:property name="meshes_file_direction" value="package://ffw_description/meshes/$(arg model)" />
+  <xacro:property name="base_meshes_dir" value="package://ffw_description/meshes/common/follower/ffw_base" />
   <xacro:arg name="use_sim" default="false" />
   <xacro:arg name="use_mock_hardware" default="false" />
   <xacro:arg name="mock_sensor_commands" default="false" />
@@ -28,7 +29,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="${meshes_file_direction}/base_mobile_assy.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="${base_meshes_dir}/base_mobile_assy.stl" scale="0.001 0.001 0.001" />
       </geometry>
       <material name="silver">
         <color rgba="0.75 0.75 0.75 1"/>
@@ -37,7 +38,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="${meshes_file_direction}/base_mobile_assy.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="${base_meshes_dir}/base_mobile_assy.stl" scale="0.001 0.001 0.001" />
       </geometry>
     </collision>
     <inertial>

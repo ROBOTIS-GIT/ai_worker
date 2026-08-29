@@ -45,8 +45,7 @@
         - head_joint1
         - head_joint2
       step_names: [step0]
-      # step0: [0.0]
-      step0: [0.83]
+      step0: [0.0, 0.0]
       duration: 5.0
       position_tolerance: 0.1
       velocity_tolerance: 0.01
@@ -59,8 +58,7 @@
       joint_names:
         - lift_joint
       step_names: [step0]
-      # step0: [-0.145]
-      step0: [-0.01]
+      step0: [-0.145]
       duration: 10.0
       position_tolerance: 0.1
       velocity_tolerance: 0.01

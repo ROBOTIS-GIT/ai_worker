@@ -91,6 +91,36 @@ private:
   std::shared_ptr<BatteryModel> battery_model_;
 };
 
+class FfwF2RobotType : public RobotType
+{
+public:
+  FfwF2RobotType();
+  ~FfwF2RobotType() override = default;
+
+  std::string get_type_name() const override;
+  bool is_battery_monitoring_enabled() const override;
+  std::shared_ptr<BatteryModel> get_battery_model() const override;
+  std::vector<BatteryInfo> get_battery_configurations() const override;
+
+private:
+  std::shared_ptr<BatteryModel> battery_model_;
+};
+
+class FfwSh5Rev1RobotType : public RobotType
+{
+public:
+  FfwSh5Rev1RobotType();
+  ~FfwSh5Rev1RobotType() override = default;
+
+  std::string get_type_name() const override;
+  bool is_battery_monitoring_enabled() const override;
+  std::shared_ptr<BatteryModel> get_battery_model() const override;
+  std::vector<BatteryInfo> get_battery_configurations() const override;
+
+private:
+  std::shared_ptr<BatteryModel> battery_model_;
+};
+
 /**
  * @brief Factory function to create robot types
  * @param type_name Name of the robot type

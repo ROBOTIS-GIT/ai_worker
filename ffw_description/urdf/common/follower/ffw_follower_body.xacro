@@ -5,7 +5,7 @@
 
       <xacro:include filename="$(find realsense2_description)/urdf/_d405.urdf.xacro" />
       <xacro:include filename="$(find ffw_description)/urdf/common/follower/zedm.urdf.xacro" />
-      <xacro:property name="meshes_file_direction" value="package://ffw_description/meshes/common/follower" />
+      <xacro:property name="meshes_file_direction" value="package://ffw_description/meshes/common/follower/ffw" />
 
       <joint name="${prefix}lift_joint" type="prismatic">
          <parent link="${parent}"/>
@@ -46,8 +46,7 @@
          <child link="${prefix}head_link1" />
          <origin xyz="0.049483 0 0.102130" rpy="0 0 0" />
          <axis xyz="0 1 0" />
-         <!-- <limit velocity="4.8" effort="1000" lower="-0.2317" upper="0.6951" /> -->
-         <limit velocity="4.8" effort="1000" lower="-0.2317" upper="0.83" />
+         <limit velocity="4.8" effort="1000" lower="-0.2317" upper="0.6951" />
          <dynamics damping="0.1" />
       </joint>
       <link name="${prefix}head_link1">
@@ -106,10 +105,10 @@
             izz="1.339403400e-03" />
          </inertial>
       </link>
-      <xacro:zed_camera name="zedm" model="zedm" />
-      <joint name="${prefix}zedm_joint" type="fixed">
-         <parent link="${prefix}head_link2"/>
-         <child link="zedm_camera_link"/>
+      <xacro:zed_camera name="zed" model="zedm" />
+      <joint name="zed_joint" type="fixed">
+         <parent link="head_link2"/>
+         <child link="zed_camera_link"/>
          <origin xyz="0.0238122 -0.00651797 -0.0242094" rpy="0 0 0" />
       </joint>
 
@@ -310,7 +309,7 @@
          <child link="${prefix}arm_l_link7" />
          <origin xyz="0 0 -0.0885" rpy="0 0 0" />
          <axis xyz="1 0 0" />
-         <limit velocity="4.8" effort="1000" lower="-1.8201" upper="1.5804" />
+         <limit velocity="4.8" effort="1000" lower="-1.5804" upper="1.8201" />
          <dynamics damping="0.1" />
       </joint>
       <link name="${prefix}arm_l_link7">
@@ -337,7 +336,7 @@
             izz="4.156884400e-04" />
          </inertial>
       </link>
-      <xacro:sensor_d405 parent="${prefix}arm_l_link7" use_nominal_extrinsics="false" name="${prefix}camera_l">
+      <xacro:sensor_d405 parent="${prefix}arm_l_link7" use_nominal_extrinsics="false" name="${prefix}camera_left">
          <origin xyz="0.108236 -0.021 -0.062552" rpy="-1.57079632679 1.66678943569 0"/>
       </xacro:sensor_d405>
 
@@ -539,7 +538,7 @@
          <child link="${prefix}arm_r_link7" />
          <origin xyz="0 0 -0.0885" rpy="0 0 0" />
          <axis xyz="1 0 0" />
-         <limit velocity="4.8" effort="1000" lower="-1.5804" upper="1.8201" />
+         <limit velocity="4.8" effort="1000" lower="-1.8201" upper="1.5804" />
          <dynamics damping="0.1" />
       </joint>
       <link name="${prefix}arm_r_link7">
@@ -566,7 +565,7 @@
             izz="4.156884400e-04" />
          </inertial>
       </link>
-      <xacro:sensor_d405 parent="${prefix}arm_r_link7" use_nominal_extrinsics="false" name="${prefix}camera_r">
+      <xacro:sensor_d405 parent="${prefix}arm_r_link7" use_nominal_extrinsics="false" name="${prefix}camera_right">
          <origin xyz="0.108236 -0.021 -0.062552" rpy="-1.57079632679 1.66678943569 0"/>
       </xacro:sensor_d405>
 

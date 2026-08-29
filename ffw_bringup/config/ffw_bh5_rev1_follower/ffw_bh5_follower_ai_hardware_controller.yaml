@@ -1,0 +1,210 @@
+/**:
+  controller_manager:
+    ros__parameters:
+      use_sim_time: False
+      update_rate: 100  # Hz
+
+      arm_l_controller:
+        type: joint_trajectory_controller/JointTrajectoryController
+
+      arm_r_controller:
+        type: joint_trajectory_controller/JointTrajectoryController
+
+      head_controller:
+        type: joint_trajectory_controller/JointTrajectoryController
+
+      lift_controller:
+        type: joint_trajectory_controller/JointTrajectoryController
+
+      hand_l_controller:
+        type: joint_trajectory_controller/JointTrajectoryController
+
+      hand_r_controller:
+        type: joint_trajectory_controller/JointTrajectoryController
+
+      effort_l_controller:
+        type: effort_controllers/JointGroupEffortController
+
+      effort_r_controller:
+        type: effort_controllers/JointGroupEffortController
+
+      joint_state_broadcaster:
+        type: joint_state_broadcaster/JointStateBroadcaster
+
+/**:
+  arm_l_controller:
+    ros__parameters:
+      joints:
+        - arm_l_joint1
+        - arm_l_joint2
+        - arm_l_joint3
+        - arm_l_joint4
+        - arm_l_joint5
+        - arm_l_joint6
+        - arm_l_joint7
+      command_interfaces:
+        - position
+      state_interfaces:
+        - position
+        - velocity
+      allow_nonzero_velocity_at_trajectory_end: true
+      allow_partial_joints_goal: true
+
+/**:
+  arm_r_controller:
+    ros__parameters:
+      joints:
+        - arm_r_joint1
+        - arm_r_joint2
+        - arm_r_joint3
+        - arm_r_joint4
+        - arm_r_joint5
+        - arm_r_joint6
+        - arm_r_joint7
+      command_interfaces:
+        - position
+      state_interfaces:
+        - position
+        - velocity
+      allow_nonzero_velocity_at_trajectory_end: true
+      allow_partial_joints_goal: true
+
+/**:
+  head_controller:
+    ros__parameters:
+      joints:
+        - head_joint1
+        - head_joint2
+      command_interfaces:
+        - position
+      state_interfaces:
+        - position
+        - velocity
+      allow_nonzero_velocity_at_trajectory_end: true
+      allow_partial_joints_goal: true
+
+/**:
+  lift_controller:
+    ros__parameters:
+      joints:
+        - lift_joint
+      command_interfaces:
+        - position
+      state_interfaces:
+        - position
+        - velocity
+      allow_nonzero_velocity_at_trajectory_end: true
+
+/**:
+  hand_l_controller:
+    ros__parameters:
+      joints:
+        - finger_l_joint1
+        - finger_l_joint2
+        - finger_l_joint3
+        - finger_l_joint4
+        - finger_l_joint5
+        - finger_l_joint6
+        - finger_l_joint7
+        - finger_l_joint8
+        - finger_l_joint9
+        - finger_l_joint10
+        - finger_l_joint11
+        - finger_l_joint12
+        - finger_l_joint13
+        - finger_l_joint14
+        - finger_l_joint15
+        - finger_l_joint16
+        - finger_l_joint17
+        - finger_l_joint18
+        - finger_l_joint19
+        - finger_l_joint20
+      command_interfaces:
+        - position
+      state_interfaces:
+        - position
+        - velocity
+      allow_nonzero_velocity_at_trajectory_end: true
+      allow_partial_joints_goal: true
+
+/**:
+  hand_r_controller:
+    ros__parameters:
+      joints:
+        - finger_r_joint1
+        - finger_r_joint2
+        - finger_r_joint3
+        - finger_r_joint4
+        - finger_r_joint5
+        - finger_r_joint6
+        - finger_r_joint7
+        - finger_r_joint8
+        - finger_r_joint9
+        - finger_r_joint10
+        - finger_r_joint11
+        - finger_r_joint12
+        - finger_r_joint13
+        - finger_r_joint14
+        - finger_r_joint15
+        - finger_r_joint16
+        - finger_r_joint17
+        - finger_r_joint18
+        - finger_r_joint19
+        - finger_r_joint20
+      command_interfaces:
+        - position
+      state_interfaces:
+        - position
+        - velocity
+      allow_nonzero_velocity_at_trajectory_end: true
+      allow_partial_joints_goal: true
+
+/**:
+  effort_l_controller:
+    ros__parameters:
+      joints:
+        - finger_l_joint1
+        - finger_l_joint2
+        - finger_l_joint3
+        - finger_l_joint4
+        - finger_l_joint5
+        - finger_l_joint6
+        - finger_l_joint7
+        - finger_l_joint8
+        - finger_l_joint9
+        - finger_l_joint10
+        - finger_l_joint11
+        - finger_l_joint12
+        - finger_l_joint13
+        - finger_l_joint14
+        - finger_l_joint15
+        - finger_l_joint16
+        - finger_l_joint17
+        - finger_l_joint18
+        - finger_l_joint19
+        - finger_l_joint20
+
+/**:
+  effort_r_controller:
+    ros__parameters:
+      joints:
+        - finger_r_joint1
+        - finger_r_joint2
+        - finger_r_joint3
+        - finger_r_joint4
+        - finger_r_joint5
+        - finger_r_joint6
+        - finger_r_joint7
+        - finger_r_joint8
+        - finger_r_joint9
+        - finger_r_joint10
+        - finger_r_joint11
+        - finger_r_joint12
+        - finger_r_joint13
+        - finger_r_joint14
+        - finger_r_joint15
+        - finger_r_joint16
+        - finger_r_joint17
+        - finger_r_joint18
+        - finger_r_joint19
+        - finger_r_joint20

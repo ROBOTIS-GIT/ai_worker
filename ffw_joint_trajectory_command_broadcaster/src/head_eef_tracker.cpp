@@ -55,7 +55,7 @@ public:
     target_frame_ = declare_parameter<std::string>("target_frame", "arm_base_link");
     eef_l_link_ = declare_parameter<std::string>("eef_l_link", "end_effector_l_link");
     eef_r_link_ = declare_parameter<std::string>("eef_r_link", "end_effector_r_link");
-    camera_link_ = declare_parameter<std::string>("camera_link", "zedm_camera_link");
+    camera_link_ = declare_parameter<std::string>("camera_link", "zed_camera_link");
     head_joint1_name_ = declare_parameter<std::string>("head_joint1_name", "head_joint1");
     head_joint2_name_ = declare_parameter<std::string>("head_joint2_name", "head_joint2");
     joint_trajectory_topic_ = declare_parameter<std::string>(

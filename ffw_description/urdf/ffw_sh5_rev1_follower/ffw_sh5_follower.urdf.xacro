@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ffw_sh5_follower">
   <xacro:property name="meshes_file_direction" value="package://ffw_description/meshes/$(arg model)" />
+  <xacro:property name="swerve_meshes_dir" value="package://ffw_description/meshes/common/follower/ffw_swerve" />
   <xacro:arg name="use_sim" default="false" />
   <xacro:arg name="use_mock_hardware" default="false" />
   <xacro:arg name="mock_sensor_commands" default="false" />
@@ -9,22 +10,22 @@
 
   <xacro:include filename="$(find ffw_description)/urdf/common/follower/ffw_follower_body.xacro" />
 
-  <xacro:include filename="$(find ffw_description)/urdf/common/hx5_d20/hx5_d20_left.urdf.xacro" />
-
-  <xacro:include filename="$(find ffw_description)/urdf/common/hx5_d20/hx5_d20_right.urdf.xacro" />
+  <xacro:include filename="$(find robotis_hand_description)/urdf/hx5_d20_rev2/hx5_d20_left.urdf.xacro" />
+  <xacro:include filename="$(find robotis_hand_description)/urdf/hx5_d20_rev2/hx5_d20_right.urdf.xacro" />
 
   <xacro:include filename="$(find ffw_description)/ros2_control/$(arg model)/ffw_sh5_follower.ros2_control.xacro" />
   <xacro:include filename="$(find ffw_description)/ros2_control/$(arg model)/ffw_sh5_base.ros2_control.xacro" />
   <xacro:include filename="$(find ffw_description)/ros2_control/$(arg model)/ffw_sh5_sensor.ros2_control.xacro" />
 
   <xacro:include filename="$(find ffw_description)/gazebo/ffw_sh5_rev1_follower/ffw_sh5_follower.gazebo.xacro" />
-
+  <xacro:include filename="$(find robotis_hand_description)/gazebo/hx5_d20/hx5_d20_left.gazebo.xacro" />
+  <xacro:include filename="$(find robotis_hand_description)/gazebo/hx5_d20/hx5_d20_right.gazebo.xacro" />
 
   <link name="$(arg prefix)base_link">
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="${meshes_file_direction}/base_mobile_assy.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="${swerve_meshes_dir}/base_mobile_assy.stl" scale="0.001 0.001 0.001" />
       </geometry>
       <material name="silver">
         <color rgba="0.75 0.75 0.75 1"/>
@@ -33,15 +34,16 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="${meshes_file_direction}/base_mobile_assy.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="${swerve_meshes_dir}/base_mobile_assy.stl" scale="0.001 0.001 0.001" />
       </geometry>
     </collision>
     <inertial>
-       <origin xyz="-4.574796400e-02 6.581058800e-03 1.943184200e-01" />
+       <!-- Center the base inertia to reduce biased yaw under straight motion -->
+       <origin xyz="0 0 0" />
        <mass value="3.598943900e+01" />
-       <inertia ixx="1.725473500e+04" ixy="6.471795500e-02" ixz="1.890204600e-01"
-       iyy="3.983747500e+04" iyz="1.716567300e-01"
-       izz="2.846139500e+04" />
+       <inertia ixx="1.725473500" ixy="6.471795500e-06" ixz="1.890204600e-05"
+       iyy="3.983747500" iyz="1.716567300e-05"
+       izz="2.846139500" />
     </inertial>
   </link>
 
@@ -73,7 +75,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="${meshes_file_direction}/lift_link.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="${swerve_meshes_dir}/lift_link.stl" scale="0.001 0.001 0.001" />
       </geometry>
       <material name="silver">
         <color rgba="0.75 0.75 0.75 1"/>
@@ -82,15 +84,15 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="${meshes_file_direction}/lift_link.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="${swerve_meshes_dir}/lift_link.stl" scale="0.001 0.001 0.001" />
       </geometry>
     </collision>
     <inertial>
        <origin xyz="-1.286987800e-01 -1.604580800e-05 8.945601700e-01" />
-       <mass value="1.790000000e+01" />
-       <inertia ixx="1.009479700e+04" ixy="-3.568141800e-02" ixz="1.213165300e+03"
-       iyy="1.027057300e+04" iyz="7.021994000e-02"
-       izz="1.971602000e+02" />
+       <mass value="17.9" />
+       <inertia ixx="0.0100947" ixy="-0.0000000356" ixz="0.0012131"
+                iyy="0.0102705" iyz="0.0000000702"
+                izz="0.0001971" />
     </inertial>
   </link>
   <joint name="$(arg prefix)lift_fixed_joint" type="fixed">
@@ -103,49 +105,21 @@
     <origin xyz="-0.0199 0 1.4316" rpy="0 0 0" />
   </xacro:ffw_follower_body>
 
-  <xacro:hx5_d20_left parent="$(arg prefix)arm_l_link7" prefix="$(arg prefix)">
-    <origin xyz="0 0 -0.078" rpy="0 3.14159265359 1.5708"/>
-  </xacro:hx5_d20_left>
-
-  <xacro:hx5_d20_right parent="$(arg prefix)arm_r_link7" prefix="$(arg prefix)">
-    <origin xyz="0 0 -0.078" rpy="0 3.14159265359 -1.5708"/>
-  </xacro:hx5_d20_right>
-
-  <joint name="$(arg prefix)end_effector_l_joint" type="fixed">
+  <joint name="$(arg prefix)hx5_d20_left_joint" type="fixed">
     <parent link="$(arg prefix)arm_l_link7"/>
-    <child link="$(arg prefix)end_effector_l_link"/>
-    <origin xyz="0 0 -0.215" rpy="0 0 0"/>
+    <child link="$(arg prefix)hx5_d20_left_base"/>
+    <origin xyz="0 0 -0.078" rpy="0 3.14159265359 1.5708"/>
   </joint>
 
-  <link name="$(arg prefix)end_effector_l_link">
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry>
-        <box size="0.01 0.01 0.01" />
-      </geometry>
-      <material name="red">
-        <color rgba="1.0 0.0 0.0 1"/>
-      </material>
-    </visual>
-  </link>
+  <xacro:hx5_d20_left prefix="$(arg prefix)" />
 
-  <joint name="$(arg prefix)end_effector_r_joint" type="fixed">
+  <joint name="$(arg prefix)hx5_d20_right_joint" type="fixed">
     <parent link="$(arg prefix)arm_r_link7"/>
-    <child link="$(arg prefix)end_effector_r_link"/>
-    <origin xyz="0 0 -0.215" rpy="0 0 0"/>
+    <child link="$(arg prefix)hx5_d20_right_base"/>
+    <origin xyz="0 0 -0.078" rpy="0 3.14159265359 -1.5708"/>
   </joint>
 
-  <link name="$(arg prefix)end_effector_r_link">
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry>
-        <box size="0.01 0.01 0.01" />
-      </geometry>
-      <material name="red">
-        <color rgba="1.0 0.0 0.0 1"/>
-      </material>
-    </visual>
-  </link>
+  <xacro:hx5_d20_right prefix="$(arg prefix)" />
 
   <joint name="$(arg prefix)left_wheel_steer" type="revolute">
       <parent link="$(arg prefix)base_link"/>
@@ -158,7 +132,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="${meshes_file_direction}/left_wheel_steer_link.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="${swerve_meshes_dir}/left_wheel_steer_link.stl" scale="0.001 0.001 0.001" />
       </geometry>
       <material name="silver">
         <color rgba="0.75 0.75 0.75 1"/>
@@ -167,7 +141,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="${meshes_file_direction}/left_wheel_steer_link.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="${swerve_meshes_dir}/left_wheel_steer_link.stl" scale="0.001 0.001 0.001" />
       </geometry>
     </collision>
     <inertial>
@@ -189,16 +163,22 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="${meshes_file_direction}/left_wheel_drive_link.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="${swerve_meshes_dir}/left_wheel_drive_link.stl" scale="0.001 0.001 0.001" />
       </geometry>
       <material name="silver">
         <color rgba="0.75 0.75 0.75 1"/>
       </material>
     </visual>
-    <collision>
+    <!-- <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="${meshes_file_direction}/left_wheel_drive_link.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="${swerve_meshes_dir}/left_wheel_drive_link.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision> -->
+    <collision>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="0.0865" length="0.05"/>
       </geometry>
     </collision>
     <inertial>
@@ -221,7 +201,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="${meshes_file_direction}/right_wheel_steer_link.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="${swerve_meshes_dir}/right_wheel_steer_link.stl" scale="0.001 0.001 0.001" />
       </geometry>
       <material name="silver">
         <color rgba="0.75 0.75 0.75 1"/>
@@ -230,7 +210,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="${meshes_file_direction}/right_wheel_steer_link.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="${swerve_meshes_dir}/right_wheel_steer_link.stl" scale="0.001 0.001 0.001" />
       </geometry>
     </collision>
     <inertial>
@@ -252,16 +232,22 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="${meshes_file_direction}/right_wheel_drive_link.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="${swerve_meshes_dir}/right_wheel_drive_link.stl" scale="0.001 0.001 0.001" />
       </geometry>
       <material name="silver">
         <color rgba="0.75 0.75 0.75 1"/>
       </material>
     </visual>
-    <collision>
+    <!-- <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="${meshes_file_direction}/right_wheel_drive_link.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="${swerve_meshes_dir}/right_wheel_drive_link.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision> -->
+    <collision>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="0.0865" length="0.05"/>
       </geometry>
     </collision>
     <inertial>
@@ -284,7 +270,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="${meshes_file_direction}/rear_wheel_steer_link.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="${swerve_meshes_dir}/rear_wheel_steer_link.stl" scale="0.001 0.001 0.001" />
       </geometry>
       <material name="silver">
         <color rgba="0.75 0.75 0.75 1"/>
@@ -293,7 +279,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="${meshes_file_direction}/rear_wheel_steer_link.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="${swerve_meshes_dir}/rear_wheel_steer_link.stl" scale="0.001 0.001 0.001" />
       </geometry>
     </collision>
     <inertial>
@@ -315,16 +301,22 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="${meshes_file_direction}/rear_wheel_drive_link.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="${swerve_meshes_dir}/rear_wheel_drive_link.stl" scale="0.001 0.001 0.001" />
       </geometry>
       <material name="silver">
         <color rgba="0.75 0.75 0.75 1"/>
       </material>
     </visual>
-    <collision>
+    <!-- <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="${meshes_file_direction}/rear_wheel_drive_link.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="${swerve_meshes_dir}/rear_wheel_drive_link.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision> -->
+    <collision>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="0.0865" length="0.05"/>
       </geometry>
     </collision>
     <inertial>
@@ -335,47 +327,6 @@
        izz="7.187977000e-03" />
     </inertial>
   </link>
-
-
-  <joint name="$(arg prefix)gripper_r_joint1" type="revolute">
-    <parent link="$(arg prefix)base_link" />
-    <child link="$(arg prefix)dummy_link1" />
-    <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
-    <limit effort="1000" lower="-0.2317" upper="0.6951" velocity="4.8"/>
-    <dynamics damping="0.1"/>
-  </joint>
-  <link name="$(arg prefix)dummy_link1">
-      <visual>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry>
-        <box size="0.01 0.01 0.01" />
-        </geometry>
-        <material name="red">
-        <color rgba="1.0 0.0 0.0 1"/>
-        </material>
-      </visual>
-  </link>
-
-  <joint name="$(arg prefix)gripper_l_joint1" type="revolute">
-    <parent link="$(arg prefix)base_link" />
-    <child link="$(arg prefix)dummy_link2" />
-    <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
-    <limit effort="1000" lower="-0.2317" upper="0.6951" velocity="4.8"/>
-    <dynamics damping="0.1"/>
-  </joint>
-  <link name="$(arg prefix)dummy_link2">
-      <visual>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry>
-        <box size="0.01 0.01 0.01" />
-        </geometry>
-        <material name="red">
-        <color rgba="1.0 0.0 0.0 1"/>
-        </material>
-      </visual>
-  </link>
-
-
 
   <xacro:ffw_sh5_follower_system
     use_sim="$(arg use_sim)"

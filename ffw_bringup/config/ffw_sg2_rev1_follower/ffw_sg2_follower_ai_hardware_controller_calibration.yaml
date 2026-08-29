@@ -146,7 +146,7 @@
 
       wheel_joint_names: ["left_wheel_drive", "right_wheel_drive", "rear_wheel_drive"]
 
-      wheel_radius: 0.0825 # [m]
+      wheel_radius: 0.0865 # [m]
       cmd_vel_timeout: 1.0  # [sec]
 
       module_x_offsets: [ 0.1371,  0.1371, -0.2899] # x-distance between base_link and steering angle joint [m]  =>

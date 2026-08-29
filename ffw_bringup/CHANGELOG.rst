@@ -2,6 +2,90 @@
 Changelog for package ffw_bringup
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.5 (2026-08-19)
+------------------
+* None
+
+2.2.4 (2026-08-12)
+------------------
+* Standardized F1 and F2 AI launch names and service aliases
+* Added F2 pack positions and F1/F2 support to the shared pack pose launcher
+* Contributors: Yeonguk Kim
+
+2.2.3 (2026-08-12)
+------------------
+* None
+
+2.2.2 (2026-08-10)
+------------------
+* Updated the head camera target frame name
+* Disabled ZED wrapper URDF publication by default
+* Contributors: Yeonguk Kim
+
+2.2.1 (2026-08-03)
+------------------
+* None
+
+2.2.0 (2026-07-22)
+------------------
+* Added tactile sensor topic broadcaster
+* Contributors: Hyunwoo Nam
+
+2.1.0 (2026-07-14)
+------------------
+* Added support for F1 and F2
+* Added automatic camera role detection and multi-camera bringup support
+* Contributors: Yeonguk Kim, Dongyun Kim
+
+2.0.2 (2026-07-09)
+------------------
+* Added mobile base AI launch file
+* Contributors: Howon Kim
+
+2.0.1 (2026-06-30)
+------------------
+* Fixed zenohd alias command to run rmw_zenoh_cpp rmw_zenohd
+* Contributors: kimtaehyeong99
+
+2.0.0 (2026-06-17)
+------------------
+* Set rmw_zenoh_cpp as the default RMW in Docker images
+* Contributors: Hyungyu Kim
+
+1.3.2 (2026-06-02)
+------------------
+* Updated wheel radius parameters for SH5, SG2
+* Contributors: Howon Kim
+
+1.3.1 (2026-05-14)
+------------------
+* Added dual_laser_merger for SH5
+* Added unified ffw_pack.launch file
+* Removed bg2 pack launch file
+* Add pack position yaml files in each robot type config folder
+* Contributors: Howon Kim, Hyungyu Kim
+
+1.3.0 (2026-05-04)
+------------------
+* Bumped package version to 1.3.0
+
+1.2.2 (2026-04-27)
+------------------
+* None
+
+1.2.1 (2026-04-09)
+------------------
+* None
+
+1.2.0 (2026-04-01)
+------------------
+* Added support for SH5, BH5
+* Contributors: Hyunwoo Nam
+
+1.1.21 (2026-03-26)
+-------------------
+* None
+
 1.1.20 (2026-03-12)
 -------------------
 * None

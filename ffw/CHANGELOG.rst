@@ -2,6 +2,106 @@
 Changelog for package ffw
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.5 (2026-08-19)
+------------------
+* Corrected left and right joint7 position limits in URDF and ros2_control configurations for SG2, SH5, BG2, BH5, F1, and F2
+* Contributors: Yeonguk Kim
+
+2.2.4 (2026-08-12)
+------------------
+* Standardized F1 and F2 AI launch names
+* Added F1 and F2 support to the shared pack pose launcher
+* Contributors: Yeonguk Kim
+
+2.2.3 (2026-08-12)
+------------------
+* Fixed SH5 ros2_control xacro file
+* Contributors: Hyunwoo Nam
+
+2.2.2 (2026-08-10)
+------------------
+* Updated head and wrist camera TF frame names
+* Updated MoveIt collision settings for the renamed camera links
+* Disabled duplicate ZED URDF publication
+* Contributors: Yeonguk Kim
+
+2.2.1 (2026-08-03)
+------------------
+* Use Cyclo Manager agent requirements in Docker images
+* Added support for F1 and F2 in s6-overlay services
+* Contributors: Hyungyu Kim
+
+2.2.0 (2026-07-22)
+------------------
+* Added robotis_hand repository to Dockerfile for HX5-D20 tactile sensor support
+* Added tactile sensor topic broadcaster
+* Updated SH5 ros2_control and urdf xacro
+* Contributors: Hyunwoo Nam
+
+2.1.0 (2026-07-14)
+------------------
+* Added support for F1 and F2
+* Improved camera bringup and automatic camera role detection
+* Contributors: Yeonguk Kim, Dongyun Kim
+
+2.0.2 (2026-07-09)
+------------------
+* Added s6 services for AI Worker navigation and map saving
+* Added map_name launch argument parsing for navigation and map save services
+* Updated ROS 2 s6 service runner to forward shutdown signals to process groups
+* Contributors: Howon Kim
+
+2.0.1 (2026-06-30)
+------------------
+* Fixed zenohd alias command to run rmw_zenoh_cpp rmw_zenohd
+* Contributors: kimtaehyeong99
+
+2.0.0 (2026-06-17)
+------------------
+* Set rmw_zenoh_cpp as the default RMW in Docker images
+* Added migration notice in container.sh on start and enter
+* Contributors: Hyungyu Kim
+
+1.3.2 (2026-06-02)
+------------------
+* Updated wheel radius parameters for SH5, SG2
+* Contributors: Howon Kim
+
+1.3.1 (2026-05-14)
+------------------
+* Added dual_laser_merger for SH5
+* Added unified ffw_pack.launch file
+* Removed bg2 pack launch file
+* Add pack position yaml files in each robot type config folder
+* Contributors: Howon Kim, Hyungyu Kim
+
+1.3.0 (2026-05-04)
+------------------
+* Improved 3-wheel swerve steering limit using flip logic
+* Extended neck downward angle by 10 degrees
+* Contributors: Sungho Woo
+
+1.2.2 (2026-04-27)
+------------------
+* Unified s6-overlay ROS 2 longrun services into ai_worker_bringup and avatar_bringup
+* Simplified docker/container.sh and removed noVNC-oriented Docker Compose workflow
+* Contributors: Hyungyu Kim
+
+1.2.1 (2026-04-09)
+------------------
+* Fixed palm joint name for HX5
+* Contributors: Hyunwoo Nam
+
+1.2.0 (2026-04-01)
+------------------
+* Added support for SH5, BH5
+* Contributors: Hyunwoo Nam
+
+1.1.21 (2026-03-26)
+-------------------
+* Added docker-compose.novnc.yml
+* Contributors: Wonho Yun
+
 1.1.20 (2026-03-12)
 -------------------
 * Fixed version of docker image in docker-compose.yml

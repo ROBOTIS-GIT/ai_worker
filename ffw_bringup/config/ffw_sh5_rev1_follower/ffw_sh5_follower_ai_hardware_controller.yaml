@@ -18,6 +18,7 @@
 
       joint_state_broadcaster:
         type: joint_state_broadcaster/JointStateBroadcaster
+
       swerve_drive_controller:
         type: ffw_swerve_drive_controller/SwerveDriveController
 
@@ -36,6 +37,15 @@
       effort_r_controller:
         type: effort_controllers/JointGroupEffortController
 
+      ffw_robot_manager:
+        type: ffw_robot_manager/FfwRobotManager
+
+      pressure_l_broadcaster:
+        type: robotis_hand_pressure_broadcaster/PressureBroadcaster
+
+      pressure_r_broadcaster:
+        type: robotis_hand_pressure_broadcaster/PressureBroadcaster
+
 /**:
   arm_l_controller:
     ros__parameters:
@@ -47,7 +57,6 @@
         - arm_l_joint5
         - arm_l_joint6
         - arm_l_joint7
-        - gripper_l_joint1
       command_interfaces:
         - position
       state_interfaces:
@@ -67,7 +76,6 @@
         - arm_r_joint5
         - arm_r_joint6
         - arm_r_joint7
-        - gripper_r_joint1
       command_interfaces:
         - position
       state_interfaces:
@@ -124,7 +132,7 @@
 
       wheel_joint_names: ["left_wheel_drive", "right_wheel_drive", "rear_wheel_drive"]
 
-      wheel_radius: 0.0825 # [m]
+      wheel_radius: 0.0865 # [m]
       cmd_vel_timeout: 1.0  # [sec]
 
       module_x_offsets: [ 0.1371,  0.1371, -0.2899] # x-distance between base_link and steering angle joint [m]  =>
@@ -321,3 +329,52 @@
         - finger_r_joint18
         - finger_r_joint19
         - finger_r_joint20
+
+/**:
+  ffw_robot_manager:
+    ros__parameters:
+      disable_torque_on_error: false
+      set_led_error_on_error: true
+      ffw_type: ffw_sh5_rev1
+
+/**:
+  pressure_l_broadcaster:
+    ros__parameters:
+      topic_name: /left_hand/finger_pressures
+      sensor_names:
+        - finger_l_sensor1
+        - finger_l_sensor2
+        - finger_l_sensor3
+        - finger_l_sensor4
+        - finger_l_sensor5
+      interface_names:
+        - Present Pressure 1
+        - Present Pressure 2
+        - Present Pressure 3
+        - Present Pressure 4
+        - Present Pressure 5
+        - Present Pressure 6
+        - Present Pressure 7
+        - Present Pressure 8
+        - Present Pressure 9
+
+/**:
+  pressure_r_broadcaster:
+    ros__parameters:
+      topic_name: /right_hand/finger_pressures
+      sensor_names:
+        - finger_r_sensor1
+        - finger_r_sensor2
+        - finger_r_sensor3
+        - finger_r_sensor4
+        - finger_r_sensor5
+      interface_names:
+        - Present Pressure 1
+        - Present Pressure 2
+        - Present Pressure 3
+        - Present Pressure 4
+        - Present Pressure 5
+        - Present Pressure 6
+        - Present Pressure 7
+        - Present Pressure 8
+        - Present Pressure 9
