@@ -44,7 +44,7 @@
       <joint name="${prefix}head_joint1" type="revolute">
          <parent link="${prefix}arm_base_link" />
          <child link="${prefix}head_link1" />
-         <origin xyz="0.102729 0 0.132803" rpy="0 0 0" />
+         <origin xyz="0.102729 0 0.116803" rpy="0 0 0" />
          <axis xyz="0 1 0" />
          <limit velocity="4.8" effort="1000" lower="-0.2317" upper="0.6951" />
          <dynamics damping="0.1" />
@@ -76,7 +76,7 @@
       <joint name="${prefix}head_joint2" type="revolute">
          <parent link="${prefix}head_link1" />
          <child link="${prefix}head_link2" />
-         <origin xyz="0.0141410 0 0.0555070" rpy="0 0 0" />
+         <origin xyz="0.04 0 0.064" rpy="0 0 0" />
          <axis xyz="0 0 1" />
          <limit velocity="4.8" effort="1000" lower="-0.35" upper="0.35" />
          <dynamics damping="0.1" />
@@ -107,13 +107,13 @@
       </link>
 
       <xacro:sensor_d455 parent="${prefix}head_link2" use_nominal_extrinsics="false" name="${prefix}camera_head">
-         <origin xyz="0.032705 0 -0.0025" rpy="0 0 0"/>
+         <origin xyz="0.032705 0 -0.0255" rpy="0 0 0"/>
       </xacro:sensor_d455>
 
       <joint name="${prefix}arm_l_joint1" type="revolute">
          <parent link="${prefix}arm_base_link" />
          <child link="${prefix}arm_l_link1" />
-         <origin xyz="0.059 0.1127 0.030" rpy="0 0 0" />
+         <origin xyz="0.0555 0.11345 0.014" rpy="0 0 0" />
          <axis xyz="0 1 0" />
          <limit velocity="4.8" effort="1000" lower="-3.14" upper="3.14" />
          <dynamics damping="0.1" />
@@ -145,7 +145,7 @@
       <joint name="${prefix}arm_l_joint2" type="revolute">
          <parent link="${prefix}arm_l_link1" />
          <child link="${prefix}arm_l_link2" />
-         <origin xyz="0.0177 0.1038 0" rpy="0 0 0" />
+         <origin xyz="0.01845 0.10305 0" rpy="0 0 0" />
          <axis xyz="1 0 0" />
          <limit velocity="4.8" effort="1000" lower="0.0" upper="3.14" />
          <dynamics damping="0.1" />
@@ -177,7 +177,7 @@
       <joint name="${prefix}arm_l_joint3" type="revolute">
          <parent link="${prefix}arm_l_link2" />
          <child link="${prefix}arm_l_link3" />
-         <origin xyz="-0.0177 0 -0.2072" rpy="0 0 0" />
+         <origin xyz="-0.01845 0 -0.20795" rpy="0 0 0" />
          <axis xyz="0 0 1" />
          <limit velocity="4.8" effort="1000" lower="-3.14" upper="3.14" />
          <dynamics damping="0.1" />
@@ -209,7 +209,7 @@
       <joint name="${prefix}arm_l_joint4" type="revolute">
          <parent link="${prefix}arm_l_link3" />
          <child link="${prefix}arm_l_link4" />
-         <origin xyz="0.0410041 0.0007 -0.1128" rpy="0 0 0" />
+         <origin xyz="0.0410041 0.00145 -0.11205" rpy="0 0 0" />
          <axis xyz="0 1 0" />
          <limit velocity="4.8" effort="1000" lower="-2.9361" upper="1.0786" />
          <dynamics damping="0.1" />
@@ -241,7 +241,7 @@
       <joint name="${prefix}arm_l_joint5" type="revolute">
          <parent link="${prefix}arm_l_link4" />
          <child link="${prefix}arm_l_link5" />
-         <origin xyz="-0.041 -0.0007 -0.1477" rpy="0 0 0" />
+         <origin xyz="-0.041 -0.00145 -0.14845" rpy="0 0 0" />
          <axis xyz="0 0 1" />
          <limit velocity="4.8" effort="1000" lower="-3.14" upper="3.14" />
          <dynamics damping="0.1" />
@@ -273,7 +273,7 @@
       <joint name="${prefix}arm_l_joint6" type="revolute">
          <parent link="${prefix}arm_l_link5" />
          <child link="${prefix}arm_l_link6" />
-         <origin xyz="0 0.0007 -0.0948" rpy="0 0 0" />
+         <origin xyz="0 0.00145 -0.09405" rpy="0 0 0" />
          <axis xyz="0 1 0" />
          <limit velocity="4.8" effort="1000" lower="-1.57" upper="1.57" />
          <dynamics damping="0.1" />
@@ -305,7 +305,7 @@
       <joint name="${prefix}arm_l_joint7" type="revolute">
          <parent link="${prefix}arm_l_link6" />
          <child link="${prefix}arm_l_link7" />
-         <origin xyz="-0.00025 -0.0007 -0.0775" rpy="0 0 0" />
+         <origin xyz="-0.00025 -0.00145 -0.0775" rpy="0 0 0" />
          <axis xyz="1 0 0" />
          <limit velocity="4.8" effort="1000" lower="-1.5804" upper="1.8201" />
          <dynamics damping="0.1" />
@@ -335,14 +335,14 @@
          </inertial>
       </link>
       <xacro:wrist_d401 parent="${prefix}arm_l_link7" name="${prefix}camera_left">
-         <origin xyz="0.0275 0.0 -0.0847501" rpy="-1.57079632679 1.57079632679 0"/>
+         <origin xyz="0.02675 0.0 -0.084575" rpy="-1.57079632679 1.57079632679 0"/>
       </xacro:wrist_d401>
 
 
       <joint name="${prefix}arm_r_joint1" type="revolute">
          <parent link="${prefix}arm_base_link" />
          <child link="${prefix}arm_r_link1" />
-         <origin xyz="0.055 -0.1127 0.030" rpy="0 0 0" />
+         <origin xyz="0.0555 -0.11345 0.014" rpy="0 0 0" />
          <axis xyz="0 1 0" />
          <limit velocity="4.8" effort="1000" lower="-3.14" upper="3.14" />
          <dynamics damping="0.1" />
@@ -374,7 +374,7 @@
       <joint name="${prefix}arm_r_joint2" type="revolute">
          <parent link="${prefix}arm_r_link1" />
          <child link="${prefix}arm_r_link2" />
-         <origin xyz="0.0177 -0.1038 0" rpy="0 0 0" />
+         <origin xyz="0.01845 -0.10305 0" rpy="0 0 0" />
          <axis xyz="1 0 0" />
          <limit velocity="4.8" effort="1000" lower="-3.14" upper="0" />
          <dynamics damping="0.1" />
@@ -406,7 +406,7 @@
       <joint name="${prefix}arm_r_joint3" type="revolute">
          <parent link="${prefix}arm_r_link2" />
          <child link="${prefix}arm_r_link3" />
-         <origin xyz="-0.0177 0 -0.2072" rpy="0 0 0" />
+         <origin xyz="-0.01845 0 -0.20795" rpy="0 0 0" />
          <axis xyz="0 0 1" />
          <limit velocity="4.8" effort="1000" lower="-3.14" upper="3.14" />
          <dynamics damping="0.1" />
@@ -438,7 +438,7 @@
       <joint name="${prefix}arm_r_joint4" type="revolute">
          <parent link="${prefix}arm_r_link3" />
          <child link="${prefix}arm_r_link4" />
-         <origin xyz="0.0410041 -0.0007 -0.1128" rpy="0 0 0" />
+         <origin xyz="0.0410041 -0.00145 -0.11205" rpy="0 0 0" />
          <axis xyz="0 1 0" />
          <limit velocity="4.8" effort="1000" lower="-2.9361" upper="1.0786" />
          <dynamics damping="0.1" />
@@ -470,7 +470,7 @@
       <joint name="${prefix}arm_r_joint5" type="revolute">
          <parent link="${prefix}arm_r_link4" />
          <child link="${prefix}arm_r_link5" />
-         <origin xyz="-0.041 0.0007 -0.1477" rpy="0 0 0" />
+         <origin xyz="-0.041 0.00145 -0.14845" rpy="0 0 0" />
          <axis xyz="0 0 1" />
          <limit velocity="4.8" effort="1000" lower="-3.14" upper="3.14" />
          <dynamics damping="0.1" />
@@ -502,7 +502,7 @@
       <joint name="${prefix}arm_r_joint6" type="revolute">
          <parent link="${prefix}arm_r_link5" />
          <child link="${prefix}arm_r_link6" />
-         <origin xyz="0 -0.0007 -0.0948" rpy="0 0 0" />
+         <origin xyz="0 -0.00145 -0.09405" rpy="0 0 0" />
          <axis xyz="0 1 0" />
          <limit velocity="4.8" effort="1000" lower="-1.57" upper="1.57" />
          <dynamics damping="0.1" />
@@ -534,7 +534,7 @@
       <joint name="${prefix}arm_r_joint7" type="revolute">
          <parent link="${prefix}arm_r_link6" />
          <child link="${prefix}arm_r_link7" />
-         <origin xyz="-0.00025 -0.0007 -0.0775" rpy="0 0 0" />
+         <origin xyz="-0.00025 -0.00145 -0.0775" rpy="0 0 0" />
          <axis xyz="1 0 0" />
          <limit velocity="4.8" effort="1000" lower="-1.8201" upper="1.5804" />
          <dynamics damping="0.1" />
@@ -564,7 +564,7 @@
          </inertial>
       </link>
       <xacro:wrist_d401 parent="${prefix}arm_r_link7" name="${prefix}camera_right">
-         <origin xyz="0.0275 0.0 -0.0847501" rpy="-1.57079632679 1.57079632679 0"/>
+         <origin xyz="0.02675 0.0 -0.08575" rpy="-1.57079632679 1.57079632679 0"/>
       </xacro:wrist_d401>
 
    </xacro:macro>
