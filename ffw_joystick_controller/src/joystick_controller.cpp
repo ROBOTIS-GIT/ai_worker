@@ -34,7 +34,7 @@ namespace constants
 {
 constexpr size_t TACT_SWITCH_INTERFACE_INDEX = 2;
 constexpr double TACT_SWITCH_THRESHOLD = 0.5;
-constexpr double DEFAULT_JOG_SCALE = 0.1;
+constexpr double DEFAULT_JOG_SCALE = 0.001;
 
   // cmd_vel scaling factors
 constexpr double LINEAR_X_SCALE = 3.0;
@@ -203,6 +203,14 @@ std::vector<double> JoystickController::calculate_joint_positions(
 
       double new_position = sensor_last_active_positions_.at(sensor_name).at(i) +
         sensorxel_joy_value * sensor_jog_scale_.at(sensor_name);
+
+      //////////////////////////////////////////////////////////
+      // TODO: Load lift limits from a config file or the robot_description topic.
+      if (sensor_name == constants::RIGHT_JOYSTICK_NAME) {
+        new_position = std::clamp(new_position, 0.0, 0.5);
+      }
+      //////////////////////////////////////////////////////////
+
       positions.push_back(new_position);
     }
   }
@@ -598,6 +606,14 @@ controller_interface::return_type JoystickController::update(
       if (params_.enable_randomization) {
         apply_random_joint_offsets(positions, sensor_name);
       }
+
+      //////////////////////////////////////////////////////////
+      // TODO: Load lift limits from a config file or the robot_description topic.
+      if (sensor_name == constants::RIGHT_JOYSTICK_NAME && !positions.empty()) {
+        positions[0] = std::clamp(positions[0], 0.0, 0.5);
+      }
+      //////////////////////////////////////////////////////////
+      
       publish_joint_trajectory(controlled_joints, positions, sensor_name);
     }
 
