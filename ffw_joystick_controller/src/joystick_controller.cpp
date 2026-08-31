@@ -197,15 +197,12 @@ std::vector<double> JoystickController::calculate_joint_positions(
     auto it = std::find(current_joint_states_.name.begin(), current_joint_states_.name.end(),
         joint_name);
     if (it != current_joint_states_.name.end()) {
-      size_t index = std::distance(current_joint_states_.name.begin(), it);
-      double current_position = current_joint_states_.position[index];
-
       // Use right joystick X-axis for lift control; left joystick drives cmd_vel only.
       double sensorxel_joy_value = (sensor_name ==
         constants::RIGHT_JOYSTICK_NAME) ? joystick_values.right_x : 0.0;
 
-      double new_position = current_position + sensorxel_joy_value *
-        sensor_jog_scale_.at(sensor_name);
+      double new_position = sensor_last_active_positions_.at(sensor_name).at(i) +
+        sensorxel_joy_value * sensor_jog_scale_.at(sensor_name);
       positions.push_back(new_position);
     }
   }
@@ -582,24 +579,7 @@ controller_interface::return_type JoystickController::update(
     update_joystick_values(sensor_name, normalized_values, joystick_values,
                           left_tact_switch_pressed, right_tact_switch_pressed);
 
-    // Update last active positions when joystick becomes inactive
     const bool trajectory_joy_active = any_sensorxel_joy_active && !params_.enable_randomization;
-
-    if (was_active_ && !trajectory_joy_active && !current_joint_states_.name.empty() &&
-      !controlled_joints.empty())
-    {
-      for (size_t i = 0; i < controlled_joints.size(); ++i) {
-        const auto & joint_name = controlled_joints[i];
-        auto it = std::find(current_joint_states_.name.begin(), current_joint_states_.name.end(),
-            joint_name);
-        if (it != current_joint_states_.name.end()) {
-          size_t index = std::distance(current_joint_states_.name.begin(), it);
-          if (i < last_active_positions.size()) {
-            last_active_positions[i] = current_joint_states_.position[index];
-          }
-        }
-      }
-    }
 
     // Publish joint trajectory
     if (!current_joint_states_.name.empty() && !controlled_joints.empty()) {
@@ -621,7 +601,6 @@ controller_interface::return_type JoystickController::update(
       publish_joint_trajectory(controlled_joints, positions, sensor_name);
     }
 
-    was_active_ = trajectory_joy_active;
     sensorxel_joy_values_[sensor_idx] = normalized_values;
   }
 
