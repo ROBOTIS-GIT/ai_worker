@@ -207,7 +207,7 @@ std::vector<double> JoystickController::calculate_joint_positions(
       //////////////////////////////////////////////////////////
       // TODO: Load lift limits from a config file or the robot_description topic.
       if (sensor_name == constants::RIGHT_JOYSTICK_NAME) {
-        new_position = std::clamp(new_position, 0.0, 0.5);
+        new_position = std::clamp(new_position, -0.5, 0.0);
       }
       //////////////////////////////////////////////////////////
 
@@ -610,10 +610,10 @@ controller_interface::return_type JoystickController::update(
       //////////////////////////////////////////////////////////
       // TODO: Load lift limits from a config file or the robot_description topic.
       if (sensor_name == constants::RIGHT_JOYSTICK_NAME && !positions.empty()) {
-        positions[0] = std::clamp(positions[0], 0.0, 0.5);
+        positions[0] = std::clamp(positions[0], -0.5, 0.0);
       }
       //////////////////////////////////////////////////////////
-      
+
       publish_joint_trajectory(controlled_joints, positions, sensor_name);
     }
 
