@@ -122,7 +122,7 @@ class FootSwitchReader(Node):
     def handle_middle(self, event_value: int):
         if event_value == 1:
             if not self.already_middle_pub:
-                self._set_deadzone(0.95)
+                self._set_deadzone(0.6)
                 self.already_middle_pub = True
                 msg = Bool()
                 msg.data = True

@@ -82,9 +82,12 @@ joystick_controller:
   }
   sensorxel_r_joy_jog_scale: {
     type: double,
-    default_value: 0.1,
-    description: "Scale factor for jog commands",
-    read_only: true
+    default_value: 0.002,
+    description: "Lift jog scale in meters per controller update",
+    read_only: true,
+    validation: {
+      bounds<>: [0.0, 0.002]  # Range: 0.0~0.002 (max 0.2 m/s at 100 Hz)
+    }
   }
   deadzone: {
     type: double,
