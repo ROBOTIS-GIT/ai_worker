@@ -47,7 +47,7 @@
   <joint name="$(arg prefix)lidar_l_joint" type="fixed">
     <parent link="$(arg prefix)base_link"/>
     <child link="$(arg prefix)lidar_l_link"/>
-    <origin xyz="-0.111881 0.240 0.34432" rpy="0 0 1.57079632679"/>
+    <origin xyz="-0.1115 0.240 0.34432" rpy="0 0 1.57079632679"/>
   </joint>
 
   <link name="$(arg prefix)lidar_l_link">
@@ -64,7 +64,7 @@
   <joint name="$(arg prefix)lidar_r_joint" type="fixed">
     <parent link="$(arg prefix)base_link"/>
     <child link="$(arg prefix)lidar_r_link"/>
-    <origin xyz="-0.111881 -0.240 0.34432" rpy="0 0 -1.57079632679"/>
+    <origin xyz="-0.1115 -0.240 0.34432" rpy="0 0 -1.57079632679"/>
   </joint>
   <!-- <link name="$(arg prefix)lidar_r_link">
   </link> -->
@@ -72,7 +72,7 @@
   <joint name="$(arg prefix)imu_joint" type="fixed">
     <parent link="$(arg prefix)base_link"/>
     <child link="$(arg prefix)imu_link"/>
-    <origin xyz="-0.189181 0.0 0.247" rpy="0 0 0"/>
+    <origin xyz="-0.1888 0.0 0.245" rpy="0 0 0"/>
   </joint>
   <link name="$(arg prefix)imu_link">
   </link>
@@ -123,11 +123,11 @@
   <xacro:ffw_f2_follower_gazebo prefix="$(arg prefix)" />
 
   <xacro:ffw_f_follower_body parent="$(arg prefix)base_link" prefix="$(arg prefix)">
-    <origin xyz="-0.0753807 0 1.407" rpy="0 0 0" />
+    <origin xyz="-0.075 0 1.423" rpy="0 0 0" />
   </xacro:ffw_f_follower_body>
 
   <xacro:hx2_d1 parent="$(arg prefix)arm_l_link7" prefix="$(arg prefix)gripper_l_">
-    <origin xyz="0.00025 0 -0.049" rpy="0 3.14159265359 3.14159265359"/>
+    <origin xyz="0.00025 0 -0.050" rpy="0 3.14159265359 3.14159265359"/>
   </xacro:hx2_d1>
 
   <joint name="$(arg prefix)end_effector_l_joint" type="fixed">
@@ -149,7 +149,7 @@
   </link>
 
   <xacro:hx2_d1 parent="$(arg prefix)arm_r_link7" prefix="$(arg prefix)gripper_r_">
-    <origin xyz="0.00025 0 -0.049" rpy="0 3.14159265359 3.14159265359"/>
+    <origin xyz="0.00025 0 -0.050" rpy="0 3.14159265359 3.14159265359"/>
   </xacro:hx2_d1>
 
   <joint name="$(arg prefix)end_effector_r_joint" type="fixed">
@@ -173,7 +173,7 @@
   <joint name="$(arg prefix)left_wheel_steer" type="revolute">
       <parent link="$(arg prefix)base_link"/>
       <child link="$(arg prefix)left_wheel_steer_link"/>
-      <origin xyz="0.137119 0.2554 0.2613" rpy="0 0 0"/>
+      <origin xyz="0.1375 0.2554 0.25855" rpy="0 0 0"/>
       <axis xyz="0 0 1" />
       <limit velocity="9999.0" effort="9999.0" lower="${-pi*6.0}" upper="${pi*6.0}" />
   </joint>
@@ -204,7 +204,7 @@
   <joint name="$(arg prefix)left_wheel_drive" type="continuous">
       <parent link="$(arg prefix)left_wheel_steer_link"/>
       <child link="$(arg prefix)left_wheel_drive_link"/>
-      <origin xyz="0 0 -0.1748" rpy="0 0 0"/>
+      <origin xyz="0 0 -0.17205" rpy="0 0 0"/>
       <axis xyz="0 1 0" />
       <limit velocity="9999.0" effort="9999.0"/>
   </joint>
@@ -242,7 +242,7 @@
   <joint name="$(arg prefix)right_wheel_steer" type="revolute">
       <parent link="$(arg prefix)base_link"/>
       <child link="$(arg prefix)right_wheel_steer_link"/>
-      <origin xyz="0.137119 -0.2554 0.2613" rpy="0 0 0"/>
+      <origin xyz="0.1375 -0.2554 0.25855" rpy="0 0 0"/>
       <axis xyz="0 0 1" />
       <limit velocity="9999.0" effort="9999.0" lower="${-pi*6.0}" upper="${pi*6.0}" />
   </joint>
@@ -273,7 +273,7 @@
   <joint name="$(arg prefix)right_wheel_drive" type="continuous">
       <parent link="$(arg prefix)right_wheel_steer_link"/>
       <child link="$(arg prefix)right_wheel_drive_link"/>
-      <origin xyz="0 0 -0.1748" rpy="0 0 0"/>
+      <origin xyz="0 0 -0.17205" rpy="0 0 0"/>
       <axis xyz="0 1 0" />
       <limit velocity="9999.0" effort="9999.0"/>
   </joint>
@@ -311,7 +311,7 @@
   <joint name="$(arg prefix)rear_wheel_steer" type="revolute">
       <parent link="$(arg prefix)base_link"/>
       <child link="$(arg prefix)rear_wheel_steer_link"/>
-      <origin xyz="-0.288133 0 0.2613" rpy="0 0 0"/>
+      <origin xyz="-0.2895 0 0.25855" rpy="0 0 0"/>
       <axis xyz="0 0 1" />
       <limit velocity="9999.0" effort="9999.0" lower="${-pi*6.0}" upper="${pi*6.0}" />
   </joint>
@@ -342,7 +342,7 @@
   <joint name="$(arg prefix)rear_wheel_drive" type="continuous">
       <parent link="$(arg prefix)rear_wheel_steer_link"/>
       <child link="$(arg prefix)rear_wheel_drive_link"/>
-      <origin xyz="0 0 -0.1748" rpy="0 0 0"/>
+      <origin xyz="0 0 -0.17205" rpy="0 0 0"/>
       <axis xyz="0 1 0" />
       <limit velocity="9999.0" effort="9999.0"/>
   </joint>
