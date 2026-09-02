@@ -14,7 +14,7 @@
         type: spring_actuator_controller/SpringActuatorController
 
       joystick_controller:
-        type: joystick_controller/A2JoystickController
+        type: joystick_controller/LeaderJoystickController
 
 /**:
   joint_trajectory_command_broadcaster:
@@ -86,7 +86,7 @@
     ros__parameters:
       teleoperation_toggle_enabled: true
       teleoperation_command_topic: "/leader/teleoperation/joystick_command"
-      a2_mode_switch_long_press_duration: 1.0
+      leader_mode_switch_long_press_duration: 1.0
       joystick_sensors:
         - sensorxel_l_joy
         - sensorxel_r_joy

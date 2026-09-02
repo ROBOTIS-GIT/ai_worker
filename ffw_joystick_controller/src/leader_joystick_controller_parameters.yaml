@@ -1,4 +1,4 @@
-a2_joystick_controller:
+leader_joystick_controller:
   teleoperation_toggle_enabled: {
     type: bool,
     default_value: false,
@@ -11,9 +11,9 @@ a2_joystick_controller:
     description: "Topic for AI Worker teleoperation button commands",
     read_only: true
   }
-  a2_mode_switch_long_press_duration: {
+  leader_mode_switch_long_press_duration: {
     type: double,
     default_value: 1.0,
-    description: "A2 both-button hold duration for joystick mode switching",
+    description: "Leader both-button hold duration for joystick mode switching",
     read_only: true
   }

@@ -12,31 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef A2_JOYSTICK_CONTROLLER__A2_JOYSTICK_CONTROLLER_HPP_
-#define A2_JOYSTICK_CONTROLLER__A2_JOYSTICK_CONTROLLER_HPP_
+#ifndef LEADER_JOYSTICK_CONTROLLER__LEADER_JOYSTICK_CONTROLLER_HPP_
+#define LEADER_JOYSTICK_CONTROLLER__LEADER_JOYSTICK_CONTROLLER_HPP_
 
 #include <cstdint>
 #include <string>
 
-#include "a2_joystick_controller/visibility_control.h"
+#include "leader_joystick_controller/visibility_control.h"
 #include \
-  <ffw_joystick_controller/a2_joystick_controller_parameters.hpp>
+  <ffw_joystick_controller/leader_joystick_controller_parameters.hpp>
 #include "joystick_controller/joystick_controller.hpp"
 #include "robotis_interfaces/msg/teleoperation_command.hpp"
 
-namespace a2_joystick_controller
+namespace leader_joystick_controller
 {
 
-class A2JoystickController : public joystick_controller::JoystickController
+class LeaderJoystickController : public joystick_controller::JoystickController
 {
 public:
-  A2_JOYSTICK_CONTROLLER_PUBLIC
-  A2JoystickController() = default;
+  LEADER_JOYSTICK_CONTROLLER_PUBLIC
+  LeaderJoystickController() = default;
 
-  A2_JOYSTICK_CONTROLLER_PUBLIC
+  LEADER_JOYSTICK_CONTROLLER_PUBLIC
   controller_interface::CallbackReturn on_init() override;
 
-  A2_JOYSTICK_CONTROLLER_PUBLIC
+  LEADER_JOYSTICK_CONTROLLER_PUBLIC
   controller_interface::CallbackReturn on_configure(
     const rclcpp_lifecycle::State & previous_state) override;
 
@@ -53,10 +53,10 @@ private:
   rclcpp::Publisher<robotis_interfaces::msg::TeleoperationCommand>::SharedPtr
     teleoperation_command_pub_;
   uint64_t teleoperation_request_id_ = 0;
-  std::shared_ptr<ParamListener> a2_param_listener_;
-  Params a2_params_;
+  std::shared_ptr<ParamListener> leader_param_listener_;
+  Params leader_params_;
 };
 
-}  // namespace a2_joystick_controller
+}  // namespace leader_joystick_controller
 
-#endif  // A2_JOYSTICK_CONTROLLER__A2_JOYSTICK_CONTROLLER_HPP_
+#endif  // LEADER_JOYSTICK_CONTROLLER__LEADER_JOYSTICK_CONTROLLER_HPP_

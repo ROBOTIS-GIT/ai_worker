@@ -7,10 +7,10 @@
       </description>
     </class>
   </library>
-  <library path="a2_joystick_controller">
-    <class name="joystick_controller/A2JoystickController" type="a2_joystick_controller::A2JoystickController" base_class_type="controller_interface::ControllerInterface">
+  <library path="leader_joystick_controller">
+    <class name="joystick_controller/LeaderJoystickController" type="leader_joystick_controller::LeaderJoystickController" base_class_type="controller_interface::ControllerInterface">
       <description>
-        A2-specific joystick controller with per-arm teleoperation and long-press mode switching.
+        Leader joystick controller with per-arm teleoperation and long-press mode switching.
       </description>
     </class>
   </library>
