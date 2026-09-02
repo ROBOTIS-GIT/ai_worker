@@ -68,8 +68,8 @@ controller_interface::CallbackReturn LeaderJoystickController::on_configure(
 
   RCLCPP_INFO(
     get_node()->get_logger(),
-    "Leader joystick controller configured (mode switch hold: %.2f s)",
-    leader_params_.leader_mode_switch_long_press_duration);
+    "Leader joystick controller configured (teleoperation toggle hold: %.2f s)",
+    leader_params_.teleoperation_toggle_long_press_duration);
   return controller_interface::CallbackReturn::SUCCESS;
 }
 
@@ -101,19 +101,20 @@ void LeaderJoystickController::handle_tact_switches(
   const uint8_t prev_state =
     (prev_left_tact_switch_ ? 2 : 0) | (prev_right_tact_switch_ ? 1 : 0);
 
-  if (current_state == 3) {
+  const bool individual_long_press_triggered =
+    left_tact_long_press_triggered_ || right_tact_long_press_triggered_;
+  if (current_state == 3 && !individual_long_press_triggered) {
     if (!both_pressed_flag_ || (prev_state != 3 && !both_tact_long_press_triggered_)) {
       both_tact_press_start_time_ = current_time;
     } else if (!both_tact_long_press_triggered_) {
       const auto press_duration = current_time - both_tact_press_start_time_;
-      if (press_duration.seconds() >= leader_params_.leader_mode_switch_long_press_duration) {
+      if (press_duration.seconds() >=
+        leader_params_.teleoperation_toggle_long_press_duration)
+      {
         both_tact_long_press_triggered_ = true;
-        std_msgs::msg::String mode_msg;
-        current_mode_ = current_mode_ == kArmControlMode ? kSwerveMode : kArmControlMode;
-        mode_msg.data = current_mode_;
-        mode_pub_->publish(mode_msg);
-        RCLCPP_INFO(
-          get_node()->get_logger(), "Mode switched to: %s", current_mode_.c_str());
+        publish_teleoperation_toggle(
+          robotis_interfaces::msg::TeleoperationCommand::TARGET_BOTH);
+        RCLCPP_INFO(get_node()->get_logger(), "Both-arm teleoperation toggled");
       }
     }
   }
@@ -134,21 +135,23 @@ void LeaderJoystickController::handle_tact_switches(
 
   if (left_tact_pressed && !both_pressed_flag_ && !left_tact_long_press_triggered_) {
     const auto press_duration = current_time - left_tact_press_start_time_;
-    if (press_duration.seconds() >= params_.long_press_duration) {
-      std_msgs::msg::String trigger_msg;
-      trigger_msg.data = "left_long_time";
-      tact_trigger_pub_->publish(trigger_msg);
-      RCLCPP_INFO(get_node()->get_logger(), "Left tact switch long press triggered!");
+    if (press_duration.seconds() >=
+      leader_params_.teleoperation_toggle_long_press_duration)
+    {
+      publish_teleoperation_toggle(
+        robotis_interfaces::msg::TeleoperationCommand::TARGET_LEFT);
+      RCLCPP_INFO(get_node()->get_logger(), "Left-arm teleoperation toggled");
       left_tact_long_press_triggered_ = true;
     }
   }
   if (right_tact_pressed && !both_pressed_flag_ && !right_tact_long_press_triggered_) {
     const auto press_duration = current_time - right_tact_press_start_time_;
-    if (press_duration.seconds() >= params_.long_press_duration) {
-      std_msgs::msg::String trigger_msg;
-      trigger_msg.data = "right_long_time";
-      tact_trigger_pub_->publish(trigger_msg);
-      RCLCPP_INFO(get_node()->get_logger(), "Right tact switch long press triggered!");
+    if (press_duration.seconds() >=
+      leader_params_.teleoperation_toggle_long_press_duration)
+    {
+      publish_teleoperation_toggle(
+        robotis_interfaces::msg::TeleoperationCommand::TARGET_RIGHT);
+      RCLCPP_INFO(get_node()->get_logger(), "Right-arm teleoperation toggled");
       right_tact_long_press_triggered_ = true;
     }
   }
@@ -156,24 +159,26 @@ void LeaderJoystickController::handle_tact_switches(
   // Execute exactly one action after every participating button has been released.
   if (current_state == 0 && prev_state != 0) {
     if (both_pressed_flag_) {
-      if (!both_tact_long_press_triggered_) {
-        publish_teleoperation_toggle(
-          robotis_interfaces::msg::TeleoperationCommand::TARGET_BOTH);
-        RCLCPP_INFO(get_node()->get_logger(), "Both-arm teleoperation toggled");
+      if (
+        !both_tact_long_press_triggered_ &&
+        !left_tact_long_press_triggered_ && !right_tact_long_press_triggered_)
+      {
+        std_msgs::msg::String mode_msg;
+        current_mode_ = current_mode_ == kArmControlMode ? kSwerveMode : kArmControlMode;
+        mode_msg.data = current_mode_;
+        mode_pub_->publish(mode_msg);
+        RCLCPP_INFO(
+          get_node()->get_logger(), "Mode switched to: %s", current_mode_.c_str());
       }
     } else if (prev_state == 1 && !right_tact_long_press_triggered_) {
       std_msgs::msg::String trigger_msg;
       trigger_msg.data = "right";
       tact_trigger_pub_->publish(trigger_msg);
-      publish_teleoperation_toggle(
-        robotis_interfaces::msg::TeleoperationCommand::TARGET_RIGHT);
       RCLCPP_INFO(get_node()->get_logger(), "Right tact switch triggered!");
     } else if (prev_state == 2 && !left_tact_long_press_triggered_) {
       std_msgs::msg::String trigger_msg;
       trigger_msg.data = "left";
       tact_trigger_pub_->publish(trigger_msg);
-      publish_teleoperation_toggle(
-        robotis_interfaces::msg::TeleoperationCommand::TARGET_LEFT);
       RCLCPP_INFO(get_node()->get_logger(), "Left tact switch triggered!");
     }
 

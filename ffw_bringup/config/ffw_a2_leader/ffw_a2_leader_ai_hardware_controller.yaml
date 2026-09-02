@@ -86,7 +86,7 @@
     ros__parameters:
       teleoperation_toggle_enabled: true
       teleoperation_command_topic: "/leader/teleoperation/joystick_command"
-      leader_mode_switch_long_press_duration: 1.0
+      teleoperation_toggle_long_press_duration: 1.0
       joystick_sensors:
         - sensorxel_l_joy
         - sensorxel_r_joy

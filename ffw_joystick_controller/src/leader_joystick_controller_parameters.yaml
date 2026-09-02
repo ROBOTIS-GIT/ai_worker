@@ -11,9 +11,9 @@ leader_joystick_controller:
     description: "Topic for AI Worker teleoperation button commands",
     read_only: true
   }
-  leader_mode_switch_long_press_duration: {
+  teleoperation_toggle_long_press_duration: {
     type: double,
     default_value: 1.0,
-    description: "Leader both-button hold duration for joystick mode switching",
+    description: "Leader button hold duration for per-arm teleoperation toggling",
     read_only: true
   }

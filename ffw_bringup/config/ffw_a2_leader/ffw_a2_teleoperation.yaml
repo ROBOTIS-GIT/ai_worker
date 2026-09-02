@@ -47,13 +47,17 @@ cyclo_teleoperation:
             step0:
               left:
                 positions: [1.57, 0.0, 0.0, -2.5, 0.0, 0.0, 0.0]
+                gripper_position: 0.0
               right:
                 positions: [1.57, 0.0, -0.0, -2.5, 0.0, 0.0, 0.0]
+                gripper_position: 0.0
             step1:
               left:
                 positions: [0.0, 0.0, 0.0, -1.57, 0.0, 0.0, 0.0]
+                gripper_position: 0.0
               right:
                 positions: [0.0, 0.0, 0.0, -1.57, 0.0, 0.0, 0.0]
+                gripper_position: 0.0
           duration: 3.0
           completion_tolerance: 0.1
           timeout: 30.0
@@ -70,8 +74,10 @@ cyclo_teleoperation:
           step0:
             left:
               positions: [0.431, 0.304, 0.152, -2.457, -0.267, 0.686, -0.948]
+              gripper_position: 0.0
             right:
               positions: [0.431, -0.304, -0.152, -2.457, 0.267, 0.686, 0.948]
+              gripper_position: 0.0
         duration: 3.0
         completion_tolerance: 0.1
         timeout: 30.0
@@ -83,8 +89,10 @@ cyclo_teleoperation:
           step0:
             left:
               positions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+              gripper_position: 0.0
             right:
               positions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+              gripper_position: 0.0
         duration: 4.0
         completion_tolerance: 0.1
         timeout: 30.0
