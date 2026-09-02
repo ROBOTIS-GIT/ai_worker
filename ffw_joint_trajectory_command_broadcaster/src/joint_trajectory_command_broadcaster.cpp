@@ -43,6 +43,25 @@ namespace joint_trajectory_command_broadcaster
 const auto kUninitializedValue = std::numeric_limits<double>::quiet_NaN();
 using hardware_interface::HW_IF_POSITION;
 
+const char * sample_status_name(const JointSampleStatus status)
+{
+  switch (status) {
+    case JointSampleStatus::MISSING:
+      return "missing";
+    case JointSampleStatus::NON_FINITE:
+      return "non-finite";
+    case JointSampleStatus::OUT_OF_RANGE:
+      return "outside URDF limits";
+    case JointSampleStatus::EXCESSIVE_JUMP:
+      return "excessive jump";
+    case JointSampleStatus::UNKNOWN_JOINT:
+      return "unknown joint";
+    case JointSampleStatus::ACCEPTED:
+      return "accepted";
+  }
+  return "unknown";
+}
+
 JointTrajectoryCommandBroadcaster::JointTrajectoryCommandBroadcaster() {}
 
 controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_init()
@@ -90,6 +109,14 @@ controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_confi
   }
   params_ = param_listener_->get_params();
 
+  if (!std::isfinite(params_.max_position_jump) || params_.max_position_jump <= 0.0) {
+    RCLCPP_ERROR(get_node()->get_logger(), "max_position_jump must be finite and positive");
+    return controller_interface::CallbackReturn::ERROR;
+  }
+  if (!std::isfinite(params_.position_limit_margin) || params_.position_limit_margin < 0.0) {
+    RCLCPP_ERROR(get_node()->get_logger(), "position_limit_margin must be finite and nonnegative");
+    return controller_interface::CallbackReturn::ERROR;
+  }
   // Map interface if needed
   map_interface_to_joint_state_.clear();
   map_interface_to_joint_state_[HW_IF_POSITION] = params_.map_interface_to_joint_state.position;
@@ -209,6 +236,16 @@ controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_activ
       return CallbackReturn::ERROR;
     }
 
+    if (!std::all_of(
+        group_joint_offsets_[group_name].begin(), group_joint_offsets_[group_name].end(),
+        [](const double offset) {return std::isfinite(offset);}))
+    {
+      RCLCPP_ERROR(
+        get_node()->get_logger(), "Group '%s' contains a non-finite joint offset",
+        group_name.c_str());
+      return CallbackReturn::ERROR;
+    }
+
     RCLCPP_INFO(
       get_node()->get_logger(),
       "Group '%s' configured with %zu joints and %zu offsets",
@@ -217,6 +254,8 @@ controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_activ
 
   // No need to init JointState or DynamicJointState messages, only JointTrajectory
   // will be published. We'll construct it on-the-fly in update()
+  position_safety_filter_.configure(
+    model_, joint_names_, params_.max_position_jump, params_.position_limit_margin);
 
   return CallbackReturn::SUCCESS;
 }
@@ -231,6 +270,9 @@ controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_deact
   group_joint_offsets_.clear();
   group_topic_names_.clear();
   group_reverse_joints_.clear();
+  follower_joint_positions_.clear();
+  follower_joint_validity_.clear();
+  position_safety_filter_.reset();
 
   return CallbackReturn::SUCCESS;
 }
@@ -302,7 +344,12 @@ void JointTrajectoryCommandBroadcaster::joint_states_callback(
   // Update follower joint positions
   for (size_t i = 0; i < msg->name.size(); ++i) {
     if (i < msg->position.size()) {
-      follower_joint_positions_[msg->name[i]] = msg->position[i];
+      const double position = msg->position[i];
+      const bool valid = std::isfinite(position);
+      follower_joint_validity_[msg->name[i]] = valid;
+      if (valid) {
+        follower_joint_positions_[msg->name[i]] = position;
+      }
     }
   }
 
@@ -348,10 +395,17 @@ double JointTrajectoryCommandBroadcaster::calculate_mean_error() const
       if (follower_it == follower_joint_positions_.end()) {
         continue;  // Skip joints not available in follower
       }
+      const auto follower_validity_it = follower_joint_validity_.find(joint_name);
+      if (
+        follower_validity_it == follower_joint_validity_.end() ||
+        !follower_validity_it->second || !std::isfinite(follower_it->second))
+      {
+        return std::numeric_limits<double>::max();
+      }
 
       double leader_pos = get_value(name_if_value_mapping_, joint_name, HW_IF_POSITION);
-      if (std::isnan(leader_pos)) {
-        continue;  // Skip joints without valid leader position
+      if (!std::isfinite(leader_pos)) {
+        return std::numeric_limits<double>::max();
       }
 
       // Apply reverse and offset to leader position for comparison
@@ -364,6 +418,10 @@ double JointTrajectoryCommandBroadcaster::calculate_mean_error() const
       // Apply group offset
       if (i < group_offsets.size()) {
         leader_pos += group_offsets[i];
+      }
+
+      if (!std::isfinite(leader_pos)) {
+        return std::numeric_limits<double>::max();
       }
 
       total_error += std::abs(leader_pos - follower_it->second);
@@ -381,10 +439,12 @@ bool JointTrajectoryCommandBroadcaster::check_trigger_active() const
   double gripper_l_pos = get_value(name_if_value_mapping_, "gripper_l_joint1", HW_IF_POSITION);
 
   // Return true if both grippers are above threshold
-  return (!std::isnan(gripper_r_pos) &&
+  return (position_safety_filter_.is_current_sample_valid("gripper_r_joint1") &&
+         std::isfinite(gripper_r_pos) &&
          gripper_r_pos * params_.trigger_sign >=
          params_.trigger_threshold * params_.trigger_sign) &&
-         (!std::isnan(gripper_l_pos) &&
+         (position_safety_filter_.is_current_sample_valid("gripper_l_joint1") &&
+         std::isfinite(gripper_l_pos) &&
          gripper_l_pos * params_.trigger_sign >= params_.trigger_threshold * params_.trigger_sign);
 }
 
@@ -443,14 +503,25 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
   const rclcpp::Time & time, const rclcpp::Duration & /*period*/)
 {
   // Update stored values
+  position_safety_filter_.begin_cycle();
   for (const auto & state_interface : state_interfaces_) {
     std::string interface_name = state_interface.get_interface_name();
     if (map_interface_to_joint_state_.count(interface_name) > 0) {
       interface_name = map_interface_to_joint_state_[interface_name];
     }
     auto value = state_interface.get_optional();
-    if (value) {
-      name_if_value_mapping_[state_interface.get_prefix_name()][interface_name] = *value;
+    const auto result = value ?
+      position_safety_filter_.update(state_interface.get_prefix_name(), *value) :
+      position_safety_filter_.mark_missing(state_interface.get_prefix_name());
+    if (result.status == JointSampleStatus::ACCEPTED) {
+      name_if_value_mapping_[state_interface.get_prefix_name()][interface_name] = result.retained;
+    } else if (result.status != JointSampleStatus::UNKNOWN_JOINT)
+    {
+      RCLCPP_WARN_THROTTLE(
+        get_node()->get_logger(), *get_node()->get_clock(), 2000,
+        "Rejected %s position sample (%s): candidate=%.6f, holding=%.6f",
+        state_interface.get_prefix_name().c_str(), sample_status_name(result.status),
+        result.candidate, result.retained);
     }
   }
 
@@ -501,6 +572,12 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
     if (group_joints.empty()) {
       continue;  // Skip empty groups
     }
+    if (!position_safety_filter_.group_initialized(group_joints)) {
+      RCLCPP_WARN_THROTTLE(
+        get_node()->get_logger(), *get_node()->get_clock(), 2000,
+        "Waiting for valid initial position samples for group '%s'", group_name.c_str());
+      continue;
+    }
 
     auto & realtime_publisher = realtime_joint_trajectory_publishers_[group_name];
     if (realtime_publisher) {
@@ -512,6 +589,7 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
       traj_msg.points.clear();
       traj_msg.points.resize(1);
       traj_msg.points[0].positions.resize(num_joints, kUninitializedValue);
+      bool group_output_valid = true;
 
       for (size_t i = 0; i < num_joints; ++i) {
         double pos_value =
@@ -532,7 +610,19 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
           pos_value += group_offsets[i];
         }
 
+        if (!std::isfinite(pos_value)) {
+          group_output_valid = false;
+          break;
+        }
+
         traj_msg.points[0].positions[i] = pos_value;
+      }
+
+      if (!group_output_valid) {
+        RCLCPP_ERROR_THROTTLE(
+          get_node()->get_logger(), *get_node()->get_clock(), 2000,
+          "Suppressed non-finite trajectory for group '%s'", group_name.c_str());
+        continue;
       }
 
       // Set time_from_start based on sync status and mean error

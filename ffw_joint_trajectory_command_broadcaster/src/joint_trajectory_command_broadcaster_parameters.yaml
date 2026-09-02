@@ -41,6 +41,16 @@ joint_trajectory_command_broadcaster:
     default_value: 0.4,
     description: "Maximum delay (in seconds) for adaptive timing when joints are not synced."
   }
+  max_position_jump: {
+    type: double,
+    default_value: 1.0,
+    description: "Maximum accepted position change between consecutive controller updates in radians."
+  }
+  position_limit_margin: {
+    type: double,
+    default_value: 0.05,
+    description: "Margin in radians added to URDF position limits during state validation."
+  }
   left_joints: {
     type: string_array,
     default_value: [],
