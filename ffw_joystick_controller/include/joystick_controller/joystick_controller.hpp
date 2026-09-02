@@ -101,13 +101,13 @@ protected:
     JoystickValues & joystick_values,
     bool & left_tact_pressed,
     bool & right_tact_pressed) const;
-  void update_last_active_positions(const std::vector<std::string> & controlled_joints);
   std::vector<double> calculate_joint_positions(
     const std::vector<std::string> & controlled_joints,
     const std::vector<double> & normalized_values,
     const std::string & sensor_name,
     bool swerve_mode,
-    const JoystickValues & joystick_values) const;
+    const JoystickValues & joystick_values,
+    const std::vector<double> & command_positions) const;
   void publish_joint_trajectory(
     const std::vector<std::string> & controlled_joints,
     const std::vector<double> & positions,
@@ -124,13 +124,13 @@ protected:
   std::vector<std::vector<std::reference_wrapper<hardware_interface::LoanedStateInterface>>>
   joint_state_interface_;
   sensor_msgs::msg::JointState current_joint_states_;
-  bool was_active_ = false;  // Track previous sensorxel_joy state
   bool has_joint_states_ = false;  // Track if joint states have been received
 
   std::map<std::string, std::vector<std::string>> sensor_controlled_joints_;
   std::map<std::string, std::vector<std::string>> sensor_reverse_interfaces_;
   std::map<std::string, std::string> sensor_joint_trajectory_topic_;
-  std::map<std::string, std::vector<double>> sensor_last_active_positions_;
+  std::map<std::string, std::vector<double>> sensor_command_positions_;
+  std::map<std::string, bool> sensor_command_initialized_;
   std::map<std::string,
     rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr>
   sensor_joint_trajectory_publisher_;

@@ -146,62 +146,50 @@ void JoystickController::update_joystick_values(
   }
 }
 
-void JoystickController::update_last_active_positions(
-  const std::vector<std::string> & controlled_joints)
-{
-  // This method should be called with the correct sensor context
-  // For now, we'll use the first sensor as default
-  if (sensorxel_joy_names_.empty()) {
-    return;
-  }
-
-  const std::string & sensor_name = sensorxel_joy_names_[0];
-  auto & last_active_positions = sensor_last_active_positions_[sensor_name];
-
-  for (size_t i = 0; i < controlled_joints.size(); ++i) {
-    const auto & joint_name = controlled_joints[i];
-    auto it = std::find(current_joint_states_.name.begin(), current_joint_states_.name.end(),
-        joint_name);
-    if (it != current_joint_states_.name.end()) {
-      size_t index = std::distance(current_joint_states_.name.begin(), it);
-      if (i < last_active_positions.size()) {
-        last_active_positions[i] = current_joint_states_.position[index];
-      }
-    }
-  }
-}
-
 std::vector<double> JoystickController::calculate_joint_positions(
   const std::vector<std::string> & controlled_joints,
   const std::vector<double> & normalized_values,
   const std::string & sensor_name,
   bool swerve_mode,
-  const JoystickValues & joystick_values) const
+  const JoystickValues & joystick_values,
+  const std::vector<double> & command_positions) const
 {
-  std::vector<double> positions;
+  std::vector<double> positions = command_positions;
 
   for (size_t i = 0; i < controlled_joints.size(); ++i) {
+    double sensorxel_joy_value = 0.0;
+    bool has_motion_intent = false;
+
+    if (swerve_mode) {
+      // In swerve mode only the right joystick X-axis controls the lift joint.
+      if (sensor_name == constants::RIGHT_JOYSTICK_NAME && i == 0) {
+        sensorxel_joy_value = joystick_values.right_x;
+        has_motion_intent = std::abs(sensorxel_joy_value) > 0.0;
+      }
+    } else {
+      // In head-control mode X controls the first joint and Y controls the second joint.
+      const size_t axis_index = i == 0 ? 0 : 1;
+      if (i < 2 && axis_index < normalized_values.size()) {
+        sensorxel_joy_value = normalized_values[axis_index];
+        has_motion_intent = std::abs(sensorxel_joy_value) > 0.0;
+      }
+    }
+
+    // Keep the previous command unless this axis is intentionally operated.
+    if (!has_motion_intent || i >= positions.size()) {
+      continue;
+    }
+
     const auto & joint_name = controlled_joints[i];
     auto it = std::find(current_joint_states_.name.begin(), current_joint_states_.name.end(),
         joint_name);
     if (it != current_joint_states_.name.end()) {
       size_t index = std::distance(current_joint_states_.name.begin(), it);
-      double current_position = current_joint_states_.position[index];
-      double sensorxel_joy_value;
-
-      if (swerve_mode) {
-        // Use right joystick X-axis for lift control in swerve mode
-        sensorxel_joy_value = (sensor_name ==
-          constants::RIGHT_JOYSTICK_NAME) ? joystick_values.right_x : 0.0;
-      } else {
-        // Normal mode: use appropriate axis based on joint index
-        sensorxel_joy_value = (state_interface_types_.size() > 1 &&
-          i == 1) ? normalized_values[1] : normalized_values[0];
+      if (index < current_joint_states_.position.size()) {
+        const double current_position = current_joint_states_.position[index];
+        positions[i] = current_position + sensorxel_joy_value *
+          sensor_jog_scale_.at(sensor_name);
       }
-
-      double new_position = current_position + sensorxel_joy_value *
-        sensor_jog_scale_.at(sensor_name);
-      positions.push_back(new_position);
     }
   }
 
@@ -396,28 +384,42 @@ JoystickController::state_interface_configuration() const
 
 void JoystickController::joint_states_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
 {
-  // Store current joint states
+  // Always retain the latest feedback, but do not overwrite an initialized command with it.
   current_joint_states_ = *msg;
+  has_joint_states_ = true;
 
-  // initialize last_active_positions_ by sensor
-  if (!has_joint_states_) {
-    for (const auto & sensor_name : sensorxel_joy_names_) {
-      const auto & controlled_joints = sensor_controlled_joints_[sensor_name];
-      auto & last_active_positions = sensor_last_active_positions_[sensor_name];
-      last_active_positions.resize(controlled_joints.size());
-      for (size_t i = 0; i < controlled_joints.size(); ++i) {
-        const auto & joint_name = controlled_joints[i];
-        auto it = std::find(current_joint_states_.name.begin(), current_joint_states_.name.end(),
-            joint_name);
-        if (it != current_joint_states_.name.end()) {
-          size_t index = std::distance(current_joint_states_.name.begin(), it);
-          last_active_positions[i] = current_joint_states_.position[index];
-        }
+  // Retry initialization until one message contains every controlled joint for the sensor.
+  for (const auto & sensor_name : sensorxel_joy_names_) {
+    if (sensor_command_initialized_[sensor_name]) {
+      continue;
+    }
+
+    const auto & controlled_joints = sensor_controlled_joints_[sensor_name];
+    std::vector<double> command_positions;
+    command_positions.reserve(controlled_joints.size());
+    bool complete = !controlled_joints.empty();
+
+    for (const auto & joint_name : controlled_joints) {
+      auto it = std::find(current_joint_states_.name.begin(), current_joint_states_.name.end(),
+          joint_name);
+      if (it == current_joint_states_.name.end()) {
+        complete = false;
+        break;
       }
+
+      const size_t index = std::distance(current_joint_states_.name.begin(), it);
+      if (index >= current_joint_states_.position.size()) {
+        complete = false;
+        break;
+      }
+      command_positions.push_back(current_joint_states_.position[index]);
+    }
+
+    if (complete) {
+      sensor_command_positions_[sensor_name] = std::move(command_positions);
+      sensor_command_initialized_[sensor_name] = true;
     }
   }
-
-  has_joint_states_ = true;
 }
 
 controller_interface::return_type JoystickController::update(
@@ -438,55 +440,23 @@ controller_interface::return_type JoystickController::update(
     RCLCPP_DEBUG(get_node()->get_logger(), "Processing sensor: %s", sensor_name.c_str());
 
     const auto & controlled_joints = sensor_controlled_joints_[sensor_name];
-    auto & last_active_positions = sensor_last_active_positions_[sensor_name];
+    auto & command_positions = sensor_command_positions_[sensor_name];
 
     // Read and normalize sensor values
     std::vector<double> normalized_values = read_and_normalize_sensor_values(sensor_idx);
-
-    // Check if any joystick is active
-    bool any_sensorxel_joy_active = std::any_of(normalized_values.begin(), normalized_values.end(),
-        [](double value) {return std::abs(value) > 0.0;});
 
     // Update joystick values
     update_joystick_values(sensor_name, normalized_values, joystick_values,
                           left_tact_switch_pressed, right_tact_switch_pressed);
 
-    // Update last active positions when joystick becomes inactive
-    if (was_active_ && !any_sensorxel_joy_active && !current_joint_states_.name.empty() &&
-      !controlled_joints.empty())
-    {
-      for (size_t i = 0; i < controlled_joints.size(); ++i) {
-        const auto & joint_name = controlled_joints[i];
-        auto it = std::find(current_joint_states_.name.begin(), current_joint_states_.name.end(),
-            joint_name);
-        if (it != current_joint_states_.name.end()) {
-          size_t index = std::distance(current_joint_states_.name.begin(), it);
-          if (i < last_active_positions.size()) {
-            last_active_positions[i] = current_joint_states_.position[index];
-          }
-        }
-      }
-    }
-
     // Publish joint trajectory
-    if (!current_joint_states_.name.empty() && !controlled_joints.empty()) {
-      std::vector<double> positions;
-
-      if (swerve_mode || any_sensorxel_joy_active) {
-        positions = calculate_joint_positions(controlled_joints, normalized_values,
-                                           sensor_name, swerve_mode, joystick_values);
-        // Update last active positions with new positions
-        for (size_t i = 0; i < positions.size() && i < last_active_positions.size(); ++i) {
-          last_active_positions[i] = positions[i];
-        }
-      } else {
-        positions = last_active_positions;
-      }
-
-      publish_joint_trajectory(controlled_joints, positions, sensor_name);
+    if (sensor_command_initialized_[sensor_name] && !controlled_joints.empty()) {
+      command_positions = calculate_joint_positions(
+        controlled_joints, normalized_values, sensor_name, swerve_mode, joystick_values,
+        command_positions);
+      publish_joint_trajectory(controlled_joints, command_positions, sensor_name);
     }
 
-    was_active_ = any_sensorxel_joy_active;
     sensorxel_joy_values_[sensor_idx] = normalized_values;
   }
 
@@ -555,6 +525,8 @@ controller_interface::CallbackReturn JoystickController::on_configure(
       sensor_controlled_joints_[sensor_name] =
         get_node()->get_parameter(joints_param).as_string_array();
     }
+    sensor_command_positions_[sensor_name].clear();
+    sensor_command_initialized_[sensor_name] = false;
     // reverse_interfaces
     std::string reverse_param = sensor_name + "_reverse_interfaces";
     if (get_node()->has_parameter(reverse_param)) {
@@ -640,6 +612,12 @@ controller_interface::CallbackReturn JoystickController::on_activate(
 
   param_listener_->refresh_dynamic_parameters();
   params_ = param_listener_->get_params();
+
+  // Re-seed commands from the next complete joint-state message after every activation.
+  for (const auto & sensor_name : sensorxel_joy_names_) {
+    sensor_command_positions_[sensor_name].clear();
+    sensor_command_initialized_[sensor_name] = false;
+  }
 
   // Initialize state interface vector
   joint_state_interface_.resize(state_interface_types_.size());
