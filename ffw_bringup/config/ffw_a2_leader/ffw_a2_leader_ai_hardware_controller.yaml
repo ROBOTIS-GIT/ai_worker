@@ -21,6 +21,7 @@
     ros__parameters:
       enable_teleoperation: true
       sync_threshold: 0.03
+      max_delay: 0.25
       output_topic_suffix: raw_joint_trajectory
       default_control_mode: 1
       default_left_preset_id: 1
