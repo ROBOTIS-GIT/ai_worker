@@ -1,6 +1,6 @@
 # FFW Follower 모듈화 개발 문서
 
-- 상태: URDF/Gazebo 모듈화 구현 완료, ros2_control/launch 통합 대기
+- 상태: URDF/Gazebo/description launch 모듈화 구현 완료, ros2_control/bringup launch 통합 대기
 - 최종 수정: 2026-09-03
 
 ## 1. 목적
@@ -272,7 +272,7 @@ robot_description_content = Command([
 <xacro:follower_gripper prefix=""/>
 ```
 
-기존 로봇별 최상위 follower URDF는 제거했다. 기존 launch 변경은 원복했으며, ros2_control/config/launch 통합 단계에서 공통 Xacro로 한꺼번에 전환한다.
+기존 로봇별 최상위 follower URDF는 제거했다. 기존 `ffw_bringup` launch 변경은 원복했으며, ros2_control/config/launch 통합 단계에서 공통 Xacro로 한꺼번에 전환한다.
 
 Gazebo 설정도 URDF와 같은 component 이름과 폴더 구조를 사용한다.
 
@@ -293,6 +293,14 @@ gazebo/follower/
 ```
 
 각 component는 `follower_body_gazebo`, `follower_base_gazebo`, `follower_gripper_gazebo`라는 공통 호출 이름만 제공한다. 물리값과 transmission 정의는 공통 파일로 빼지 않고 각 구현 파일에 둔다. 현재 값이 같더라도 `ffw`와 `ffw_f`, 각 Base와 Gripper가 독립적으로 변경될 수 있도록 서로 include하지 않는다. Swerve Base가 dual LiDAR sensor를 소유하고 Gripper가 자기 link와 transmission 설정을 소유한다. 최상위 Xacro에는 공통 `gz_ros2_control` plugin만 직접 둔다. 기존 로봇별 Gazebo 파일은 제거했다.
+
+Description 확인용 launch도 하나로 통합한다.
+
+```bash
+ros2 launch ffw_description ffw_follower.launch.py robot:=sg2
+```
+
+`robot`은 기본값 없는 필수 인자이며 `use_gui`만 선택적으로 받는다. RViz 설정은 로봇별 파일을 유지하고 `robot` 이름으로 `ffw_<robot>.rviz`를 선택한다.
 
 ## 9. 통합 Launch 책임
 
