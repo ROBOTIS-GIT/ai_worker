@@ -17,11 +17,10 @@
 # Authors: Sungho Woo, Woojin Wie, Wonho Yun
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, EmitEvent, ExecuteProcess, RegisterEventHandler
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, RegisterEventHandler
 from launch.actions import IncludeLaunchDescription, TimerAction
 from launch.conditions import IfCondition, UnlessCondition
 from launch.event_handlers import OnProcessExit
-from launch.events import Shutdown
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
@@ -238,20 +237,6 @@ def generate_launch_description():
         condition=IfCondition(use_head_eef_tracker),
     )
 
-    # # Finish monitor: disables follower torque when arm_r_joint6 drops below threshold
-    # finish_monitor_node = Node(
-    #     package='ffw_bringup',
-    #     executable='finish_monitor',
-    #     name='finish_monitor',
-    #     output='screen',
-    # )
-
-    # shutdown_on_finish = RegisterEventHandler(
-    #     event_handler=OnProcessExit(
-    #         target_action=finish_monitor_node,
-    #         on_exit=[EmitEvent(event=Shutdown(reason='finish_monitor exited'))],
-    #     )
-    # )
     # 'data: [455.0, 455.0, 455.0, 500.0, 500.0, 500.0, 1500.0]',
     current_command_process = ExecuteProcess(
         name='current_command_process',
@@ -293,8 +278,6 @@ def generate_launch_description():
             camera_timer_20s,
             camera_timer_10s,
             head_eef_tracker_node,
-            # finish_monitor_node,
-            # shutdown_on_finish,
             current_command_process,
             current_command_process2,
         ]

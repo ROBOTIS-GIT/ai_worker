@@ -6,7 +6,7 @@
 			<visual>
 				<origin xyz="0 0 0" rpy="0 0 0"/>
 				<geometry>
-					<mesh filename="file://$(find ffw_description)/meshes/common/follower/zedm.stl" scale="0.001 0.001 0.001"/>
+					<mesh filename="file://$(find ffw_description)/meshes/follower/body/zedm.stl" scale="0.001 0.001 0.001"/>
 				</geometry>
 				<material name="zedm_mat">
 					<color rgba="0.25 0.25 0.25 1.0"/>
@@ -15,7 +15,7 @@
 			<collision>
 				<origin xyz="0 0 0" rpy="0 0 0"/>
 				<geometry>
-					<mesh filename="file://$(find ffw_description)/meshes/common/follower/zedm.stl" scale="0.001 0.001 0.001"/>
+					<mesh filename="file://$(find ffw_description)/meshes/follower/body/zedm.stl" scale="0.001 0.001 0.001"/>
 				</geometry>
 			</collision>
 		</link>

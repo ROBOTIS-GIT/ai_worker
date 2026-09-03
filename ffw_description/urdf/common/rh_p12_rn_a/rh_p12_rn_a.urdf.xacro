@@ -7,7 +7,7 @@
 
     <xacro:property
       name="meshes_file_direction"
-      value="package://ffw_description/meshes/common/rh_p12_rn_a"/>
+      value="package://ffw_description/meshes/follower/gripper/rh_p12_rn_a"/>
 
     <joint name="${prefix}joint" type="fixed">
       <xacro:insert_block name="origin" />

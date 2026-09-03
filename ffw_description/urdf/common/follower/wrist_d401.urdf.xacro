@@ -10,7 +10,7 @@
 		<link name="${name}_base_link">
 			<visual>
 				<geometry>
-					<mesh filename="file://$(find ffw_description)/meshes/common/follower/wrist_d401_base.stl" scale="0.001 0.001 0.001"/>
+					<mesh filename="file://$(find ffw_description)/meshes/follower/body/wrist_d401_base.stl" scale="0.001 0.001 0.001"/>
 				</geometry>
 				<material name="d401_black">
                   <color rgba="0.2 0.2 0.2 1"/>
@@ -19,7 +19,7 @@
 			<collision>
 				<origin xyz="0 0 0" rpy="0 0 0"/>
 				<geometry>
-					<mesh filename="file://$(find ffw_description)/meshes/common/follower/wrist_d401_base.stl" scale="0.001 0.001 0.001"/>
+					<mesh filename="file://$(find ffw_description)/meshes/follower/body/wrist_d401_base.stl" scale="0.001 0.001 0.001"/>
 				</geometry>
 			</collision>
 			<inertial>

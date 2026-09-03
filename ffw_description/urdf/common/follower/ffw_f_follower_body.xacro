@@ -5,7 +5,7 @@
 
       <xacro:include filename="$(find ffw_description)/urdf/common/follower/wrist_d401.urdf.xacro" />
       <xacro:include filename="$(find realsense2_description)/urdf/_d455.urdf.xacro" />
-      <xacro:property name="meshes_file_direction" value="package://ffw_description/meshes/common/follower/ffw_f" />
+      <xacro:property name="meshes_file_direction" value="package://ffw_description/meshes/follower/body/ffw_f" />
 
       <joint name="${prefix}lift_joint" type="prismatic">
          <parent link="${parent}"/>

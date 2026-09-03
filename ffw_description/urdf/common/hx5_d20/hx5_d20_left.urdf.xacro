@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
    <xacro:macro name="hx5_d20_left" params="prefix parent *origin">
-      <xacro:property name="meshes_file_direction" value="package://ffw_description/meshes/common/hx5_d20/hx5_d20_left/" />
+      <xacro:property name="meshes_file_direction" value="package://ffw_description/meshes/follower/gripper/hx5_d20/hx5_d20_left/" />
 
       <joint name="${prefix}hx5_d20_left_joint" type="fixed">
          <xacro:insert_block name="origin" />

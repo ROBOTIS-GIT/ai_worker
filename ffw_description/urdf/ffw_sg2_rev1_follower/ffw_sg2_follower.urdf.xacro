@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ffw_sg2_follower">
-  <xacro:property name="meshes_file_direction" value="package://ffw_description/meshes/$(arg model)" />
-  <xacro:property name="swerve_meshes_dir" value="package://ffw_description/meshes/common/follower/ffw_swerve" />
+  <xacro:property name="swerve_meshes_dir" value="package://ffw_description/meshes/follower/base/ffw_swerve" />
   <xacro:arg name="use_sim" default="false" />
   <xacro:arg name="use_mock_hardware" default="false" />
   <xacro:arg name="mock_sensor_commands" default="false" />
