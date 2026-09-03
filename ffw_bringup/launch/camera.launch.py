@@ -20,19 +20,28 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import GroupAction, IncludeLaunchDescription, TimerAction
+from launch.actions import (
+    DeclareLaunchArgument,
+    IncludeLaunchDescription,
+    TimerAction,
+)
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch_ros.actions import Node
+from launch.substitutions import LaunchConfiguration, PythonExpression
 
 
 def generate_launch_description():
     bringup_launch_dir = os.path.join(get_package_share_directory('ffw_bringup'), 'launch')
 
+    head_camera_type = LaunchConfiguration('head_camera_type')
+    is_zed_head = PythonExpression(["'", head_camera_type, "' == 'zed'"])
+
     # ZED camera launch
     camera_zed = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(bringup_launch_dir, 'camera_zed.launch.py')),
-        launch_arguments={'camera_model': 'zedm'}.items()
+        launch_arguments={'camera_model': 'zedm'}.items(),
+        condition=IfCondition(is_zed_head),
     )
 
 
@@ -40,9 +49,17 @@ def generate_launch_description():
     camera_realsense = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(bringup_launch_dir, 'camera_realsense.launch.py')),
+        launch_arguments={'head_camera_type': head_camera_type}.items(),
     )
 
     return LaunchDescription([
+        DeclareLaunchArgument(
+            'head_camera_type',
+            default_value='zed',
+            choices=['zed', 'realsense'],
+            description='Head camera type. zed launches a ZED Mini head; realsense launches '
+                        'a D455 head.'
+        ),
         camera_zed,
         TimerAction(period=10.0, actions=[camera_realsense]),
     ])

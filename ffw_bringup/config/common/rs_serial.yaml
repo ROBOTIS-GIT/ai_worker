@@ -3,8 +3,9 @@
 
 # Used when hostname is not listed under hosts (optional fallback)
 default:
-  camera1_serial: "'335122270624'"
-  camera2_serial: "'335122272052'"
+  camera1_serial: ''
+  camera2_serial: ''
+  camera3_serial: ''
 
 # To find your hostname, enter "hostname" in the CLI. And add it to the list below.
 hosts:
@@ -39,13 +40,3 @@ hosts:
   ffw-SNPR48A1110:
     camera1_serial: "'335122272376'"
     camera2_serial: "'335122271144'"
-
-
-
-
-# # intel
-# # Serial numbers for RealSense cameras
-# # Prefix with underscore (_) to force string type in ROS 2 parameter system
-# camera1_serial: _128422270387
-# camera2_serial: _128422270627
-# camera3_serial: _049522250475

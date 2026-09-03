@@ -49,9 +49,6 @@ def generate_launch_description():
                               choices=['zed', 'realsense'],
                               description='Head camera type. realsense for f1 (D455 head), '
                                           'zed for sg2/bg2/sh5/bh5.'),
-        DeclareLaunchArgument('auto_assign_cameras', default_value='true',
-                              choices=['true', 'false'],
-                              description='Use automatic assignment or the manual camera YAML.'),
         DeclareLaunchArgument('init_position', default_value='true',
                               description='Whether to launch the init_position node.'),
         DeclareLaunchArgument('model', default_value='ffw_f1_follower',
@@ -76,7 +73,6 @@ def generate_launch_description():
     port_name = LaunchConfiguration('port_name')
     launch_cameras = LaunchConfiguration('launch_cameras')
     head_camera_type = LaunchConfiguration('head_camera_type')
-    auto_assign_cameras = LaunchConfiguration('auto_assign_cameras')
     init_position = LaunchConfiguration('init_position')
     model = LaunchConfiguration('model')
     use_head_eef_tracker = LaunchConfiguration('use_head_eef_tracker')
@@ -233,7 +229,6 @@ def generate_launch_description():
                                                             'camera.launch.py'])),
         launch_arguments={
             'head_camera_type': head_camera_type,
-            'auto_assign_cameras': auto_assign_cameras,
         }.items(),
         condition=IfCondition(launch_cameras)
     )

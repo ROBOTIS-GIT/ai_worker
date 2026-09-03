@@ -14,7 +14,7 @@
 
 # DESCRIPTION #
 # ----------- #
-# Use this launch file to launch 2 devices.
+# Use this launch file to launch 2 or 3 devices.
 # The Parameters available for definition in the command line for each camera are described in
 # rs_launch.configurable_parameters
 # For each device, the parameter name was changed to include an index.
@@ -32,8 +32,9 @@ import sys
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import OpaqueFunction
-from launch.substitutions import LaunchConfiguration
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.conditions import IfCondition
+from launch.substitutions import LaunchConfiguration, PythonExpression
 import yaml
 
 # Add realsense2_camera/launch to sys.path using ROS package discovery
@@ -56,25 +57,28 @@ serials_path = os.path.join(get_package_share_directory('ffw_bringup'), 'config'
 serials = yaml_to_dict(serials_path)
 host = socket.gethostname().split('.')[0]
 host_serials = serials.get('hosts', {}).get(host) or serials.get('default', serials)
-serial1 = host_serials.get('camera1_serial')
-serial2 = host_serials.get('camera2_serial')
+serial1 = host_serials.get('camera1_serial') or "''"
+serial2 = host_serials.get('camera2_serial') or "''"
+serial3 = host_serials.get('camera3_serial') or "''"
 
 local_parameters = [{'name': 'camera_name1', 'default': 'camera_left',
                      'description': 'camera1 unique name'},
                     {'name': 'camera_name2', 'default': 'camera_right',
                      'description': 'camera2 unique name'},
-# local_parameters = [{'name': 'camera_name1', 'default': 'camera_l',
-#                      'description': 'camera1 unique name'},
-#                     {'name': 'camera_name2', 'default': 'camera_r',
-#                      'description': 'camera2 unique name'},
+                    {'name': 'camera_name3', 'default': 'camera_head',
+                     'description': 'camera3 unique name'},
                     {'name': 'camera_namespace1', 'default': 'camera_left',
                      'description': 'camera1 namespace'},
                     {'name': 'camera_namespace2', 'default': 'camera_right',
                      'description': 'camera2 namespace'},
+                    {'name': 'camera_namespace3', 'default': 'camera_head',
+                     'description': 'camera3 namespace'},
                     {'name': 'serial_no1', 'default': serial1,
                      'description': 'choose device1 by serial number'},
                     {'name': 'serial_no2', 'default': serial2,
                      'description': 'choose device2 by serial number'},
+                    {'name': 'serial_no3', 'default': serial3,
+                     'description': 'choose device3 by serial number'},
                     {'name': 'depth_module.depth_profile1', 'default': '640,480,15',
                      'description': 'depth stream profile for camera1'},
                     {'name': 'depth_module.depth_profile2', 'default': '640,480,15',
@@ -111,10 +115,20 @@ def duplicate_params(general_params, posix):
 def generate_launch_description():
     params1 = duplicate_params(rs_launch.configurable_parameters, '1')
     params2 = duplicate_params(rs_launch.configurable_parameters, '2')
+    params3 = duplicate_params(rs_launch.configurable_parameters, '3')
     return LaunchDescription(
+        [
+            DeclareLaunchArgument(
+                'head_camera_type',
+                default_value='zed',
+                choices=['zed', 'realsense'],
+                description='Launch a D455 head camera when set to realsense.'
+            ),
+        ] +
         rs_launch.declare_configurable_parameters(local_parameters) +
         rs_launch.declare_configurable_parameters(params1) +
         rs_launch.declare_configurable_parameters(params2) +
+        rs_launch.declare_configurable_parameters(params3) +
         [
             OpaqueFunction(
                 function=rs_launch.launch_setup,
@@ -129,6 +143,15 @@ def generate_launch_description():
                     'params': set_configurable_parameters(params2),
                     'param_name_suffix': '2'
                 }
+            ),
+            OpaqueFunction(
+                function=rs_launch.launch_setup,
+                kwargs={
+                    'params': set_configurable_parameters(params3),
+                    'param_name_suffix': '3'
+                },
+                condition=IfCondition(PythonExpression(
+                    ["'", LaunchConfiguration('head_camera_type'), "' == 'realsense'"]))
             ),
         ]
     )
