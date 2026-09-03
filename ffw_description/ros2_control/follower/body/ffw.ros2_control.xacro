@@ -1,35 +1,8 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:macro name="ffw_sg2_follower_system" params="use_sim:=^|false use_mock_hardware:=^|false mock_sensor_commands:=^|false">
-    <ros2_control name="ffw_sg2_follower" type="system" is_async="true">
-      <xacro:if value="$(arg use_sim)">
-        <hardware>
-          <plugin>gz_ros2_control/GazeboSimSystem</plugin>
-        </hardware>
-      </xacro:if>
-      <xacro:unless value="$(arg use_sim)">
-        <hardware>
-          <xacro:if value="${use_mock_hardware}">
-            <plugin>mock_components/GenericSystem</plugin>
-            <param name="mock_sensor_commands">${mock_sensor_commands}</param>
-            <param name="state_following_offset">0.0</param>
-          </xacro:if>
-          <xacro:unless value="${use_mock_hardware}">
-            <plugin>dynamixel_hardware_interface/DynamixelHardware</plugin>
-            <param name="port_name">/dev/follower</param>
-            <param name="baud_rate">4000000</param>
-            <param name="dynamixel_model_folder">/param/dxl_model</param>
-            <param name="number_of_joints">22</param>
-            <param name="number_of_transmissions">22</param>
-            <param name="disable_torque_at_init">true</param>
-            <param name="dynamixel_state_pub_msg_name">ffw_follower/dxl_state</param>
-            <param name="get_dynamixel_data_srv_name">ffw_follower/get_dxl_data</param>
-            <param name="set_dynamixel_data_srv_name">ffw_follower/set_dxl_data</param>
-            <param name="reboot_dxl_srv_name">ffw_follower/reboot_dxl</param>
-            <param name="set_dxl_torque_srv_name">dynamixel_hardware_interface/set_dxl_torque</param>
-          </xacro:unless>
-        </hardware>
-      </xacro:unless>
+  <xacro:property name="follower_body_joint_count" value="17" />
+
+  <xacro:macro name="follower_body_joints">
       <joint name="arm_r_joint1">
         <command_interface name="position"/>
         <state_interface name="position"/>
@@ -67,12 +40,6 @@
         <state_interface name="effort"/>
       </joint>
       <joint name="arm_r_joint7">
-        <command_interface name="position"/>
-        <state_interface name="position"/>
-        <state_interface name="velocity"/>
-        <state_interface name="effort"/>
-      </joint>
-      <joint name="gripper_r_joint1">
         <command_interface name="position"/>
         <state_interface name="position"/>
         <state_interface name="velocity"/>
@@ -120,12 +87,6 @@
         <state_interface name="velocity"/>
         <state_interface name="effort"/>
       </joint>
-      <joint name="gripper_l_joint1">
-        <command_interface name="position"/>
-        <state_interface name="position"/>
-        <state_interface name="velocity"/>
-        <state_interface name="effort"/>
-      </joint>
       <joint name="lift_joint">
         <command_interface name="position"/>
         <state_interface name="position"/>
@@ -139,24 +100,6 @@
         <state_interface name="effort"/>
       </joint>
       <joint name="head_joint2">
-        <command_interface name="position"/>
-        <state_interface name="position"/>
-        <state_interface name="velocity"/>
-        <state_interface name="effort"/>
-      </joint>
-      <joint name="left_wheel_steer">
-        <command_interface name="position"/>
-        <state_interface name="position"/>
-        <state_interface name="velocity"/>
-        <state_interface name="effort"/>
-      </joint>
-      <joint name="right_wheel_steer">
-        <command_interface name="position"/>
-        <state_interface name="position"/>
-        <state_interface name="velocity"/>
-        <state_interface name="effort"/>
-      </joint>
-      <joint name="rear_wheel_steer">
         <command_interface name="position"/>
         <state_interface name="position"/>
         <state_interface name="velocity"/>
@@ -327,19 +270,6 @@
         <param name="Max Position Limit">152804</param>
         <param name="Min Position Limit">-175979</param>
       </gpio>
-      <gpio name="dxl8">
-        <param name="type">dxl</param>
-        <param name="ID">8</param>
-        <command_interface name="Goal Position"/>
-        <state_interface name="Present Position"/>
-        <state_interface name="Present Velocity"/>
-        <state_interface name="Present Current"/>
-        <state_interface name="Hardware Error Status"/>
-        <param name="Operating Mode">5</param>
-        <param name="Return Delay Time">0</param>
-        <param name="Profile Velocity">0</param>
-        <param name="Profile Acceleration">0</param>
-      </gpio>
       <!-- LEFT ARM -->
       <gpio name="dxl31">
         <param name="type">dxl</param>
@@ -504,19 +434,6 @@
         <param name="Max Position Limit">175979</param>
         <param name="Min Position Limit">-152804</param>
       </gpio>
-      <gpio name="dxl38">
-        <param name="type">dxl</param>
-        <param name="ID">38</param>
-        <command_interface name="Goal Position"/>
-        <state_interface name="Present Position"/>
-        <state_interface name="Present Velocity"/>
-        <state_interface name="Present Current"/>
-        <state_interface name="Hardware Error Status"/>
-        <param name="Operating Mode">5</param>
-        <param name="Return Delay Time">0</param>
-        <param name="Profile Velocity">0</param>
-        <param name="Profile Acceleration">0</param>
-      </gpio>
       <!-- LIFT -->
       <gpio name="dxl81">
         <param name="type">dxl</param>
@@ -591,66 +508,5 @@
         <param name="Feedforward 1st Gain">20</param>
         <param name="Feedforward 2nd Gain">20</param>
       </gpio>
-      <!-- LEFT WHEEL -->
-      <gpio name="dxl101">
-        <param name="type">dxl</param>
-        <param name="ID">101</param>
-        <command_interface name="Goal Position"/>
-        <state_interface name="Present Position"/>
-        <state_interface name="Present Velocity"/>
-        <state_interface name="Present Current"/>
-        <state_interface name="Error Code"/>
-        <param name="Drive Mode">5</param>
-        <param name="Operating Mode">3</param>
-        <param name="Velocity Limit">12592</param>
-        <param name="Acceleration Limit">125920</param>
-        <param name="Min Position Limit">-1572864</param>
-        <param name="Max Position Limit">1572864</param>
-        <param name="Return Delay Time">0</param>
-        <param name="Profile Velocity">12592</param>
-        <param name="Profile Acceleration Time">500</param>
-        <param name="Profile Time">1000</param>
-      </gpio>
-      <!-- RIGHT WHEEL -->
-      <gpio name="dxl103">
-        <param name="type">dxl</param>
-        <param name="ID">103</param>
-        <command_interface name="Goal Position"/>
-        <state_interface name="Present Position"/>
-        <state_interface name="Present Velocity"/>
-        <state_interface name="Present Current"/>
-        <state_interface name="Error Code"/>
-        <param name="Drive Mode">5</param>
-        <param name="Operating Mode">3</param>
-        <param name="Velocity Limit">12592</param>
-        <param name="Acceleration Limit">125920</param>
-        <param name="Min Position Limit">-1572864</param>
-        <param name="Max Position Limit">1572864</param>
-        <param name="Return Delay Time">0</param>
-        <param name="Profile Velocity">12592</param>
-        <param name="Profile Acceleration Time">500</param>
-        <param name="Profile Time">1000</param>
-      </gpio>
-      <!-- REAR WHEEL -->
-      <gpio name="dxl105">
-        <param name="type">dxl</param>
-        <param name="ID">105</param>
-        <command_interface name="Goal Position"/>
-        <state_interface name="Present Position"/>
-        <state_interface name="Present Velocity"/>
-        <state_interface name="Present Current"/>
-        <state_interface name="Error Code"/>
-        <param name="Drive Mode">5</param>
-        <param name="Operating Mode">3</param>
-        <param name="Velocity Limit">12592</param>
-        <param name="Acceleration Limit">125920</param>
-        <param name="Min Position Limit">-1572864</param>
-        <param name="Max Position Limit">1572864</param>
-        <param name="Return Delay Time">0</param>
-        <param name="Profile Velocity">12592</param>
-        <param name="Profile Acceleration Time">500</param>
-        <param name="Profile Time">1000</param>
-      </gpio>
-    </ros2_control>
   </xacro:macro>
 </robot>

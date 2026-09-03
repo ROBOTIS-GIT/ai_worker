@@ -168,6 +168,8 @@ def generate_launch_description():
             'hand_r_controller',
             'effort_l_controller',
             'effort_r_controller',
+            'pressure_l_broadcaster',
+            'pressure_r_broadcaster',
         ],
         parameters=[robot_description],
     )

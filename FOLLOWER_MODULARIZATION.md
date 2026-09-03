@@ -77,9 +77,9 @@ Base 구현은 물리 값이 같은 로봇끼리 다음 네 파일로 나눈다.
 - `ffw_swerve`: SG2/SH5
 - `ffw_swerve_f`: F2
 
-Legacy와 F-series는 base mesh, inertial, wheel origin과 wheel radius가 다르므로 하나의 parameterized base로 합치지 않는다. `ffw_swerve`는 SG2 정의를 기준으로 하며, 기존 SH5와 비교하면 LiDAR 두 링크에 각각 0.1 kg의 inertial과 시각 cylinder가 추가된다. 그 외 SH5의 link/joint origin과 물성치는 동일하다.
+Legacy와 F-series는 base mesh, inertial과 wheel origin이 다르므로 하나의 parameterized base로 합치지 않는다. Wheel radius는 둘 다 `0.0865`이다. `ffw_swerve`는 SG2 정의를 기준으로 하며, 기존 SH5와 비교하면 LiDAR 두 링크에 각각 0.1 kg의 inertial과 시각 cylinder가 추가된다. 그 외 SH5의 link/joint origin과 물성치는 동일하다.
 
-F2는 기존 값을 그대로 유지한다. URDF의 steering 축 X 좌표는 `[0.137119, 0.137119, -0.288133]`이고 controller의 `module_x_offsets`는 `[0.1371, 0.1371, -0.2899]`이다. 뒤축에서 약 1.8 mm 차이가 있으며, CAD 또는 실측 확인 전에는 수정하지 않는다.
+F2 controller의 `module_x_offsets`는 URDF steering 축 X 좌표 `[0.137119, 0.137119, -0.288133]`에 맞춘다. F2 steering 3축의 `Acceleration Limit`은 중복 없이 `12592`를 사용한다.
 
 Swerve base가 소유하는 항목은 다음과 같다.
 
@@ -102,7 +102,7 @@ Gripper 모델은 다음과 같다.
 
 - SH5처럼 BH5도 hand URDF와 ros2_control joint 정의를 `robotis_hand_description`에서 include한다.
 - Gazebo는 `gazebo/follower/gripper/hx5_d20_rev2.gazebo.xacro`가 담당한다. 외부 좌우 Gazebo macro는 한 로봇에서 함께 호출하면 `hand_trans1~20` 이름이 중복되므로, 동일한 물리값을 사용하면서 이름을 `hand_l_*`, `hand_r_*`로 구분한다.
-- 기존 BH5 내부 HX5-D20 URDF는 제거했으며 BH5/SH5 모두 외부 rev2 description을 사용한다.
+- 기존 BH5 내부 HX5-D20 URDF와 ros2_control hand 정의는 제거했으며 BH5/SH5 모두 외부 rev2 description을 사용한다.
 - 중복된 로컬 HX5-D20 mesh는 제거하고 `robotis_hand_description`의 mesh를 사용한다.
 - `ffw_description/package.xml`에 `robotis_hand_description` 실행 의존성을 선언한다.
 - BH5와 SH5 모두 `hx5_d20_rev2`를 사용한다.
@@ -124,7 +124,8 @@ arm_r_controller: arm_r_joint1~7
   hand_r_controller: finger_r_joint1~20
   effort_l_controller
   effort_r_controller
-  pressure broadcaster: 지원 모델만 사용
+  pressure_l_broadcaster: BH5/SH5
+  pressure_r_broadcaster: BH5/SH5
 ```
 
 Controller는 분리하지만 같은 `/dev/follower` 버스를 사용하는 joint를 별도 ros2_control hardware system으로 분리하지 않는다.
@@ -132,6 +133,25 @@ Controller는 분리하지만 같은 `/dev/follower` 버스를 사용하는 join
 ## 5. ros2_control 구조
 
 의미상 component 경계와 실제 통신 버스 경계를 구분한다.
+
+```text
+ros2_control/follower/
+├── ffw_follower.ros2_control.xacro
+├── body/
+│   ├── ffw.ros2_control.xacro
+│   └── ffw_f.ros2_control.xacro
+├── base/
+│   ├── ffw_base.ros2_control.xacro
+│   ├── ffw_base_f.ros2_control.xacro
+│   ├── ffw_swerve.ros2_control.xacro
+│   └── ffw_swerve_f.ros2_control.xacro
+└── gripper/
+    ├── rh_p12_rn_a.ros2_control.xacro
+    ├── hx2_d1.ros2_control.xacro
+    └── hx5_d20_rev2.ros2_control.xacro
+```
+
+Body와 Gripper 파일은 hardware system을 만들지 않고 joint/GPIO 정의만 제공한다. Base 파일은 `/dev/follower`에 들어갈 steering 정의와 별도 drive/sensor system을 제공한다. 최상위 파일이 선택된 정의를 다음 통신 경계로 조립한다.
 
 ```text
 follower hardware system (/dev/follower)
@@ -149,6 +169,16 @@ sensor hardware system (/dev/ttyUSB1, swerve 전용)
 Swerve의 steering joint와 drive joint는 서로 다른 hardware system에 있지만 모두 base component가 소유한다. Base Xacro는 필요한 joint 정의를 각 hardware system에 제공한다.
 
 동일한 serial port를 두 Dynamixel hardware system이 동시에 열지 않도록 gripper 전용 hardware system은 만들지 않는다.
+
+현재 저장소에서 `/dev/ttyUSB1` sensor system은 SG2/SH5/F2에만 정의되어 있다. 실제 BG2에는 LED가 있으나 main에는 통신 포트와 ros2_control 연결이 없으므로 하드웨어 연결을 확인한 뒤 반영한다.
+
+`use_sim`은 최상위 Xacro argument로 한 번만 받고 ros2_control 매크로 parameter로 전달한다. 각 매크로 내부에서는 전역 `$(arg use_sim)`을 다시 읽지 않고 전달받은 `${use_sim}`을 사용하도록 모든 로봇을 통일한다.
+
+`ffw_robot_manager`의 배터리 전압 조회를 위해 모든 로봇의 `dxl1`, `dxl61`에서 `Present Input Voltage`를 제공한다.
+
+Head 2축(`dxl62`) 제어 gain은 SG2 기준인 P/I/D `800/200/200`, Feedforward 1st/2nd `20/20`으로 모든 로봇을 통일한다.
+
+BH5도 다른 follower와 동일하게 상태 topic과 제어 service를 `ffw_follower/*` 이름으로 제공한다. `ffw_robot_manager`는 `/ffw_follower/dxl_state`를 구독한다.
 
 현재 하드코딩된 포트는 launch argument가 실제 ros2_control parameter까지 전달되도록 수정한다. 기본값은 현재 값을 유지한다.
 
@@ -297,7 +327,7 @@ gazebo/follower/
 Description 확인용 launch도 하나로 통합한다.
 
 ```bash
-ros2 launch ffw_description ffw_follower.launch.py robot:=sg2
+ros2 launch ffw_description ffw_follower_description.launch.py robot:=sg2
 ```
 
 `robot`은 기본값 없는 필수 인자이며 `use_gui`만 선택적으로 받는다. RViz 설정은 로봇별 파일을 유지하고 `robot` 이름으로 `ffw_<robot>.rviz`를 선택한다.
@@ -331,10 +361,10 @@ ros2 launch ffw_description ffw_follower.launch.py robot:=sg2
 
 1. 기존 6개 Xacro의 link, joint, ros2_control interface 목록을 기준 결과로 저장한다.
 2. `follower_robots.yaml`을 추가하고 6개 로봇만 검증한다.
-3. BH5의 hand URDF와 ros2_control 정의를 SH5처럼 `robotis_hand_description` include 방식으로 전환한다.
-4. 기존 body macro를 유지하면서 base/swerve base와 gripper 조립부를 모듈화한다.
-5. 공통 `ffw_follower.urdf.xacro`를 만든다.
-6. ros2_control joint 정의를 body/base/gripper macro로 나누고 hardware system을 조립한다.
+3. BH5의 hand URDF와 ros2_control 정의를 SH5처럼 `robotis_hand_description` include 방식으로 전환한다. (완료)
+4. 기존 body macro를 유지하면서 base/swerve base와 gripper 조립부를 모듈화한다. (완료)
+5. 공통 `ffw_follower.urdf.xacro`를 만든다. (완료)
+6. ros2_control joint 정의를 body/base/gripper macro로 나누고 hardware system을 조립한다. (완료)
 7. 2지 gripper를 arm controller에서 분리한다.
 8. Leader broadcaster의 arm/gripper trajectory 출력을 분리한다.
 9. 공통 initial position YAML을 만들고 component별 executor를 연결한다.
@@ -378,17 +408,15 @@ done
 - 하나의 공통 initial position YAML로 6개 로봇이 초기화된다.
 - Legacy/F-series 카메라 조합이 기존 하드웨어와 일치한다.
 - BH5와 SH5의 hand URDF 및 ros2_control 정의가 `robotis_hand_description`에서 제공된다.
-- SH5 pressure broadcaster가 유지된다.
+- BH5와 SH5의 pressure broadcaster가 유지된다.
 - 기존 내부 launch 및 Docker 호출이 새 launch를 사용한다.
 - 최종 상태에는 follower launch가 `ffw_follower_ai.launch.py` 하나만 남는다.
 
 ## 12. 확인된 정리 대상
 
-- 기존 follower ros2_control에 섞여 있는 swerve steering joint
 - 2지 gripper가 포함된 arm controller 및 arm init trajectory
 - 실제 hardware parameter에 연결되지 않은 `port_name` launch argument
 - 저장소에서 publisher가 확인되지 않는 BH5/SH5 hand trajectory topic
-- `ffw_description` 내부에 중복 보관된 BH5 HX5-D20 URDF와 ros2_control hand joint 정의
 - 기존 launch를 직접 호출하는 상위 launch, Docker alias와 s6 service runner
 
 ## 13. 비목표

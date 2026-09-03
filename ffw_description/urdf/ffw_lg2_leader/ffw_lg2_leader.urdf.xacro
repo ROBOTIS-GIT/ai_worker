@@ -5,7 +5,7 @@
   <xacro:arg name="mock_sensor_commands" default="false" />
   <xacro:arg name="prefix" default="" />
 
-  <xacro:include filename="$(find ffw_description)/urdf/common/leader/ffw_leader_body.urdf.xacro" />
+  <xacro:include filename="$(find ffw_description)/urdf/leader/ffw_leader_body.urdf.xacro" />
 
   <xacro:include filename="$(find ffw_description)/ros2_control/ffw_lg2_leader/ffw_lg2_leader_left.ros2_control.xacro" />
 

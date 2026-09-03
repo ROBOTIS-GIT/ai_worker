@@ -1,11 +1,15 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:include filename="$(find ffw_description)/ros2_control/ffw_sh5_rev1_follower/ffw_sh5_follower.joints.xacro" />
-  <xacro:include filename="$(find robotis_hand_description)/ros2_control/hx5_d20_rev2/hx5_d20_left.joints.xacro" />
-  <xacro:include filename="$(find robotis_hand_description)/ros2_control/hx5_d20_rev2/hx5_d20_right.joints.xacro" />
+  <xacro:include filename="$(find ffw_description)/ros2_control/follower/body/${robot_config['body']}.ros2_control.xacro" />
+  <xacro:include filename="$(find ffw_description)/ros2_control/follower/base/${robot_config['base']}.ros2_control.xacro" />
+  <xacro:include filename="$(find ffw_description)/ros2_control/follower/gripper/${robot_config['gripper']}.ros2_control.xacro" />
 
-  <xacro:macro name="ffw_sh5_follower_system" params="use_sim:=^|false use_mock_hardware:=^|false mock_sensor_commands:=^|false">
-    <ros2_control name="ffw_sh5_follower" type="system" is_async="true">
+  <xacro:macro name="follower_ros2_control"
+      params="use_sim use_mock_hardware mock_sensor_commands">
+    <xacro:property name="follower_joint_count"
+        value="${follower_body_joint_count + follower_base_steering_joint_count + follower_gripper_joint_count}" />
+
+    <ros2_control name="ffw_follower" type="system" is_async="true">
       <xacro:if value="${use_sim}">
         <hardware>
           <plugin>gz_ros2_control/GazeboSimSystem</plugin>
@@ -23,8 +27,8 @@
             <param name="port_name">/dev/follower</param>
             <param name="baud_rate">4000000</param>
             <param name="dynamixel_model_folder">/param/dxl_model</param>
-            <param name="number_of_joints">60</param>
-            <param name="number_of_transmissions">60</param>
+            <param name="number_of_joints">${follower_joint_count}</param>
+            <param name="number_of_transmissions">${follower_joint_count}</param>
             <param name="disable_torque_at_init">true</param>
             <param name="dynamixel_state_pub_msg_name">ffw_follower/dxl_state</param>
             <param name="get_dynamixel_data_srv_name">ffw_follower/get_dxl_data</param>
@@ -35,10 +39,18 @@
         </hardware>
       </xacro:unless>
 
-      <xacro:hx5_right_joints/>
-      <xacro:hx5_left_joints/>
-      <xacro:ffw_sh5_follower_joints/>
-
+      <xacro:follower_body_joints />
+      <xacro:follower_gripper_joints />
+      <xacro:follower_base_steering_joints />
     </ros2_control>
+
+    <xacro:follower_base_drive_system
+        use_sim="${use_sim}"
+        use_mock_hardware="${use_mock_hardware}"
+        mock_sensor_commands="${mock_sensor_commands}" />
+    <xacro:follower_base_sensor_system
+        use_sim="${use_sim}"
+        use_mock_hardware="${use_mock_hardware}"
+        mock_sensor_commands="${mock_sensor_commands}" />
   </xacro:macro>
 </robot>

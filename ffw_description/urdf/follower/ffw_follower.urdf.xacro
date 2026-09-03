@@ -4,15 +4,12 @@
   <xacro:arg name="use_sim" default="false" />
   <xacro:arg name="use_mock_hardware" default="false" />
   <xacro:arg name="mock_sensor_commands" default="false" />
+  <!-- ros2_control and related configs do not use prefixes, so a non-empty prefix breaks bringup. -->
   <xacro:arg name="prefix" default="" />
-  <xacro:arg name="ros2_control_type" default="" />
 
   <xacro:property name="robot_name" value="$(arg robot)" />
   <xacro:property name="robot_config" value="${xacro.load_yaml('$(find ffw_description)/config/follower_robots.yaml')['robots'][robot_name]}" />
   <xacro:property name="model" value="${robot_config['model']}" />
-  <xacro:property name="default_control_type" value="${'ffw_' + robot_name + '_follower'}" />
-  <xacro:property name="requested_control_type" value="$(arg ros2_control_type)" />
-  <xacro:property name="control_type" value="${requested_control_type or default_control_type}" />
 
   <xacro:include filename="$(find ffw_description)/urdf/follower/body/${robot_config['body']}.urdf.xacro" />
   <xacro:include filename="$(find ffw_description)/urdf/follower/base/${robot_config['base']}.urdf.xacro" />
@@ -33,24 +30,11 @@
   <xacro:follower_body_gazebo prefix="$(arg prefix)" />
   <xacro:follower_gripper_gazebo prefix="$(arg prefix)" />
 
-  <xacro:include filename="$(find ffw_description)/ros2_control/${model}/${control_type}.ros2_control.xacro" />
-  <xacro:call macro="${default_control_type + '_system'}"
+  <xacro:include filename="$(find ffw_description)/ros2_control/follower/ffw_follower.ros2_control.xacro" />
+  <xacro:follower_ros2_control
       use_sim="$(arg use_sim)"
       use_mock_hardware="$(arg use_mock_hardware)"
       mock_sensor_commands="$(arg mock_sensor_commands)" />
-
-  <xacro:if value="${robot_config['base'] in ['ffw_swerve', 'ffw_swerve_f']}">
-    <xacro:include filename="$(find ffw_description)/ros2_control/${model}/ffw_${robot_name}_base.ros2_control.xacro" />
-    <xacro:include filename="$(find ffw_description)/ros2_control/${model}/ffw_${robot_name}_sensor.ros2_control.xacro" />
-    <xacro:call macro="${'ffw_' + robot_name + '_base_system'}"
-        use_sim="$(arg use_sim)"
-        use_mock_hardware="$(arg use_mock_hardware)"
-        mock_sensor_commands="$(arg mock_sensor_commands)" />
-    <xacro:call macro="${'ffw_' + robot_name + '_sensor_system'}"
-        use_sim="$(arg use_sim)"
-        use_mock_hardware="$(arg use_mock_hardware)"
-        mock_sensor_commands="$(arg mock_sensor_commands)" />
-  </xacro:if>
 
   <gazebo>
     <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">

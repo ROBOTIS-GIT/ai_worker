@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:property name="follower_base_steering_joint_count" value="0" />
+
+  <xacro:macro name="follower_base_steering_joints" />
+  <xacro:macro name="follower_base_drive_system"
+      params="use_sim use_mock_hardware mock_sensor_commands" />
+  <xacro:macro name="follower_base_sensor_system"
+      params="use_sim use_mock_hardware mock_sensor_commands" />
+</robot>
