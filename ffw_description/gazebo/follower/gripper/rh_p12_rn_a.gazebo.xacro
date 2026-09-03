@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="rh_p12_rn_a_gazebo_link" params="reference">
+    <gazebo reference="${reference}">
+      <kp>1000000.0</kp>
+      <kd>100.0</kd>
+      <mu1>30.0</mu1>
+      <mu2>30.0</mu2>
+      <maxVel>1.0</maxVel>
+      <minDepth>0.001</minDepth>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:macro name="rh_p12_rn_a_simple_transmission" params="name joint actuator">
+    <transmission name="${name}">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="${joint}">
+        <hardwareInterface>PositionJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="${actuator}">
+        <mechanicalReduction>1</mechanicalReduction>
+        <hardwareInterface>PositionJointInterface</hardwareInterface>
+      </actuator>
+    </transmission>
+  </xacro:macro>
+
+  <xacro:macro name="rh_p12_rn_a_side_gazebo" params="prefix side">
+    <xacro:rh_p12_rn_a_gazebo_link reference="${prefix}gripper_${side}_rh_p12_rn_base" />
+    <xacro:rh_p12_rn_a_gazebo_link reference="${prefix}gripper_${side}_rh_p12_rn_r1" />
+    <xacro:rh_p12_rn_a_gazebo_link reference="${prefix}gripper_${side}_rh_p12_rn_r2" />
+    <xacro:rh_p12_rn_a_gazebo_link reference="${prefix}gripper_${side}_rh_p12_rn_l1" />
+    <xacro:rh_p12_rn_a_gazebo_link reference="${prefix}gripper_${side}_rh_p12_rn_l2" />
+
+    <xacro:rh_p12_rn_a_simple_transmission name="${prefix}gripper_${side}_trans1"
+        joint="${prefix}gripper_${side}_joint1" actuator="${prefix}gripper_${side}_actuator1" />
+    <xacro:rh_p12_rn_a_simple_transmission name="${prefix}gripper_${side}_trans2"
+        joint="${prefix}gripper_${side}_joint2" actuator="${prefix}gripper_${side}_actuator2" />
+    <xacro:rh_p12_rn_a_simple_transmission name="${prefix}gripper_${side}_trans3"
+        joint="${prefix}gripper_${side}_joint3" actuator="${prefix}gripper_${side}_actuator3" />
+    <xacro:rh_p12_rn_a_simple_transmission name="${prefix}gripper_${side}_trans4"
+        joint="${prefix}gripper_${side}_joint4" actuator="${prefix}gripper_${side}_actuator4" />
+  </xacro:macro>
+
+  <xacro:macro name="follower_gripper_gazebo" params="prefix">
+    <xacro:rh_p12_rn_a_side_gazebo prefix="${prefix}" side="l" />
+    <xacro:rh_p12_rn_a_side_gazebo prefix="${prefix}" side="r" />
+  </xacro:macro>
+</robot>

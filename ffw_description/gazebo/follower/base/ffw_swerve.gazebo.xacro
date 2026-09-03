@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="follower_lidar_gazebo" params="prefix side topic">
+    <gazebo reference="${prefix}lidar_${side}_link">
+      <sensor name="${prefix}lidar_${side}" type="gpu_lidar">
+        <pose>0 0 0 0 0 0</pose>
+        <always_on>true</always_on>
+        <visualize>true</visualize>
+        <update_rate>10.0</update_rate>
+        <ray>
+          <scan>
+            <horizontal>
+              <samples>720</samples>
+              <resolution>1</resolution>
+              <min_angle>-2.356194</min_angle>
+              <max_angle>2.356194</max_angle>
+            </horizontal>
+          </scan>
+          <range>
+            <min>0.05</min>
+            <max>20.0</max>
+            <resolution>0.01</resolution>
+          </range>
+          <noise>
+            <type>gaussian</type>
+            <mean>0.0</mean>
+            <stddev>0.01</stddev>
+          </noise>
+        </ray>
+        <gz_frame_id>${prefix}lidar_${side}_link</gz_frame_id>
+        <topic>${prefix}${topic}</topic>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:macro name="follower_base_gazebo" params="prefix">
+    <gazebo reference="${prefix}base_link">
+      <kp>1000000.0</kp>
+      <kd>100.0</kd>
+      <mu1>30.0</mu1>
+      <mu2>30.0</mu2>
+      <maxVel>1.0</maxVel>
+      <minDepth>0.001</minDepth>
+    </gazebo>
+    <xacro:follower_lidar_gazebo prefix="${prefix}" side="l" topic="scan_left" />
+    <xacro:follower_lidar_gazebo prefix="${prefix}" side="r" topic="scan_right" />
+  </xacro:macro>
+</robot>

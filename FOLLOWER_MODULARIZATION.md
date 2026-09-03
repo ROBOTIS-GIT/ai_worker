@@ -1,6 +1,6 @@
 # FFW Follower 모듈화 개발 문서
 
-- 상태: 설계 초안
+- 상태: URDF/Gazebo 모듈화 구현 완료, ros2_control/launch 통합 대기
 - 최종 수정: 2026-09-03
 
 ## 1. 목적
@@ -19,36 +19,35 @@ ros2 launch ffw_bringup ffw_follower_ai.launch.py robot:=sg2
 
 | Robot | Body | Base | Gripper | 카메라 | Base 센서 |
 |---|---|---|---|---|---|
-| `bg2` | `legacy` | `base` | `rh_p12_rn_a` (2지) | Head ZED Mini, Wrist D405 | 없음 |
-| `sg2` | `legacy` | `swerve` | `rh_p12_rn_a` (2지) | Head ZED Mini, Wrist D405 | IMU, Dual LiDAR |
-| `bh5` | `legacy` | `base` | `hx5_d20` (5지) | Head ZED Mini, Wrist D405 | 없음 |
-| `sh5` | `legacy` | `swerve` | `hx5_d20_rev2` (5지) | Head ZED Mini, Wrist D405 | IMU, Dual LiDAR |
-| `f1` | `f_series` | `base` | `hx2_d1` (2지) | Head D455, Wrist D401 | 없음 |
-| `f2` | `f_series` | `swerve` | `hx2_d1` (2지) | Head D455, Wrist D401 | IMU, Dual LiDAR |
+| `bg2` | `ffw` | `ffw_base` | `rh_p12_rn_a` (2지) | Head ZED Mini, Wrist D405 | 없음 |
+| `sg2` | `ffw` | `ffw_swerve` | `rh_p12_rn_a` (2지) | Head ZED Mini, Wrist D405 | IMU, Dual LiDAR |
+| `bh5` | `ffw` | `ffw_base` | `hx5_d20_rev2` (5지) | Head ZED Mini, Wrist D405 | 없음 |
+| `sh5` | `ffw` | `ffw_swerve` | `hx5_d20_rev2` (5지) | Head ZED Mini, Wrist D405 | IMU, Dual LiDAR |
+| `f1` | `ffw_f` | `ffw_base_f` | `hx2_d1` (2지) | Head D455, Wrist D401 | 없음 |
+| `f2` | `ffw_f` | `ffw_swerve_f` | `hx2_d1` (2지) | Head D455, Wrist D401 | IMU, Dual LiDAR |
 
 현재 존재하는 위 6개 조합만 허용한다. 별도 로봇 정의 없이 body, base, gripper를 임의로 조합하는 기능은 제공하지 않는다.
 
 ## 3. 로봇 설정
 
-로봇 조합의 단일 기준은 `ffw_bringup/config/common/robot_profiles.yaml`로 둔다.
+로봇 조합의 단일 기준은 `ffw_description/config/follower_robots.yaml`이다.
 
 ```yaml
 robots:
-  bg2: {body: legacy,   base: base,   gripper: rh_p12_rn_a}
-  sg2: {body: legacy,   base: swerve, gripper: rh_p12_rn_a}
-  bh5: {body: legacy,   base: base,   gripper: hx5_d20}
-  sh5: {body: legacy,   base: swerve, gripper: hx5_d20_rev2}
-  f1:  {body: f_series, base: base,   gripper: hx2_d1}
-  f2:  {body: f_series, base: swerve, gripper: hx2_d1}
+  bg2: {model: ffw_bg2_rev4_follower, body: ffw,   base: ffw_base,     gripper: rh_p12_rn_a}
+  sg2: {model: ffw_sg2_rev1_follower, body: ffw,   base: ffw_swerve,   gripper: rh_p12_rn_a}
+  bh5: {model: ffw_bh5_rev1_follower, body: ffw,   base: ffw_base,     gripper: hx5_d20_rev2}
+  sh5: {model: ffw_sh5_rev1_follower, body: ffw,   base: ffw_swerve,   gripper: hx5_d20_rev2}
+  f1:  {model: ffw_f1_follower,        body: ffw_f, base: ffw_base_f,   gripper: hx2_d1}
+  f2:  {model: ffw_f2_follower,        body: ffw_f, base: ffw_swerve_f, gripper: hx2_d1}
 ```
 
 카메라 종류, LiDAR 사용 여부, controller 목록처럼 component에서 결정할 수 있는 값은 중복해서 저장하지 않는다.
 
-- `body=legacy`: ZED Mini head, D405 wrist
-- `body=f_series`: D455 head, D401 wrist
-- `base=swerve`: steering/drive, IMU, dual LiDAR 활성화
-- `gripper=hx5_*`: 5지 hand controller, effort controller 활성화
-- `gripper=hx5_d20_rev2`: pressure broadcaster 활성화
+- `body=ffw`: ZED Mini head, D405 wrist
+- `body=ffw_f`: D455 head, D401 wrist
+- `base=ffw_swerve` 또는 `ffw_swerve_f`: steering/drive, IMU, dual LiDAR 활성화
+- `gripper=hx5_d20_rev2`: 5지 hand controller, effort controller, pressure broadcaster 활성화
 
 ## 4. 모듈 경계
 
@@ -62,21 +61,25 @@ Body는 다음 요소를 소유한다.
 - Body, arm, head geometry와 inertial
 - Head/wrist camera description
 
-기존 공통 Xacro를 재사용한다.
+공통 Xacro는 다음 위치에서 관리한다.
 
-- `ffw_follower_body.xacro`: legacy body
-- `ffw_f_follower_body.xacro`: F-series body
+- `urdf/follower/body/ffw.urdf.xacro`: BG2/SG2/BH5/SH5 body
+- `urdf/follower/body/ffw_f.urdf.xacro`: F1/F2 body
 
 두 body는 geometry, inertial, joint origin과 카메라 구성이 다르므로 하나의 거대한 parameterized macro로 합치지 않는다.
 
 ### 4.2 Base
 
-Base의 논리 타입은 다음 두 가지다.
+Base 구현은 물리 값이 같은 로봇끼리 다음 네 파일로 나눈다.
 
-- `base`: 이동 구동축이 없고 world에 고정된 기본 base
-- `swerve`: 3 steering joint와 3 drive joint를 가진 이동 base
+- `ffw_base`: BG2/BH5
+- `ffw_base_f`: F1
+- `ffw_swerve`: SG2/SH5
+- `ffw_swerve_f`: F2
 
-Legacy와 F-series는 base mesh, inertial, wheel origin과 wheel radius가 다르다. 따라서 논리 타입은 두 개로 유지하되 내부 구현은 body family에 맞는 물리 데이터를 선택한다.
+Legacy와 F-series는 base mesh, inertial, wheel origin과 wheel radius가 다르므로 하나의 parameterized base로 합치지 않는다. `ffw_swerve`는 SG2 정의를 기준으로 하며, 기존 SH5와 비교하면 LiDAR 두 링크에 각각 0.1 kg의 inertial과 시각 cylinder가 추가된다. 그 외 SH5의 link/joint origin과 물성치는 동일하다.
+
+F2는 기존 값을 그대로 유지한다. URDF의 steering 축 X 좌표는 `[0.137119, 0.137119, -0.288133]`이고 controller의 `module_x_offsets`는 `[0.1371, 0.1371, -0.2899]`이다. 뒤축에서 약 1.8 mm 차이가 있으며, CAD 또는 실측 확인 전에는 수정하지 않는다.
 
 Swerve base가 소유하는 항목은 다음과 같다.
 
@@ -93,15 +96,16 @@ Gripper 모델은 다음과 같다.
 
 - `rh_p12_rn_a`: legacy 2지
 - `hx2_d1`: F-series 2지
-- `hx5_d20`: BH5 5지
-- `hx5_d20_rev2`: SH5 5지 및 pressure sensor
+- `hx5_d20_rev2`: BH5/SH5 5지 및 pressure sensor
 
 5지 hand description의 소유권은 `robotis_hand_description` 패키지에 둔다.
 
-- SH5처럼 BH5도 hand URDF, Gazebo, ros2_control joint 정의를 `robotis_hand_description`에서 include한다.
-- 현재 BH5가 `ffw_description` 내부에 직접 보유한 `common/hx5_d20` URDF와 follower ros2_control의 hand joint 정의는 외부 패키지 전환 후 제거한다.
+- SH5처럼 BH5도 hand URDF와 ros2_control joint 정의를 `robotis_hand_description`에서 include한다.
+- Gazebo는 `gazebo/follower/gripper/hx5_d20_rev2.gazebo.xacro`가 담당한다. 외부 좌우 Gazebo macro는 한 로봇에서 함께 호출하면 `hand_trans1~20` 이름이 중복되므로, 동일한 물리값을 사용하면서 이름을 `hand_l_*`, `hand_r_*`로 구분한다.
+- 기존 BH5 내부 HX5-D20 URDF는 제거했으며 BH5/SH5 모두 외부 rev2 description을 사용한다.
+- 중복된 로컬 HX5-D20 mesh는 제거하고 `robotis_hand_description`의 mesh를 사용한다.
 - `ffw_description/package.xml`에 `robotis_hand_description` 실행 의존성을 선언한다.
-- BH5의 `hx5_d20`과 SH5의 `hx5_d20_rev2` 모델 구분은 유지한다.
+- BH5와 SH5 모두 `hx5_d20_rev2`를 사용한다.
 
 모든 gripper controller는 arm controller에서 분리한다.
 
@@ -204,7 +208,7 @@ Launch는 선택된 component에 필요한 executor만 실행한다. 사용하�
 
 ## 8. 통합 URDF 구조
 
-최상위 description은 하나만 둔다.
+최상위 description은 `ffw_description/urdf/follower/ffw_follower.urdf.xacro` 하나로 통합한다.
 
 ```text
 ffw_follower.urdf.xacro
@@ -215,16 +219,16 @@ ffw_follower.urdf.xacro
 └── Gazebo component 조립
 ```
 
-최상위 Xacro는 로봇 이름을 직접 해석하지 않고 launch에서 전달받은 `body`, `base`, `gripper` argument만 사용한다. 로봇 조합 규칙은 `robot_profiles.yaml`에만 둔다.
+최상위 Xacro는 `robot` argument를 받아 `follower_robots.yaml`을 읽고 body/base/gripper 모듈을 선택한다. Launch는 로봇 이름만 넘기며 조합 규칙을 중복해서 갖지 않는다.
 
-`ffw_follower.urdf.xacro` 소스 파일은 하나만 저장한다. Launch를 실행할 때마다 선택된 component argument로 Xacro를 펼치고, 생성된 XML 문자열을 `robot_description` parameter로 사용한다. 생성 결과를 별도 `.urdf` 파일로 저장하지 않는다.
+`ffw_follower.urdf.xacro` 소스 파일은 하나만 저장한다. Launch 실행 시 Xacro 결과를 XML 문자열로 만들어 `robot_description` parameter로 사용하며, 생성 결과를 별도 `.urdf` 파일로 저장하지 않는다.
 
 ```text
 ros2 launch ... robot:=sg2
         ↓
-robot_profiles.yaml 조회
+follower_robots.yaml 조회
         ↓
-body=legacy, base=swerve, gripper=rh_p12_rn_a
+body=ffw, base=ffw_swerve, gripper=rh_p12_rn_a
         ↓
 ffw_follower.urdf.xacro 실행
         ↓
@@ -233,74 +237,70 @@ robot_description 문자열
         └── ros2_control_node
 ```
 
-Launch argument는 `generate_launch_description()` 시점에 아직 문자열로 확정되지 않으므로 `OpaqueFunction` 안에서 `robot`을 해석한다. 기존 launch의 `Command([xacro, ...])` 패턴을 그대로 재사용한다.
+Launch는 기존 `Command([xacro, ...])` 패턴으로 공통 Xacro에 `robot`을 전달한다.
 
 ```python
-def launch_setup(context):
-    robot = LaunchConfiguration('robot').perform(context)
-    robot_profiles_path = os.path.join(
-        get_package_share_directory('ffw_bringup'),
-        'config', 'common', 'robot_profiles.yaml'
-    )
-
-    with open(robot_profiles_path) as file:
-        profiles = yaml.safe_load(file)['robots']
-
-    if robot not in profiles:
-        raise RuntimeError(f'Unsupported robot: {robot}')
-
-    profile = profiles[robot]
-    robot_description_content = Command([
-        FindExecutable(name='xacro'),
-        ' ',
-        PathJoinSubstitution([
-            FindPackageShare('ffw_description'),
-            'urdf',
-            'ffw_follower.urdf.xacro',
-        ]),
-        ' body:=', profile['body'],
-        ' base:=', profile['base'],
-        ' gripper:=', profile['gripper'],
-        ' use_sim:=', LaunchConfiguration('use_sim'),
-        ' use_mock_hardware:=', LaunchConfiguration('use_mock_hardware'),
-        ' port_name:=', LaunchConfiguration('port_name'),
-    ])
-
-    robot_description = {'robot_description': robot_description_content}
-    # 같은 robot_description을 robot_state_publisher와 ros2_control_node에 전달한다.
+robot_description_content = Command([
+    FindExecutable(name='xacro'),
+    ' ',
+    PathJoinSubstitution([
+        FindPackageShare('ffw_description'),
+        'urdf', 'follower', 'ffw_follower.urdf.xacro',
+    ]),
+    ' robot:=', LaunchConfiguration('robot'),
+    ' use_sim:=', LaunchConfiguration('use_sim'),
+    ' use_mock_hardware:=', LaunchConfiguration('use_mock_hardware'),
+])
 ```
 
-공통 Xacro는 필요한 매크로 정의를 include한 후 선택된 매크로만 호출한다. Include만으로 link나 joint가 생성되지는 않는다.
+공통 Xacro는 설정에 선택된 파일을 동적으로 include하고, 각 파일이 제공하는 동일한 macro 이름을 호출한다. Include만으로 link나 joint가 생성되지는 않는다.
 
 ```xml
-<xacro:arg name="body" default="legacy"/>
-<xacro:arg name="base" default="base"/>
-<xacro:arg name="gripper" default="rh_p12_rn_a"/>
+<xacro:arg name="robot" default=""/>
+<xacro:property name="robot_name" value="$(arg robot)"/>
+<xacro:property name="robot_config"
+                value="${xacro.load_yaml('.../follower_robots.yaml')['robots'][robot_name]}"/>
 
-<xacro:if value="${body == 'legacy'}">
-  <xacro:ffw_follower_body parent="base_link" prefix="">
-    <origin xyz="..." rpy="..."/>
-  </xacro:ffw_follower_body>
-</xacro:if>
+<xacro:include filename=".../body/${robot_config['body']}.urdf.xacro"/>
+<xacro:include filename=".../base/${robot_config['base']}.urdf.xacro"/>
+<xacro:include filename=".../gripper/${robot_config['gripper']}.urdf.xacro"/>
 
-<xacro:if value="${base == 'swerve'}">
-  <xacro:swerve_base family="${body}"/>
-</xacro:if>
-
-<xacro:if value="${gripper == 'rh_p12_rn_a'}">
-  <xacro:rh_p12_rn_a .../>
-</xacro:if>
+<xacro:follower_base prefix=""/>
+<xacro:follower_body parent="base_link" prefix="">
+  <origin xyz="${body_mount_xyz}" rpy="${body_mount_rpy}"/>
+</xacro:follower_body>
+<xacro:follower_gripper prefix=""/>
 ```
 
-기존 로봇별 URDF는 전환 기간에 새 공통 Xacro를 호출하는 얇은 wrapper로 사용할 수 있다. 6개 로봇 검증이 끝나면 제거한다.
+기존 로봇별 최상위 follower URDF는 제거했다. 기존 launch 변경은 원복했으며, ros2_control/config/launch 통합 단계에서 공통 Xacro로 한꺼번에 전환한다.
+
+Gazebo 설정도 URDF와 같은 component 이름과 폴더 구조를 사용한다.
+
+```text
+gazebo/follower/
+├── body/
+│   ├── ffw.gazebo.xacro
+│   └── ffw_f.gazebo.xacro
+├── base/
+│   ├── ffw_base.gazebo.xacro
+│   ├── ffw_base_f.gazebo.xacro
+│   ├── ffw_swerve.gazebo.xacro
+│   └── ffw_swerve_f.gazebo.xacro
+└── gripper/
+    ├── rh_p12_rn_a.gazebo.xacro
+    ├── hx2_d1.gazebo.xacro
+    └── hx5_d20_rev2.gazebo.xacro
+```
+
+각 component는 `follower_body_gazebo`, `follower_base_gazebo`, `follower_gripper_gazebo`라는 공통 호출 이름만 제공한다. 물리값과 transmission 정의는 공통 파일로 빼지 않고 각 구현 파일에 둔다. 현재 값이 같더라도 `ffw`와 `ffw_f`, 각 Base와 Gripper가 독립적으로 변경될 수 있도록 서로 include하지 않는다. Swerve Base가 dual LiDAR sensor를 소유하고 Gripper가 자기 link와 transmission 설정을 소유한다. 최상위 Xacro에는 공통 `gz_ros2_control` plugin만 직접 둔다. 기존 로봇별 Gazebo 파일은 제거했다.
 
 ## 9. 통합 Launch 책임
 
 `ffw_follower_ai.launch.py`는 다음만 담당한다.
 
-1. 필수 `robot` argument 검증
-2. `robot_profiles.yaml` 조회
-3. 공통 Xacro에 component argument 전달
+1. 필수 `robot` argument 전달
+2. 공통 Xacro 실행
+3. Xacro와 같은 `robot` 값으로 controller 설정 선택
 4. 공통 controller 및 executor 실행
 5. 선택된 base와 gripper의 추가 controller/node 실행
 
@@ -322,7 +322,7 @@ def launch_setup(context):
 ## 10. 작업 순서
 
 1. 기존 6개 Xacro의 link, joint, ros2_control interface 목록을 기준 결과로 저장한다.
-2. `robot_profiles.yaml`을 추가하고 6개 로봇만 검증한다.
+2. `follower_robots.yaml`을 추가하고 6개 로봇만 검증한다.
 3. BH5의 hand URDF와 ros2_control 정의를 SH5처럼 `robotis_hand_description` include 방식으로 전환한다.
 4. 기존 body macro를 유지하면서 base/swerve base와 gripper 조립부를 모듈화한다.
 5. 공통 `ffw_follower.urdf.xacro`를 만든다.
@@ -330,12 +330,12 @@ def launch_setup(context):
 7. 2지 gripper를 arm controller에서 분리한다.
 8. Leader broadcaster의 arm/gripper trajectory 출력을 분리한다.
 9. 공통 initial position YAML을 만들고 component별 executor를 연결한다.
-10. Gazebo description을 component 기준으로 정리한다.
+10. Gazebo description을 component 기준으로 정리한다. (완료)
 11. `ffw_follower_ai.launch.py`를 추가하고 6개 로봇을 검증한다.
 12. 상위 launch, Docker alias와 s6 service runner를 새 launch로 변경한다.
-13. 기존 로봇별 follower launch와 최상위 URDF wrapper를 제거한다.
+13. 기존 로봇별 follower launch를 제거한다. 최상위 URDF wrapper는 제거 완료했다.
 
-Launch 통합 전까지 기존 6개 launch를 새 URDF와 ros2_control 구조의 검증 수단으로 사용한다.
+Launch 통합 전까지 6개 조합을 직접 Xacro로 생성해 URDF와 Gazebo 구성을 검증한다. 기존 6개 launch는 이 단계에서 수정하지 않는다.
 
 ## 11. 검증 기준
 
@@ -347,6 +347,15 @@ ros2 launch ffw_bringup ffw_follower_ai.launch.py \
   use_mock_hardware:=true \
   launch_cameras:=false \
   launch_lidar:=false
+```
+
+URDF 조합 자체는 ROS 환경에서 다음 형태로 여섯 로봇을 생성·검증한다.
+
+```bash
+for robot in bg2 sg2 bh5 sh5 f1 f2; do
+  xacro ffw_description/urdf/follower/ffw_follower.urdf.xacro robot:=$robot \
+    | check_urdf /dev/stdin
+done
 ```
 
 완료 조건:
@@ -370,7 +379,6 @@ ros2 launch ffw_bringup ffw_follower_ai.launch.py \
 - 기존 follower ros2_control에 섞여 있는 swerve steering joint
 - 2지 gripper가 포함된 arm controller 및 arm init trajectory
 - 실제 hardware parameter에 연결되지 않은 `port_name` launch argument
-- HX2-D1 URDF와 맞지 않는 F1/F2 Gazebo의 RH-P12 link 참조
 - 저장소에서 publisher가 확인되지 않는 BH5/SH5 hand trajectory topic
 - `ffw_description` 내부에 중복 보관된 BH5 HX5-D20 URDF와 ros2_control hand joint 정의
 - 기존 launch를 직접 호출하는 상위 launch, Docker alias와 s6 service runner
@@ -378,6 +386,8 @@ ros2 launch ffw_bringup ffw_follower_ai.launch.py \
 ## 13. 비목표
 
 - 현재 로봇별 초기 자세 수치의 완전한 보존
+- BG2 rev2/rev3 지원
+- Mobile-base 단독 구동 지원
 - 정의되지 않은 body/base/gripper 조합 지원
 - Gripper마다 별도의 serial hardware system 생성
 - 실제 차이가 있는 geometry, inertial, wheel tuning을 하나의 공통 숫자로 강제 통일

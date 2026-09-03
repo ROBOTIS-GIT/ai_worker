@@ -20,7 +20,7 @@ find_package(ament_cmake REQUIRED)
 ################################################################################
 # Install
 ################################################################################
-install(DIRECTORY launch meshes rviz urdf gazebo ros2_control
+install(DIRECTORY config launch meshes rviz urdf gazebo ros2_control
   DESTINATION share/${PROJECT_NAME}
 )
 
@@ -28,4 +28,3 @@ install(DIRECTORY launch meshes rviz urdf gazebo ros2_control
 # Macro for ament package
 ################################################################################
 ament_package()
-

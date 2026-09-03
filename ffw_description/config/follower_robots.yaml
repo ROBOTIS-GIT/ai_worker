@@ -1,0 +1,31 @@
+robots:
+  bg2:
+    model: ffw_bg2_rev4_follower
+    body: ffw
+    base: ffw_base
+    gripper: rh_p12_rn_a
+  sg2:
+    model: ffw_sg2_rev1_follower
+    body: ffw
+    base: ffw_swerve
+    gripper: rh_p12_rn_a
+  bh5:
+    model: ffw_bh5_rev1_follower
+    body: ffw
+    base: ffw_base
+    gripper: hx5_d20_rev2
+  sh5:
+    model: ffw_sh5_rev1_follower
+    body: ffw
+    base: ffw_swerve
+    gripper: hx5_d20_rev2
+  f1:
+    model: ffw_f1_follower
+    body: ffw_f
+    base: ffw_base_f
+    gripper: hx2_d1
+  f2:
+    model: ffw_f2_follower
+    body: ffw_f
+    base: ffw_swerve_f
+    gripper: hx2_d1

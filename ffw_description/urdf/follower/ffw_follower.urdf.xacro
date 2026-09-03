@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ffw_follower">
+  <xacro:arg name="robot" default="" />
+  <xacro:arg name="use_sim" default="false" />
+  <xacro:arg name="use_mock_hardware" default="false" />
+  <xacro:arg name="mock_sensor_commands" default="false" />
+  <xacro:arg name="prefix" default="" />
+  <xacro:arg name="ros2_control_type" default="" />
+
+  <xacro:property name="robot_name" value="$(arg robot)" />
+  <xacro:property name="robot_config" value="${xacro.load_yaml('$(find ffw_description)/config/follower_robots.yaml')['robots'][robot_name]}" />
+  <xacro:property name="model" value="${robot_config['model']}" />
+  <xacro:property name="default_control_type" value="${'ffw_' + robot_name + '_follower'}" />
+  <xacro:property name="requested_control_type" value="$(arg ros2_control_type)" />
+  <xacro:property name="control_type" value="${requested_control_type or default_control_type}" />
+
+  <xacro:include filename="$(find ffw_description)/urdf/follower/body/${robot_config['body']}.urdf.xacro" />
+  <xacro:include filename="$(find ffw_description)/urdf/follower/base/${robot_config['base']}.urdf.xacro" />
+  <xacro:include filename="$(find ffw_description)/urdf/follower/gripper/${robot_config['gripper']}.urdf.xacro" />
+  <xacro:include filename="$(find ffw_description)/gazebo/follower/body/${robot_config['body']}.gazebo.xacro" />
+  <xacro:include filename="$(find ffw_description)/gazebo/follower/base/${robot_config['base']}.gazebo.xacro" />
+  <xacro:include filename="$(find ffw_description)/gazebo/follower/gripper/${robot_config['gripper']}.gazebo.xacro" />
+
+  <xacro:follower_base prefix="$(arg prefix)" />
+
+  <xacro:follower_body parent="$(arg prefix)base_link" prefix="$(arg prefix)">
+    <origin xyz="${body_mount_xyz}" rpy="${body_mount_rpy}" />
+  </xacro:follower_body>
+
+  <xacro:follower_gripper prefix="$(arg prefix)" />
+
+  <xacro:follower_base_gazebo prefix="$(arg prefix)" />
+  <xacro:follower_body_gazebo prefix="$(arg prefix)" />
+  <xacro:follower_gripper_gazebo prefix="$(arg prefix)" />
+
+  <xacro:include filename="$(find ffw_description)/ros2_control/${model}/${control_type}.ros2_control.xacro" />
+  <xacro:call macro="${default_control_type + '_system'}"
+      use_sim="$(arg use_sim)"
+      use_mock_hardware="$(arg use_mock_hardware)"
+      mock_sensor_commands="$(arg mock_sensor_commands)" />
+
+  <xacro:if value="${robot_config['base'] in ['ffw_swerve', 'ffw_swerve_f']}">
+    <xacro:include filename="$(find ffw_description)/ros2_control/${model}/ffw_${robot_name}_base.ros2_control.xacro" />
+    <xacro:include filename="$(find ffw_description)/ros2_control/${model}/ffw_${robot_name}_sensor.ros2_control.xacro" />
+    <xacro:call macro="${'ffw_' + robot_name + '_base_system'}"
+        use_sim="$(arg use_sim)"
+        use_mock_hardware="$(arg use_mock_hardware)"
+        mock_sensor_commands="$(arg mock_sensor_commands)" />
+    <xacro:call macro="${'ffw_' + robot_name + '_sensor_system'}"
+        use_sim="$(arg use_sim)"
+        use_mock_hardware="$(arg use_mock_hardware)"
+        mock_sensor_commands="$(arg mock_sensor_commands)" />
+  </xacro:if>
+
+  <gazebo>
+    <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+      <parameters>$(find ffw_bringup)/config/${model}/ffw_${robot_name}_follower_ai_hardware_controller.yaml</parameters>
+    </plugin>
+  </gazebo>
+</robot>
