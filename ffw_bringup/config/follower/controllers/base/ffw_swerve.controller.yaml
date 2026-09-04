@@ -1,0 +1,98 @@
+/**:
+  # controller_spawn is a custom launch configuration.
+  # controller_spawn is not an actual ROS 2 node.
+  # Read by the follower launch to spawn controllers and run initialization; add controllers here for automatic startup.
+  controller_spawn:
+    ros__parameters:
+      controllers:
+        - ffw_robot_manager
+      initial_controller: swerve_steering_initial_position_controller
+      initial_executor: swerve_steering_joint_trajectory_executor
+      active_controller: swerve_drive_controller
+
+  controller_manager:
+    ros__parameters:
+      swerve_drive_controller:
+        type: ffw_swerve_drive_controller/SwerveDriveController
+      swerve_steering_initial_position_controller:
+        type: joint_trajectory_controller/JointTrajectoryController
+      ffw_robot_manager:
+        type: ffw_robot_manager/FfwRobotManager
+
+  swerve_steering_initial_position_controller:
+    ros__parameters:
+      joints: [left_wheel_steer, right_wheel_steer, rear_wheel_steer]
+      command_interfaces: [position]
+      state_interfaces: [position, velocity]
+      allow_nonzero_velocity_at_trajectory_end: true
+      allow_partial_joints_goal: true
+
+  swerve_drive_controller:
+    ros__parameters:
+      steering_joint_names: [left_wheel_steer, right_wheel_steer, rear_wheel_steer]
+      wheel_joint_names: [left_wheel_drive, right_wheel_drive, rear_wheel_drive]
+      wheel_radius: 0.0865
+      cmd_vel_timeout: 1.0
+      module_x_offsets: [0.1371, 0.1371, -0.2899]
+      module_y_offsets: [0.2554, -0.2554, 0.0]
+      module_angle_offsets: [0.0, 0.0, 0.0]
+      module_steering_limit_lower: [-6.28, -6.28, -6.28]
+      module_steering_limit_upper: [6.28, 6.28, 6.28]
+      steering_to_wheel_y_offsets: [0.0, -0.0, 0.0]
+      module_wheel_speed_limit_lower: [-50.0, -50.0, -50.0]
+      module_wheel_speed_limit_upper: [50.0, 50.0, 50.0]
+      enabled_steering_flip: true
+      enabled_steering_angular_velocity_limit: true
+      steering_angular_velocity_limit: 100.0
+      steering_alignment_angle_error_threshold: 1.0
+      steering_alignment_start_angle_error_threshold: 0.01
+      steering_alignment_start_speed_error_threshold: 0.1
+      enabled_open_loop: false
+      enabled_wheel_saturation_scaling: true
+      odom_solver_method: svd
+      odom_integration_method: euler
+      odom_source: feedback
+      base_frame_id: base_link
+      odom_frame_id: odom
+      enable_odom_tf: true
+      pose_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
+      twist_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
+      velocity_rolling_window_size: 10
+      enable_visualization: true
+      visualization_marker_topic: swerve_visualization_markers
+      visualization_update_time: 0.10
+      enable_direct_joint_commands: false
+      direct_joint_command_timeout_sec: 1.0
+      direct_joint_command_topic: ~/direct_joint_commands
+      enabled_steering_angular_limit: false
+      enabled_speed_limits: false
+      publish_limited_velocity: true
+      linear:
+        x:
+          has_velocity_limits: true
+          max_velocity: 1.50
+          min_velocity: -1.50
+          has_acceleration_limits: true
+          max_acceleration: 0.50
+          min_acceleration: -0.50
+          has_jerk_limits: true
+          max_jerk: 1.0
+          min_jerk: -1.0
+        y:
+          has_velocity_limits: true
+          max_velocity: 1.50
+          min_velocity: -1.50
+          has_acceleration_limits: true
+          max_acceleration: 0.50
+          min_acceleration: -0.50
+          has_jerk_limits: true
+          max_jerk: 1.0
+          min_jerk: -1.0
+      angular:
+        z:
+          has_velocity_limits: false
+          max_velocity: 1.7
+          has_acceleration_limits: true
+          max_acceleration: 1.5
+          has_jerk_limits: true
+          max_jerk: 3.0

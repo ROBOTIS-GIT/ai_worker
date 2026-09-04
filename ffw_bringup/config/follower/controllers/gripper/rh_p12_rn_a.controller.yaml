@@ -1,0 +1,35 @@
+/**:
+  # controller_spawn is a custom launch configuration.
+  # controller_spawn is not an actual ROS 2 node.
+  # Read by the follower launch to spawn controllers and run initialization; add controllers here for automatic startup.
+  controller_spawn:
+    ros__parameters:
+      controllers:
+        - gripper_l_controller
+        - gripper_r_controller
+      executors:
+        - gripper_l_joint_trajectory_executor
+        - gripper_r_joint_trajectory_executor
+
+  controller_manager:
+    ros__parameters:
+      gripper_l_controller:
+        type: joint_trajectory_controller/JointTrajectoryController
+      gripper_r_controller:
+        type: joint_trajectory_controller/JointTrajectoryController
+
+  gripper_l_controller:
+    ros__parameters:
+      joints: [gripper_l_joint1]
+      command_interfaces: [position]
+      state_interfaces: [position, velocity]
+      allow_nonzero_velocity_at_trajectory_end: true
+      allow_partial_joints_goal: true
+
+  gripper_r_controller:
+    ros__parameters:
+      joints: [gripper_r_joint1]
+      command_interfaces: [position]
+      state_interfaces: [position, velocity]
+      allow_nonzero_velocity_at_trajectory_end: true
+      allow_partial_joints_goal: true

@@ -1,7 +1,7 @@
 # FFW Follower 모듈화 개발 문서
 
-- 상태: URDF/Gazebo/description launch 모듈화 구현 완료, ros2_control/bringup launch 통합 대기
-- 최종 수정: 2026-09-03
+- 상태: URDF/Gazebo/description launch/ros2_control/controller config 모듈화 구현 완료, leader/bringup launch 통합 대기
+- 최종 수정: 2026-09-04
 
 ## 1. 목적
 
@@ -48,6 +48,13 @@ robots:
 - `body=ffw_f`: D455 head, D401 wrist
 - `base=ffw_swerve` 또는 `ffw_swerve_f`: steering/drive, IMU, dual LiDAR 활성화
 - `gripper=hx5_d20_rev2`: 5지 hand controller, effort controller, pressure broadcaster 활성화
+
+로봇 조립도와 component controller 설정은 책임이 다르므로 파일을 분리한다.
+
+- `ffw_description/config/follower_robots.yaml`: 로봇별 body/base/gripper 조립도
+- `ffw_bringup/config/follower/controllers/<type>/<component>.controller.yaml`: controller 설정과 `controller_spawn` 실행 정보
+
+`controller_spawn`에는 로봇 이름을 넣지 않는다. 기존 component로 로봇 조합을 변경할 때는 `follower_robots.yaml`만 수정한다.
 
 ## 4. 모듈 경계
 
@@ -109,7 +116,7 @@ Gripper 모델은 다음과 같다.
 
 모든 gripper controller는 arm controller에서 분리한다.
 
-목표 controller 구성:
+Controller 구성:
 
 ```text
 arm_l_controller: arm_l_joint1~7
@@ -182,6 +189,30 @@ BH5도 다른 follower와 동일하게 상태 topic과 제어 service를 `ffw_fo
 
 현재 하드코딩된 포트는 launch argument가 실제 ros2_control parameter까지 전달되도록 수정한다. 기본값은 현재 값을 유지한다.
 
+### 5.1 Controller config 구조
+
+Controller config도 body/base/gripper component별로 분리한다. 같은 설정을 사용하는 component도 추후 독립적으로 변경할 수 있도록 각각 자기 파일을 가진다.
+
+```text
+ffw_bringup/config/follower/
+├── controllers/
+│   ├── body/
+│   │   ├── ffw.controller.yaml
+│   │   └── ffw_f.controller.yaml
+│   ├── base/
+│   │   ├── ffw_swerve.controller.yaml
+│   │   └── ffw_swerve_f.controller.yaml
+│   └── gripper/
+│       ├── rh_p12_rn_a.controller.yaml
+│       ├── hx2_d1.controller.yaml
+│       └── hx5_d20_rev2.controller.yaml
+└── initial_positions.yaml
+```
+
+`ffw`와 `ffw_f` body config는 arm 7축, head, lift, `joint_state_broadcaster`와 `update_rate`를 가진다. 별도 `core.yaml`은 만들지 않는다. 일반 base인 `ffw_base`, `ffw_base_f`에는 추가 controller가 없으므로 빈 controller YAML도 만들지 않는다. Swerve config가 steering 초기화, drive와 `ffw_robot_manager`를 소유한다.
+
+Launch는 선택된 body/base/gripper의 `*.controller.yaml`과 그 안의 `controller_spawn`을 읽는다. Controller 설정은 `ros2_control_node`에 전달하고, `controller_spawn`에 지정된 controller와 executor를 실행한다. `use_sim_time`과 `robot_description`은 Launch가 직접 전달하며, `ffw_robot_manager.ffw_type`은 선택된 로봇 profile의 `model` 값으로 전달한다.
+
 ## 6. Leader trajectory 분리
 
 현재 2지 follower는 arm 7축과 gripper 1축을 하나의 trajectory로 받는다. Gripper controller 분리 후에는 leader 출력도 분리해야 한다.
@@ -201,10 +232,10 @@ gripper right trajectory -> gripper_r_controller 또는 hand_r_controller
 
 초기 자세는 로봇별로 유지하지 않고 하나의 공통 파일에 모든 executor 설정을 넣는다.
 
-예정 파일:
+파일:
 
 ```text
-ffw_bringup/config/common/ffw_follower_initial_positions.yaml
+ffw_bringup/config/follower/initial_positions.yaml
 ```
 
 파일에는 다음 section을 모두 둔다.
@@ -365,9 +396,9 @@ ros2 launch ffw_description ffw_follower_description.launch.py robot:=sg2
 4. 기존 body macro를 유지하면서 base/swerve base와 gripper 조립부를 모듈화한다. (완료)
 5. 공통 `ffw_follower.urdf.xacro`를 만든다. (완료)
 6. ros2_control joint 정의를 body/base/gripper macro로 나누고 hardware system을 조립한다. (완료)
-7. 2지 gripper를 arm controller에서 분리한다.
+7. 2지 gripper를 arm controller에서 분리한다. (controller config 완료, leader/launch 연결 대기)
 8. Leader broadcaster의 arm/gripper trajectory 출력을 분리한다.
-9. 공통 initial position YAML을 만들고 component별 executor를 연결한다.
+9. 공통 initial position YAML을 만들고 component별 executor를 연결한다. (파일 완료, launch 연결 대기)
 10. Gazebo description을 component 기준으로 정리한다. (완료)
 11. `ffw_follower_ai.launch.py`를 추가하고 6개 로봇을 검증한다.
 12. 상위 launch, Docker alias와 s6 service runner를 새 launch로 변경한다.
@@ -414,7 +445,6 @@ done
 
 ## 12. 확인된 정리 대상
 
-- 2지 gripper가 포함된 arm controller 및 arm init trajectory
 - 실제 hardware parameter에 연결되지 않은 `port_name` launch argument
 - 저장소에서 publisher가 확인되지 않는 BH5/SH5 hand trajectory topic
 - 기존 launch를 직접 호출하는 상위 launch, Docker alias와 s6 service runner
