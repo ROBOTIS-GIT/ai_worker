@@ -116,10 +116,10 @@
 
       wheel_joint_names: ["left_wheel_drive", "right_wheel_drive", "rear_wheel_drive"]
 
-      wheel_radius: 0.0825 # [m]
+      wheel_radius: 0.0865 # [m]
       cmd_vel_timeout: 1.0  # [sec]
 
-      module_x_offsets: [ 0.1371,  0.1371, -0.2899] # x-distance between base_link and steering angle joint [m]  =>
+      module_x_offsets: [ 0.137119,  0.137119, -0.288133] # x-distance between base_link and steering angle joint [m]  =>
       module_y_offsets: [ 0.2554, -0.2554,  0.0] # y-distance between base_link and steering angle joint [m]
       module_angle_offsets: [ 0.0, 0.0, 0.0] # initial angle difference between base_link and steering angle joint [rad]
       module_steering_limit_lower: [ -6.28, -6.28, -6.28] # minimum steering angle [rad]
