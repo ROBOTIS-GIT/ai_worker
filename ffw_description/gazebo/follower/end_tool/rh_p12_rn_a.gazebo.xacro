@@ -41,7 +41,7 @@
         joint="${prefix}gripper_${side}_joint4" actuator="${prefix}gripper_${side}_actuator4" />
   </xacro:macro>
 
-  <xacro:macro name="follower_gripper_gazebo" params="prefix">
+  <xacro:macro name="follower_end_tool_gazebo" params="prefix">
     <xacro:rh_p12_rn_a_side_gazebo prefix="${prefix}" side="l" />
     <xacro:rh_p12_rn_a_side_gazebo prefix="${prefix}" side="r" />
   </xacro:macro>

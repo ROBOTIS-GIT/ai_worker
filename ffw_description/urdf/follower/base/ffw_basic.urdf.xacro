@@ -2,7 +2,7 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
   <xacro:property name="body_mount_xyz" value="0.0055 0 1.4316" />
   <xacro:property name="body_mount_rpy" value="0 0 0" />
-  <xacro:property name="base_meshes_dir" value="package://ffw_description/meshes/follower/base/ffw_base_f" />
+  <xacro:property name="base_meshes_dir" value="package://ffw_description/meshes/follower/base/ffw_basic" />
 
   <xacro:macro name="follower_base" params="prefix">
     <link name="world"/>

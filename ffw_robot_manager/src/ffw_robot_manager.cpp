@@ -17,7 +17,6 @@
 #include "ffw_robot_manager/ffw_robot_manager.hpp"
 #include <limits>
 #include "ffw_robot_manager/topic_watchdog.hpp"
-#include "ffw_robot_manager/robot_type.hpp"
 #include "dynamixel_interfaces/msg/dynamixel_state.hpp"
 #include "sensor_msgs/msg/battery_state.hpp"
 
@@ -107,7 +106,7 @@ controller_interface::CallbackReturn FfwRobotManager::on_activate(
       }
 
       // Find battery voltage interfaces dynamically
-      if (battery_monitoring_enabled_ && interface == "Present Input Voltage" && robot_type_) {
+      if (battery_monitoring_enabled_ && interface == "Present Input Voltage" && battery_model_) {
         for (auto & battery_config : battery_configurations_) {
           if (prefix == battery_config.interface_name) {
             battery_config.voltage_index = i;
@@ -354,42 +353,34 @@ void FfwRobotManager::setup_watchdogs()
 
 void FfwRobotManager::setup_battery_monitoring()
 {
-  // Create robot type configuration
-  robot_type_ = create_robot_type(params_.ffw_type);
-  if (!robot_type_) {
-    RCLCPP_ERROR(get_node()->get_logger(), "Unknown robot type: %s", params_.ffw_type.c_str());
+  battery_model_ = create_battery_model("ubetter");
+  if (!battery_model_) {
+    RCLCPP_ERROR(get_node()->get_logger(), "Failed to create battery model");
     battery_monitoring_enabled_ = false;
     return;
   }
 
-  // Check if battery monitoring is enabled for this robot type
-  if (robot_type_->is_battery_monitoring_enabled()) {
-    battery_monitoring_enabled_ = true;
+  battery_monitoring_enabled_ = true;
 
-    // Get battery configurations from robot type
-    battery_configurations_ = robot_type_->get_battery_configurations();
+  const auto unset_index = std::numeric_limits<size_t>::max();
+  battery_configurations_ = {
+    {"left", "dxl1", "ai_worker/battery/left/state", "battery_left", unset_index},
+    {"right", "dxl61", "ai_worker/battery/right/state", "battery_right", unset_index},
+  };
 
-    // Create battery state publishers dynamically
-    battery_publishers_.clear();
-    for (const auto & battery_config : battery_configurations_) {
-      auto publisher = get_node()->create_publisher<sensor_msgs::msg::BatteryState>(
-        battery_config.topic_name, 10);
-      battery_publishers_.push_back(publisher);
+  battery_publishers_.clear();
+  for (const auto & battery_config : battery_configurations_) {
+    auto publisher = get_node()->create_publisher<sensor_msgs::msg::BatteryState>(
+      battery_config.topic_name, 10);
+    battery_publishers_.push_back(publisher);
 
-      RCLCPP_INFO(get_node()->get_logger(), "Created battery publisher for %s at %s",
-                  battery_config.name.c_str(), battery_config.topic_name.c_str());
-    }
-
-    RCLCPP_INFO(get_node()->get_logger(),
-                "Battery monitoring enabled for %s with %zu batteries and model: %s",
-                robot_type_->get_type_name().c_str(),
-                battery_configurations_.size(),
-                robot_type_->get_battery_model()->get_model_name().c_str());
-  } else {
-    battery_monitoring_enabled_ = false;
-    RCLCPP_INFO(get_node()->get_logger(), "Battery monitoring disabled for robot type: %s",
-                robot_type_->get_type_name().c_str());
+    RCLCPP_INFO(get_node()->get_logger(), "Created battery publisher for %s at %s",
+                battery_config.name.c_str(), battery_config.topic_name.c_str());
   }
+
+  RCLCPP_INFO(get_node()->get_logger(),
+              "Battery monitoring enabled with %zu batteries and model: %s",
+              battery_configurations_.size(), battery_model_->get_model_name().c_str());
 }
 
 void FfwRobotManager::update_battery_states()
@@ -410,7 +401,7 @@ void FfwRobotManager::update_battery_states()
       auto voltage_opt = state_interfaces_[battery_config.voltage_index].get_optional();
       if (voltage_opt.has_value()) {
         double voltage = voltage_opt.value();
-        double soc_fraction = robot_type_->get_battery_model()->voltage_to_soc(voltage);
+        double soc_fraction = battery_model_->voltage_to_soc(voltage);
         // Prefer explicit frame_id from BatteryInfo when provided; otherwise derive
         const std::string frame_id = !battery_config.frame_id.empty() ?
           battery_config.frame_id :
@@ -424,7 +415,6 @@ void FfwRobotManager::update_battery_states()
   }
 }
 
-
 sensor_msgs::msg::BatteryState FfwRobotManager::create_battery_state(
   double voltage, double soc, const std::string & frame_id)
 {
@@ -436,10 +426,10 @@ sensor_msgs::msg::BatteryState FfwRobotManager::create_battery_state(
   battery_state.power_supply_status = sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_UNKNOWN;
   battery_state.power_supply_health = sensor_msgs::msg::BatteryState::POWER_SUPPLY_HEALTH_UNKNOWN;
 
-  // Set power supply technology based on robot type's battery model
-  if (robot_type_ && robot_type_->get_battery_model()) {
+  // Set power supply technology based on the battery model
+  if (battery_model_) {
     battery_state.power_supply_technology =
-      robot_type_->get_battery_model()->get_power_supply_technology();
+      battery_model_->get_power_supply_technology();
   } else {
     battery_state.power_supply_technology =
       sensor_msgs::msg::BatteryState::POWER_SUPPLY_TECHNOLOGY_UNKNOWN;

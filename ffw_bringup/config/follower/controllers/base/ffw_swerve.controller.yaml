@@ -4,8 +4,6 @@
   # Read by the follower launch to spawn controllers and run initialization; add controllers here for automatic startup.
   controller_spawn:
     ros__parameters:
-      controllers:
-        - ffw_robot_manager
       initial_controller: swerve_steering_initial_position_controller
       initial_executor: swerve_steering_joint_trajectory_executor
       active_controller: swerve_drive_controller
@@ -16,8 +14,6 @@
         type: ffw_swerve_drive_controller/SwerveDriveController
       swerve_steering_initial_position_controller:
         type: joint_trajectory_controller/JointTrajectoryController
-      ffw_robot_manager:
-        type: ffw_robot_manager/FfwRobotManager
 
   swerve_steering_initial_position_controller:
     ros__parameters:

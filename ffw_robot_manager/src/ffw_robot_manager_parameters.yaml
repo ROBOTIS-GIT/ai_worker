@@ -9,8 +9,3 @@ ffw_robot_manager:
     default_value: true,
     description: "Whether to set LED to red color when hardware errors are detected. If true, LED will be set to red blinking mode when any error is detected. If false, LED will remain unchanged."
   }
-  ffw_type: {
-    type: string,
-    default_value: "",
-    description: "FFW robot type (e.g., 'ffw_sg2_rev1'). Used to determine battery monitoring configuration."
-  }

@@ -11,6 +11,11 @@ authors_info = [
 ]
 authors = ', '.join(author for author, _ in authors_info)
 author_emails = ', '.join(email for _, email in authors_info)
+controller_configs = [
+    (os.path.join('share', package_name, directory),
+     glob(os.path.join(directory, '*.yaml')))
+    for directory in glob('config/follower/controllers/*')
+]
 
 setup(
     name=package_name,
@@ -30,12 +35,7 @@ setup(
         (os.path.join('share', package_name, 'config/common'), glob('config/common/*')),
         (os.path.join('share', package_name, 'config/follower'),
          glob('config/follower/*.yaml')),
-        (os.path.join('share', package_name, 'config/follower/controllers/body'),
-         glob('config/follower/controllers/body/*.yaml')),
-        (os.path.join('share', package_name, 'config/follower/controllers/base'),
-         glob('config/follower/controllers/base/*.yaml')),
-        (os.path.join('share', package_name, 'config/follower/controllers/gripper'),
-         glob('config/follower/controllers/gripper/*.yaml')),
+    ] + controller_configs + [
         ('share/' + package_name + '/worlds', glob('worlds/*.sdf')),
         (os.path.join('share', package_name, 'config/ffw_a3'),
          glob('config/ffw_a3/*')),

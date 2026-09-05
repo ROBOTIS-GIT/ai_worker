@@ -1,22 +1,22 @@
 <?xml version="1.0"?>
-<!-- hx2_d1 gripper -->
+<!-- rh_p12_rn_a gripper -->
 
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <xacro:macro name="hx2_d1" params="prefix parent *origin">
+  <xacro:macro name="rh_p12_rn_a" params="prefix parent *origin">
 
     <xacro:property
       name="meshes_file_direction"
-      value="package://ffw_description/meshes/follower/gripper/hx2_d1"/>
+      value="package://ffw_description/meshes/follower/end_tool/rh_p12_rn_a"/>
 
     <joint name="${prefix}joint" type="fixed">
       <xacro:insert_block name="origin" />
       <parent link="${parent}"/>
-      <child link="${prefix}hx2_d1_base" />
+      <child link="${prefix}rh_p12_rn_base" />
     </joint>
 
     <!-- base -->
-    <link name="${prefix}hx2_d1_base">
+    <link name="${prefix}rh_p12_rn_base">
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
@@ -35,24 +35,24 @@
       </visual>
 
       <inertial>
-        <origin xyz="-6.8484893e-05  0.0000000e+00  3.0231995e-02" rpy="0 0 0"/>
-        <mass value="2.1967564e-01"/>
-        <inertia ixx="1.4908617e-04" ixy="0.0" ixz="8.0082096e-07" iyy="1.1107191e-04" iyz="0.0" izz="1.5613575e-04" />
+        <origin xyz="0.000 0.000 0.032" rpy="0 0 0"/>
+        <mass value="0.236"/>
+        <inertia ixx="0.000001" ixy="0.0" ixz="0.0" iyy="0.000001" iyz="0.0" izz="0.000001" />
       </inertial>
     </link>
 
     <!-- Joint -->
     <joint name="${prefix}joint1" type="revolute">
-      <parent link="${prefix}hx2_d1_base"/>
-      <child link="${prefix}hx2_d1_r1"/>
-      <origin xyz="0.0001 0.008 0.048" rpy="0 0 0"/>
+      <parent link="${prefix}rh_p12_rn_base"/>
+      <child link="${prefix}rh_p12_rn_r1"/>
+      <origin xyz="0.0 0.008 0.048" rpy="0 0 0"/>
       <axis xyz="1 0 0"/>
       <limit velocity="6.5" effort="1000" lower="0.0" upper="1.1" />
       <dynamics damping="0.7"/>
     </joint>
 
-    <!-- hx2_d1_r1 -->
-    <link name="${prefix}hx2_d1_r1">
+    <!-- rh_p12_rn_r1 -->
+    <link name="${prefix}rh_p12_rn_r1">
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
@@ -71,25 +71,25 @@
       </visual>
 
       <inertial>
-        <origin xyz="0.0000000e+00  3.3664697e-02  3.3231280e-03" rpy="0 0 0"/>
-        <mass value="2.1057910e-02"/>
-        <inertia ixx="1.1229445e-05" ixy="0.0" ixz="0.0" iyy="6.6539794e-06" iyz="-1.9651419e-06" izz="7.6921770e-06" />
+        <origin xyz="0.000 0.034 0.004" rpy="0 0 0"/>
+        <mass value="0.068"/>
+        <inertia ixx="0.000001" ixy="0.0" ixz="0.0" iyy="0.000001" iyz="0.0" izz="0.000001" />
       </inertial>
     </link>
 
     <!-- Right Joint 2 -->
     <joint name="${prefix}joint2" type="revolute">
-      <parent link="${prefix}hx2_d1_r1"/>
-      <child link="${prefix}hx2_d1_r2"/>
-      <origin xyz="0.0 0.0494977 0.0282667" rpy="0 0 0"/>
+      <parent link="${prefix}rh_p12_rn_r1"/>
+      <child link="${prefix}rh_p12_rn_r2"/>
+      <origin xyz="0.0 0.0493634 0.0285" rpy="0 0 0"/>
       <axis xyz="-1 0 0"/>
       <limit velocity="6.5" effort="1000" lower="0.0" upper="1.0" />
       <dynamics damping="0.7"/>
       <mimic joint="${prefix}joint1" multiplier="1"/>
     </joint>
 
-    <!-- hx2_d1_r2 -->
-    <link name="${prefix}hx2_d1_r2">
+    <!-- rh_p12_rn_r2 -->
+    <link name="${prefix}rh_p12_rn_r2">
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
@@ -108,25 +108,25 @@
       </visual>
 
       <inertial>
-        <origin xyz="0.0000000e+00 6.7070088e-03  1.1261741e-02" rpy="0 0 0"/>
-        <mass value="9.5399014e-02"/>
-        <inertia ixx="2.1847544e-05" ixy="0.0" ixz="0.0" iyy="2.4457514e-05" iyz="3.7396106e-06" izz="8.1383191e-06" />
+        <origin xyz="0.000 0.006 0.011" rpy="0 0 0"/>
+        <mass value="0.022"/>
+        <inertia ixx="0.000001" ixy="0.0" ixz="0.0" iyy="0.000001" iyz="0.0" izz="0.000001" />
       </inertial>
     </link>
 
     <!-- Left Joint 1 -->
     <joint name="${prefix}joint3" type="revolute">
-      <parent link="${prefix}hx2_d1_base"/>
-      <child link="${prefix}hx2_d1_l1"/>
-      <origin xyz="0.0001 -0.008 0.048" rpy="0 0 0"/>
+      <parent link="${prefix}rh_p12_rn_base"/>
+      <child link="${prefix}rh_p12_rn_l1"/>
+      <origin xyz="0.0 -0.008 0.048" rpy="0 0 0"/>
       <axis xyz="-1 0 0"/>
       <limit velocity="6.5" effort="1000" lower="0.0" upper="1.1" />
       <dynamics damping="0.7"/>
       <mimic joint="${prefix}joint1" multiplier="1"/>
     </joint>
 
-    <!-- hx2_d1_l1 -->
-    <link name="${prefix}hx2_d1_l1">
+    <!-- rh_p12_rn_l1 -->
+    <link name="${prefix}rh_p12_rn_l1">
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
@@ -145,25 +145,25 @@
       </visual>
 
       <inertial>
-        <origin xyz="0.0000000e+00 -3.1948616e-02  1.8581523e-03" rpy="0 0 0"/>
-        <mass value="1.8933866e-02"/>
-        <inertia ixx="1.0233707e-05" ixy="0.0" ixz="0.0" iyy="6.0862054e-06" iyz="1.4864276e-06" izz="6.9498404e-06" />
+        <origin xyz="0.000 -0.034 0.004" rpy="0 0 0"/>
+        <mass value="0.068"/>
+        <inertia ixx="0.000001" ixy="0.0" ixz="0.0" iyy="0.000001" iyz="0.0" izz="0.000001" />
       </inertial>
     </link>
 
     <!-- Left Joint 2 -->
     <joint name="${prefix}joint4" type="revolute">
-      <parent link="${prefix}hx2_d1_l1"/>
-      <child link="${prefix}hx2_d1_l2"/>
-      <origin xyz="0.0 -0.0494977 0.0282667" rpy="0 0 0"/>
+      <parent link="${prefix}rh_p12_rn_l1"/>
+      <child link="${prefix}rh_p12_rn_l2"/>
+      <origin xyz="0.0 -0.0493634 0.0285" rpy="0 0 0"/>
       <axis xyz="1 0 0"/>
       <limit velocity="6.5" effort="1000" lower="0.0" upper="1.0" />
       <dynamics damping="0.7"/>
       <mimic joint="${prefix}joint1" multiplier="1"/>
     </joint>
 
-    <!-- hx2_d1_l2 -->
-    <link name="${prefix}hx2_d1_l2">
+    <!-- rh_p12_rn_l2 -->
+    <link name="${prefix}rh_p12_rn_l2">
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
@@ -182,23 +182,23 @@
       </visual>
 
       <inertial>
-        <origin xyz="0.0000000e+00 -6.7070088e-03  1.1261741e-02" rpy="0 0 0"/>
-        <mass value="9.5399014e-02"/>
-        <inertia ixx="2.1847544e-05" ixy="0.0" ixz="0.0" iyy="2.4457514e-05" iyz="-3.7396106e-06" izz="8.1383191e-06" />
+        <origin xyz="0.000 -0.006 0.011" rpy="0 0 0"/>
+        <mass value="0.022"/>
+        <inertia ixx="0.000001" ixy="0.0" ixz="0.0" iyy="0.000001" iyz="0.0" izz="0.000001" />
       </inertial>
     </link>
 
   </xacro:macro>
 
-  <xacro:macro name="follower_gripper" params="prefix">
-    <xacro:hx2_d1 parent="${prefix}arm_l_link7" prefix="${prefix}gripper_l_">
-      <origin xyz="0.00025 0 -0.049" rpy="0 3.14159265359 3.14159265359"/>
-    </xacro:hx2_d1>
+  <xacro:macro name="follower_end_tool" params="prefix">
+    <xacro:rh_p12_rn_a parent="${prefix}arm_l_link7" prefix="${prefix}gripper_l_">
+      <origin xyz="0 0 -0.078" rpy="0 3.14159265359 3.14159265359"/>
+    </xacro:rh_p12_rn_a>
 
     <joint name="${prefix}end_effector_l_joint" type="fixed">
       <parent link="${prefix}arm_l_link7"/>
       <child link="${prefix}end_effector_l_link"/>
-      <origin xyz="0 0 -0.186" rpy="0 0 0"/>
+      <origin xyz="0 0 -0.215" rpy="0 0 0"/>
     </joint>
 
     <link name="${prefix}end_effector_l_link">
@@ -213,14 +213,14 @@
       </visual>
     </link>
 
-    <xacro:hx2_d1 parent="${prefix}arm_r_link7" prefix="${prefix}gripper_r_">
-      <origin xyz="0.00025 0 -0.049" rpy="0 3.14159265359 3.14159265359"/>
-    </xacro:hx2_d1>
+    <xacro:rh_p12_rn_a parent="${prefix}arm_r_link7" prefix="${prefix}gripper_r_">
+      <origin xyz="0 0 -0.078" rpy="0 3.14159265359 3.14159265359"/>
+    </xacro:rh_p12_rn_a>
 
     <joint name="${prefix}end_effector_r_joint" type="fixed">
       <parent link="${prefix}arm_r_link7"/>
       <child link="${prefix}end_effector_r_link"/>
-      <origin xyz="0 0 -0.186" rpy="0 0 0"/>
+      <origin xyz="0 0 -0.215" rpy="0 0 0"/>
     </joint>
 
     <link name="${prefix}end_effector_r_link">

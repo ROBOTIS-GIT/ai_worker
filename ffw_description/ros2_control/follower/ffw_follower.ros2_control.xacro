@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:include filename="$(find ffw_description)/ros2_control/follower/body/${robot_config['body']}.ros2_control.xacro" />
-  <xacro:include filename="$(find ffw_description)/ros2_control/follower/base/${robot_config['base']}.ros2_control.xacro" />
-  <xacro:include filename="$(find ffw_description)/ros2_control/follower/gripper/${robot_config['gripper']}.ros2_control.xacro" />
+  <xacro:include filename="$(find ffw_description)/ros2_control/follower/body/${body}.ros2_control.xacro" />
+  <xacro:include filename="$(find ffw_description)/ros2_control/follower/base/${base}.ros2_control.xacro" />
+  <xacro:include filename="$(find ffw_description)/ros2_control/follower/end_tool/${end_tool}.ros2_control.xacro" />
 
   <xacro:macro name="follower_ros2_control"
-      params="use_sim use_mock_hardware mock_sensor_commands">
+      params="use_sim use_mock_hardware mock_sensor_commands port_name">
     <xacro:property name="follower_joint_count"
-        value="${follower_body_joint_count + follower_base_steering_joint_count + follower_gripper_joint_count}" />
+        value="${follower_body_joint_count + follower_base_steering_joint_count + follower_end_tool_joint_count}" />
 
     <ros2_control name="ffw_follower" type="system" is_async="true">
       <xacro:if value="${use_sim}">
@@ -24,7 +24,7 @@
           </xacro:if>
           <xacro:unless value="${use_mock_hardware}">
             <plugin>dynamixel_hardware_interface/DynamixelHardware</plugin>
-            <param name="port_name">/dev/follower</param>
+            <param name="port_name">${port_name}</param>
             <param name="baud_rate">4000000</param>
             <param name="dynamixel_model_folder">/param/dxl_model</param>
             <param name="number_of_joints">${follower_joint_count}</param>
@@ -40,7 +40,7 @@
       </xacro:unless>
 
       <xacro:follower_body_joints />
-      <xacro:follower_gripper_joints />
+      <xacro:follower_end_tool_joints />
       <xacro:follower_base_steering_joints />
     </ros2_control>
 

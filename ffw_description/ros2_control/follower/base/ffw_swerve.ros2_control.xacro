@@ -206,8 +206,8 @@
   </xacro:macro>
 
   <xacro:macro name="follower_base_sensor_system" params="use_sim:=^|false use_mock_hardware:=^|false mock_sensor_commands:=^|false">
-    <ros2_control name="ffw_sensor" type="system" is_async="true">
-      <xacro:unless value="${use_sim}">
+    <xacro:unless value="${use_sim}">
+      <ros2_control name="ffw_sensor" type="system" is_async="true">
         <hardware>
           <xacro:if value="${use_mock_hardware}">
             <plugin>mock_components/GenericSystem</plugin>
@@ -230,54 +230,56 @@
             <param name="set_dxl_torque_srv_name">ffw_sensor/set_dxl_torque</param>
           </xacro:unless>
         </hardware>
-      </xacro:unless>
 
-      <sensor name="imu">
-        <state_interface name="IMU ACC SCALE"/>
-        <state_interface name="IMU GYRO SCALE"/>
-        <state_interface name="IMU TIMESTAMP"/>
-        <state_interface name="IMU ACC X"/>
-        <state_interface name="IMU ACC Y"/>
-        <state_interface name="IMU ACC Z"/>
-        <state_interface name="IMU GYRO X"/>
-        <state_interface name="IMU GYRO Y"/>
-        <state_interface name="IMU GYRO Z"/>
-      </sensor>
+        <sensor name="imu">
+          <state_interface name="IMU ACC SCALE"/>
+          <state_interface name="IMU GYRO SCALE"/>
+          <state_interface name="IMU TIMESTAMP"/>
+          <state_interface name="IMU ACC X"/>
+          <state_interface name="IMU ACC Y"/>
+          <state_interface name="IMU ACC Z"/>
+          <state_interface name="IMU GYRO X"/>
+          <state_interface name="IMU GYRO Y"/>
+          <state_interface name="IMU GYRO Z"/>
+        </sensor>
 
-      <gpio name="imu">
-        <param name="type">sensor</param>
-        <param name="ID">200</param>
-        <state_interface name="IMU ACC SCALE"/>
-        <state_interface name="IMU GYRO SCALE"/>
-        <state_interface name="IMU TIMESTAMP"/>
-        <state_interface name="IMU ACC X"/>
-        <state_interface name="IMU ACC Y"/>
-        <state_interface name="IMU ACC Z"/>
-        <state_interface name="IMU GYRO X"/>
-        <state_interface name="IMU GYRO Y"/>
-        <state_interface name="IMU GYRO Z"/>
-      </gpio>
-      <gpio name="led">
-        <param name="type">controller</param>
-        <param name="ID">91</param>
-        <!-- <command_interface name="Neopixel_Head_Left_Red"/>
-        <command_interface name="Neopixel_Head_Left_Green"/>
-        <command_interface name="Neopixel_Head_Left_Blue"/>
-        <command_interface name="Neopixel_Head_Left_Brightness"/>
-        <command_interface name="Neopixel_Head_Left_Mode"/>
-        <command_interface name="Neopixel_Head_Left_Control_Time"/>
-        <command_interface name="Neopixel_Head_Left_Led_Count"/>
-        <command_interface name="Dummy_1"/>
-        <command_interface name="Neopixel_Head_Right_Red"/>
-        <command_interface name="Neopixel_Head_Right_Green"/>
-        <command_interface name="Neopixel_Head_Right_Blue"/>
-        <command_interface name="Neopixel_Head_Right_Brightness"/>
-        <command_interface name="Neopixel_Head_Right_Mode"/>
-        <command_interface name="Neopixel_Head_Right_Control_Time"/>
-        <command_interface name="Neopixel_Head_Right_Led_Count"/> -->
-      </gpio>
+        <xacro:unless value="${use_mock_hardware}">
+          <gpio name="imu">
+            <param name="type">sensor</param>
+            <param name="ID">200</param>
+            <state_interface name="IMU ACC SCALE"/>
+            <state_interface name="IMU GYRO SCALE"/>
+            <state_interface name="IMU TIMESTAMP"/>
+            <state_interface name="IMU ACC X"/>
+            <state_interface name="IMU ACC Y"/>
+            <state_interface name="IMU ACC Z"/>
+            <state_interface name="IMU GYRO X"/>
+            <state_interface name="IMU GYRO Y"/>
+            <state_interface name="IMU GYRO Z"/>
+          </gpio>
+        </xacro:unless>
+        <gpio name="led">
+          <param name="type">controller</param>
+          <param name="ID">91</param>
+          <!-- <command_interface name="Neopixel_Head_Left_Red"/>
+          <command_interface name="Neopixel_Head_Left_Green"/>
+          <command_interface name="Neopixel_Head_Left_Blue"/>
+          <command_interface name="Neopixel_Head_Left_Brightness"/>
+          <command_interface name="Neopixel_Head_Left_Mode"/>
+          <command_interface name="Neopixel_Head_Left_Control_Time"/>
+          <command_interface name="Neopixel_Head_Left_Led_Count"/>
+          <command_interface name="Dummy_1"/>
+          <command_interface name="Neopixel_Head_Right_Red"/>
+          <command_interface name="Neopixel_Head_Right_Green"/>
+          <command_interface name="Neopixel_Head_Right_Blue"/>
+          <command_interface name="Neopixel_Head_Right_Brightness"/>
+          <command_interface name="Neopixel_Head_Right_Mode"/>
+          <command_interface name="Neopixel_Head_Right_Control_Time"/>
+          <command_interface name="Neopixel_Head_Right_Led_Count"/> -->
+        </gpio>
 
-    </ros2_control>
+      </ros2_control>
+    </xacro:unless>
   </xacro:macro>
 
 </robot>

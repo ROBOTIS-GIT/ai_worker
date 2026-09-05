@@ -1,0 +1,5 @@
+/**:
+  # Basic base currently has no controllers; this file keeps base config loading uniform.
+  # Add controllers to controller_spawn when automatic startup is needed.
+  controller_spawn:
+    ros__parameters: {}

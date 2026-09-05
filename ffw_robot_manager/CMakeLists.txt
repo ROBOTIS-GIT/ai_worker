@@ -30,7 +30,6 @@ add_library(ffw_robot_manager SHARED
   src/ffw_robot_manager.cpp
   src/battery_model.cpp
   src/ubetter_battery_model.cpp
-  src/robot_type.cpp
 )
 target_compile_features(ffw_robot_manager PUBLIC cxx_std_17)
 target_include_directories(ffw_robot_manager PUBLIC

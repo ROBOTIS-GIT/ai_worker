@@ -10,6 +10,7 @@
         - head_controller
         - lift_controller
         - joint_state_broadcaster
+        - ffw_robot_manager
       executors:
         - arm_l_joint_trajectory_executor
         - arm_r_joint_trajectory_executor
@@ -29,6 +30,8 @@
         type: joint_trajectory_controller/JointTrajectoryController
       joint_state_broadcaster:
         type: joint_state_broadcaster/JointStateBroadcaster
+      ffw_robot_manager:
+        type: ffw_robot_manager/FfwRobotManager
 
   arm_l_controller:
     ros__parameters:
@@ -62,3 +65,8 @@
       command_interfaces: [position]
       state_interfaces: [position, velocity]
       allow_nonzero_velocity_at_trajectory_end: true
+
+  ffw_robot_manager:
+    ros__parameters:
+      disable_torque_on_error: false
+      set_led_error_on_error: true

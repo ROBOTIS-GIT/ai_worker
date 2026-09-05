@@ -4,19 +4,22 @@
   <xacro:arg name="use_sim" default="false" />
   <xacro:arg name="use_mock_hardware" default="false" />
   <xacro:arg name="mock_sensor_commands" default="false" />
+  <xacro:arg name="port_name" default="/dev/follower" />
   <!-- ros2_control and related configs do not use prefixes, so a non-empty prefix breaks bringup. -->
   <xacro:arg name="prefix" default="" />
 
   <xacro:property name="robot_name" value="$(arg robot)" />
-  <xacro:property name="robot_config" value="${xacro.load_yaml('$(find ffw_description)/config/follower_robots.yaml')['robots'][robot_name]}" />
-  <xacro:property name="model" value="${robot_config['model']}" />
+  <xacro:property name="robot_config" value="${xacro.load_yaml('$(find ffw_description)/config/follower_robots.yaml')[robot_name]}" />
+  <xacro:property name="body" value="${robot_config['body']}" />
+  <xacro:property name="base" value="${robot_config['base']}" />
+  <xacro:property name="end_tool" value="${robot_config['end_tool']}" />
 
-  <xacro:include filename="$(find ffw_description)/urdf/follower/body/${robot_config['body']}.urdf.xacro" />
-  <xacro:include filename="$(find ffw_description)/urdf/follower/base/${robot_config['base']}.urdf.xacro" />
-  <xacro:include filename="$(find ffw_description)/urdf/follower/gripper/${robot_config['gripper']}.urdf.xacro" />
-  <xacro:include filename="$(find ffw_description)/gazebo/follower/body/${robot_config['body']}.gazebo.xacro" />
-  <xacro:include filename="$(find ffw_description)/gazebo/follower/base/${robot_config['base']}.gazebo.xacro" />
-  <xacro:include filename="$(find ffw_description)/gazebo/follower/gripper/${robot_config['gripper']}.gazebo.xacro" />
+  <xacro:include filename="$(find ffw_description)/urdf/follower/body/${body}.urdf.xacro" />
+  <xacro:include filename="$(find ffw_description)/urdf/follower/base/${base}.urdf.xacro" />
+  <xacro:include filename="$(find ffw_description)/urdf/follower/end_tool/${end_tool}.urdf.xacro" />
+  <xacro:include filename="$(find ffw_description)/gazebo/follower/body/${body}.gazebo.xacro" />
+  <xacro:include filename="$(find ffw_description)/gazebo/follower/base/${base}.gazebo.xacro" />
+  <xacro:include filename="$(find ffw_description)/gazebo/follower/end_tool/${end_tool}.gazebo.xacro" />
 
   <xacro:follower_base prefix="$(arg prefix)" />
 
@@ -24,21 +27,24 @@
     <origin xyz="${body_mount_xyz}" rpy="${body_mount_rpy}" />
   </xacro:follower_body>
 
-  <xacro:follower_gripper prefix="$(arg prefix)" />
+  <xacro:follower_end_tool prefix="$(arg prefix)" />
 
   <xacro:follower_base_gazebo prefix="$(arg prefix)" />
   <xacro:follower_body_gazebo prefix="$(arg prefix)" />
-  <xacro:follower_gripper_gazebo prefix="$(arg prefix)" />
+  <xacro:follower_end_tool_gazebo prefix="$(arg prefix)" />
 
   <xacro:include filename="$(find ffw_description)/ros2_control/follower/ffw_follower.ros2_control.xacro" />
   <xacro:follower_ros2_control
       use_sim="$(arg use_sim)"
       use_mock_hardware="$(arg use_mock_hardware)"
-      mock_sensor_commands="$(arg mock_sensor_commands)" />
+      mock_sensor_commands="$(arg mock_sensor_commands)"
+      port_name="$(arg port_name)" />
 
   <gazebo>
     <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
-      <parameters>$(find ffw_bringup)/config/${model}/ffw_${robot_name}_follower_ai_hardware_controller.yaml</parameters>
+      <parameters>$(find ffw_bringup)/config/follower/controllers/body/${body}.controller.yaml</parameters>
+      <parameters>$(find ffw_bringup)/config/follower/controllers/base/${base}.controller.yaml</parameters>
+      <parameters>$(find ffw_bringup)/config/follower/controllers/end_tool/${end_tool}.controller.yaml</parameters>
     </plugin>
   </gazebo>
 </robot>

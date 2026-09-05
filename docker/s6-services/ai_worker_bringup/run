@@ -12,22 +12,15 @@ if [ ! -f "${ROBOT_TYPE_FILE}" ]; then
   exit 1
 fi
 ROBOT_TYPE=$(cat "${ROBOT_TYPE_FILE}" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
-if [ "${ROBOT_TYPE}" = "sg2" ]; then
-  ROS2_COMMAND="ros2 launch ffw_bringup ffw_sg2_follower_ai.launch.py"
-elif [ "${ROBOT_TYPE}" = "bg2" ]; then
-  ROS2_COMMAND="ros2 launch ffw_bringup ffw_bg2_follower_ai.launch.py"
-elif [ "${ROBOT_TYPE}" = "sh5" ]; then
-  ROS2_COMMAND="ros2 launch ffw_bringup ffw_sh5_follower_ai.launch.py"
-elif [ "${ROBOT_TYPE}" = "bh5" ]; then
-  ROS2_COMMAND="ros2 launch ffw_bringup ffw_bh5_follower_ai.launch.py"
-elif [ "${ROBOT_TYPE}" = "f1" ]; then
-  ROS2_COMMAND="ros2 launch ffw_bringup ffw_f1_follower_ai.launch.py"
-elif [ "${ROBOT_TYPE}" = "f2" ]; then
-  ROS2_COMMAND="ros2 launch ffw_bringup ffw_f2_follower_ai.launch.py"
-else
-  echo "[${SERVICE_NAME}] Error: ${ROBOT_TYPE_FILE} must be 'sg2', 'bg2', 'sh5', 'bh5', 'f1', or 'f2', got: ${ROBOT_TYPE}" >&2
-  exit 1
-fi
+case "${ROBOT_TYPE}" in
+  sg2|bg2|sh5|bh5|f1|f2) ;;
+  *)
+    echo "[${SERVICE_NAME}] Error: ${ROBOT_TYPE_FILE} must be 'sg2', 'bg2', 'sh5', 'bh5', 'f1', or 'f2', got: ${ROBOT_TYPE}" >&2
+    exit 1
+    ;;
+esac
+
+ROS2_COMMAND="ros2 launch ffw_bringup ffw_follower_ai.launch.py robot:=${ROBOT_TYPE}"
 
 if [ -f "${COMMON_SCRIPT}" ]; then
   export SERVICE_NAME="${SERVICE_NAME}"

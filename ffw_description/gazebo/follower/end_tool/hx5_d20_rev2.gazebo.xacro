@@ -40,7 +40,7 @@
     <xacro:follower_hx5_joints_gazebo prefix="${prefix}" side="${side}" index="${1}" />
   </xacro:macro>
 
-  <xacro:macro name="follower_gripper_gazebo" params="prefix">
+  <xacro:macro name="follower_end_tool_gazebo" params="prefix">
     <xacro:follower_hx5_side_gazebo prefix="${prefix}" side="l" name="left" />
     <xacro:follower_hx5_side_gazebo prefix="${prefix}" side="r" name="right" />
   </xacro:macro>

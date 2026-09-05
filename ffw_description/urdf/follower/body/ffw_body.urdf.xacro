@@ -3,9 +3,9 @@
 
    <xacro:macro name="follower_body" params="prefix parent *origin">
 
-      <xacro:include filename="$(find ffw_description)/urdf/follower/body/wrist_d401.urdf.xacro" />
-      <xacro:include filename="$(find realsense2_description)/urdf/_d455.urdf.xacro" />
-      <xacro:property name="meshes_file_direction" value="package://ffw_description/meshes/follower/body/ffw_f" />
+      <xacro:include filename="$(find realsense2_description)/urdf/_d405.urdf.xacro" />
+      <xacro:include filename="$(find ffw_description)/urdf/follower/body/zedm.urdf.xacro" />
+      <xacro:property name="meshes_file_direction" value="package://ffw_description/meshes/follower/body/ffw_body" />
 
       <joint name="${prefix}lift_joint" type="prismatic">
          <parent link="${parent}"/>
@@ -33,18 +33,18 @@
             </geometry>
          </collision>
          <inertial>
-            <origin xyz="4.2125663e-02 1.2398953e-03 -6.8147780e-03" />
-            <mass value="7.0041009e+00" />
-            <inertia ixx="9.9834075e-02" ixy="6.4829080e-05" ixz="-1.5615054e-03"
-            iyy="4.8285096e-02" iyz="1.0078615e-03"
-            izz="6.9922117e-02" />
+            <origin xyz="-1.492287800e-02 2.731522500e-03 -4.342526400e-02" />
+            <mass value="6.193955900e+00" />
+            <inertia ixx="1.082886600e-01" ixy="2.929692500e-06" ixz="-1.572750800e-03"
+            iyy="5.432369700e-02" iyz="1.698970600e-03"
+            izz="7.960084300e-02" />
          </inertial>
       </link>
 
       <joint name="${prefix}head_joint1" type="revolute">
          <parent link="${prefix}arm_base_link" />
          <child link="${prefix}head_link1" />
-         <origin xyz="0.102729 0 0.132803" rpy="0 0 0" />
+         <origin xyz="0.049483 0 0.102130" rpy="0 0 0" />
          <axis xyz="0 1 0" />
          <limit velocity="4.8" effort="1000" lower="-0.2317" upper="0.6951" />
          <dynamics damping="0.1" />
@@ -66,17 +66,17 @@
             </geometry>
          </collision>
          <inertial>
-            <origin xyz="-3.5953106e-03 0.000000000e+00 5.8663838e-02" />
-            <mass value="1.0826896e-01" />
-            <inertia ixx="6.9641891e-05" ixy="0.0000000e+00" ixz="1.1632768e-06"
-                     iyy="6.9899210e-05" iyz="0.0000000e+00"
-                     izz="3.7321326e-05" />
+            <origin xyz="2.533965600e-02 0.000000000e+00 4.774514600e-02" />
+            <mass value="0.123518" />
+            <inertia ixx="6.870965700e-06" ixy="8.592260200e-10" ixz="-3.002664500e-07"
+                     iyy="1.771510200e-05" iyz="-4.447973700e-10"
+                     izz="1.631113500e-05" />
          </inertial>
       </link>
       <joint name="${prefix}head_joint2" type="revolute">
          <parent link="${prefix}head_link1" />
          <child link="${prefix}head_link2" />
-         <origin xyz="0.0141410 0 0.0555070" rpy="0 0 0" />
+         <origin xyz="0.040 0 0.054" rpy="0 0 0" />
          <axis xyz="0 0 1" />
          <limit velocity="4.8" effort="1000" lower="-0.35" upper="0.35" />
          <dynamics damping="0.1" />
@@ -98,22 +98,24 @@
             </geometry>
          </collision>
          <inertial>
-            <origin xyz="1.5859778e-02 -3.0915118e-04  8.6603869e-03" />
-            <mass value="6.2896111e-01" />
-            <inertia ixx="1.3195014e-03" ixy="2.4932125e-06" ixz="1.0660432e-05"
-            iyy="1.0460013e-03" iyz="-6.4062811e-06"
-            izz="1.9418302e-03" />
+            <origin xyz="3.052563400e-03 1.180475700e-03 -1.593280400e-02" />
+            <mass value="3.254213000e-01" />
+            <inertia ixx="8.907301100e-04" ixy="-5.211330800e-06" ixz="1.758054200e-05"
+            iyy="7.631788100e-04" iyz="-1.022156300e-06"
+            izz="1.339403400e-03" />
          </inertial>
       </link>
-
-      <xacro:sensor_d455 parent="${prefix}head_link2" use_nominal_extrinsics="false" name="${prefix}camera_head">
-         <origin xyz="0.032705 0 -0.0025" rpy="0 0 0"/>
-      </xacro:sensor_d455>
+      <xacro:zed_camera name="${prefix}zed" model="zedm" />
+      <joint name="${prefix}zed_joint" type="fixed">
+         <parent link="${prefix}head_link2"/>
+         <child link="${prefix}zed_camera_link"/>
+         <origin xyz="0.0238122 -0.00651797 -0.0242094" rpy="0 0 0" />
+      </joint>
 
       <joint name="${prefix}arm_l_joint1" type="revolute">
          <parent link="${prefix}arm_base_link" />
          <child link="${prefix}arm_l_link1" />
-         <origin xyz="0.059 0.1127 0.030" rpy="0 0 0" />
+         <origin xyz="0 0.1045 0" rpy="0 0 0" />
          <axis xyz="0 1 0" />
          <limit velocity="4.8" effort="1000" lower="-3.14" upper="3.14" />
          <dynamics damping="0.1" />
@@ -135,17 +137,17 @@
             </geometry>
          </collision>
          <inertial>
-            <origin xyz="1.6150974e-02  9.9099464e-02 -4.5548967e-04" />
-            <mass value="1.6662823e+00" />
-            <inertia ixx="1.8992258e-03" ixy="-1.2612179e-04" ixz="-2.5530103e-05"
-            iyy="1.9800819e-03" iyz="5.3849924e-06"
-            izz="2.1758814e-03" />
+            <origin xyz="1.421037300e-02 1.155371800e-01 1.120644000e-04" />
+            <mass value="2.001332200e+00" />
+            <inertia ixx="2.507557700e-03" ixy="-2.196355800e-04" ixz="1.151251900e-05"
+            iyy="2.865299700e-03" iyz="-2.311007900e-06"
+            izz="3.365371600e-03" />
          </inertial>
       </link>
       <joint name="${prefix}arm_l_joint2" type="revolute">
          <parent link="${prefix}arm_l_link1" />
          <child link="${prefix}arm_l_link2" />
-         <origin xyz="0.0177 0.1038 0" rpy="0 0 0" />
+         <origin xyz="0 0.123 0" rpy="0 0 0" />
          <axis xyz="1 0 0" />
          <limit velocity="4.8" effort="1000" lower="0.0" upper="3.14" />
          <dynamics damping="0.1" />
@@ -167,17 +169,17 @@
             </geometry>
          </collision>
          <inertial>
-            <origin xyz="-4.7932834e-03 -3.6365989e-04 -1.4793293e-01" />
-            <mass value="1.6614851e+00" />
-            <inertia ixx="1.2799021e-02" ixy="-1.0141311e-05" ixz="-2.8067078e-03"
-            iyy="1.3746814e-02" iyz="-1.7301358e-05"
-            izz="2.4850685e-03" />
+            <origin xyz="9.109841300e-03 -1.053016500e-04 -1.438640700e-01" />
+            <mass value="2.128261000e+00" />
+            <inertia ixx="9.976166600e-03" ixy="-1.420641600e-06" ixz="-2.370609000e-03"
+            iyy="1.088835300e-02" iyz="4.832141500e-06"
+            izz="3.168582700e-03" />
          </inertial>
       </link>
       <joint name="${prefix}arm_l_joint3" type="revolute">
          <parent link="${prefix}arm_l_link2" />
          <child link="${prefix}arm_l_link3" />
-         <origin xyz="-0.0177 0 -0.2072" rpy="0 0 0" />
+         <origin xyz="0 0 -0.165" rpy="0 0 0" />
          <axis xyz="0 0 1" />
          <limit velocity="4.8" effort="1000" lower="-3.14" upper="3.14" />
          <dynamics damping="0.1" />
@@ -199,17 +201,17 @@
             </geometry>
          </collision>
          <inertial>
-            <origin xyz="3.0786186e-02  2.3510856e-04 -1.0102872e-01" />
-            <mass value="1.3969336e+00" />
-            <inertia ixx="1.7436658e-03" ixy="1.0716308e-05" ixz="4.5895864e-04"
-            iyy="1.9947124e-03" iyz="1.5727955e-05"
-            izz="1.7414739e-03" />
+            <origin xyz="2.987537300e-02 1.391394900e-02 -1.210139000e-01" />
+            <mass value="1.684755100e+00" />
+            <inertia ixx="2.878077200e-03" ixy="-2.615265200e-04" ixz="6.679408300e-04"
+            iyy="2.707096100e-03" iyz="3.296252200e-04"
+            izz="2.566350600e-03" />
          </inertial>
       </link>
       <joint name="${prefix}arm_l_joint4" type="revolute">
          <parent link="${prefix}arm_l_link3" />
          <child link="${prefix}arm_l_link4" />
-         <origin xyz="0.0410041 0.0007 -0.1128" rpy="0 0 0" />
+         <origin xyz="0.041004 0 -0.135" rpy="0 0 0" />
          <axis xyz="0 1 0" />
          <limit velocity="4.8" effort="1000" lower="-2.9361" upper="1.0786" />
          <dynamics damping="0.1" />
@@ -231,17 +233,17 @@
             </geometry>
          </collision>
          <inertial>
-            <origin xyz="-3.7828125e-02  5.1680778e-03 -1.2213701e-01" />
-            <mass value="1.3759104e+00" />
-            <inertia ixx="4.9095031e-03" ixy="-1.4510070e-04" ixz="-4.8255828e-04"
-            iyy="4.8389927e-03" iyz="-8.6209739e-04"
-            izz="1.5239986e-03" />
+            <origin xyz="-3.853865300e-02 9.807228600e-03 -1.313122800e-01" />
+            <mass value="1.508214400e+00" />
+            <inertia ixx="6.252303800e-03" ixy="-2.162798200e-04" ixz="-5.113660100e-04"
+            iyy="5.705086400e-03" iyz="-1.597759100e-03"
+            izz="2.098027800e-03" />
          </inertial>
       </link>
       <joint name="${prefix}arm_l_joint5" type="revolute">
          <parent link="${prefix}arm_l_link4" />
          <child link="${prefix}arm_l_link5" />
-         <origin xyz="-0.041 -0.0007 -0.1477" rpy="0 0 0" />
+         <origin xyz="-0.041004 0 -0.1489" rpy="0 0 0" />
          <axis xyz="0 0 1" />
          <limit velocity="4.8" effort="1000" lower="-3.14" upper="3.14" />
          <dynamics damping="0.1" />
@@ -263,17 +265,17 @@
             </geometry>
          </collision>
          <inertial>
-            <origin xyz="5.1288227e-04  4.8964909e-04 -9.0048286e-02" />
-            <mass value="1.1778309e+00" />
-            <inertia ixx="1.2177005e-03" ixy="1.8801992e-05" ixz="5.3017955e-06"
-            iyy="1.0622242e-03" iyz="3.2558293e-06"
-            izz="1.0922794e-03" />
+            <origin xyz="-3.122616100e-05 1.681922700e-02 -9.873815600e-02" />
+            <mass value="1.391783100e+00" />
+            <inertia ixx="1.885672100e-03" ixy="1.326915800e-06" ixz="2.418484800e-07"
+            iyy="1.285272900e-03" iyz="1.287761700e-04"
+            izz="1.689335300e-03" />
          </inertial>
       </link>
       <joint name="${prefix}arm_l_joint6" type="revolute">
          <parent link="${prefix}arm_l_link5" />
          <child link="${prefix}arm_l_link6" />
-         <origin xyz="0 0.0007 -0.0948" rpy="0 0 0" />
+         <origin xyz="0 0 -0.1041" rpy="0 0 0" />
          <axis xyz="0 1 0" />
          <limit velocity="4.8" effort="1000" lower="-1.57" upper="1.57" />
          <dynamics damping="0.1" />
@@ -295,17 +297,17 @@
             </geometry>
          </collision>
          <inertial>
-            <origin xyz="1.1351963e-03  1.0240217e-02 -5.7139367e-02" />
-            <mass value="6.1056742e-01" />
-            <inertia ixx="8.8139147e-04" ixy="7.5830241e-06" ixz="1.4045813e-05"
-            iyy="8.9232195e-04" iyz="-2.8989102e-04"
-            izz="6.0029231e-04" />
+            <origin xyz="2.243891700e-03 1.876410500e-02 -6.480557600e-02" />
+            <mass value="6.577074100e-01" />
+            <inertia ixx="1.416138700e-03" ixy="2.839010300e-05" ixz="3.582229500e-05"
+            iyy="1.142334400e-03" iyz="-5.356836800e-04"
+            izz="1.017517600e-03" />
          </inertial>
       </link>
       <joint name="${prefix}arm_l_joint7" type="revolute">
          <parent link="${prefix}arm_l_link6" />
          <child link="${prefix}arm_l_link7" />
-         <origin xyz="-0.00025 -0.0007 -0.0775" rpy="0 0 0" />
+         <origin xyz="0 0 -0.0885" rpy="0 0 0" />
          <axis xyz="1 0 0" />
          <limit velocity="4.8" effort="1000" lower="-1.5804" upper="1.8201" />
          <dynamics damping="0.1" />
@@ -327,22 +329,22 @@
             </geometry>
          </collision>
          <inertial>
-            <origin xyz="5.0778477e-03  0.0000000e-03 -3.1576679e-02" />
-            <mass value="1.4594797e-01" />
-            <inertia ixx="7.6276195e-05" ixy="0.000000000e+00" ixz="6.4673549e-06"
-            iyy="2.4260619e-04" iyz="0.000000000e+00"
-            izz="2.2469260e-04" />
+            <origin xyz="2.550659300e-02 0.000000000e+00 -5.539533100e-02" />
+            <mass value="1.668563000e-01" />
+            <inertia ixx="1.035867900e-04" ixy="0.000000000e+00" ixz="1.098870100e-05"
+            iyy="4.524528700e-04" iyz="0.000000000e+00"
+            izz="4.156884400e-04" />
          </inertial>
       </link>
-      <xacro:wrist_d401 parent="${prefix}arm_l_link7" name="${prefix}camera_left">
-         <origin xyz="0.0275 0.0 -0.0847501" rpy="-1.57079632679 1.57079632679 0"/>
-      </xacro:wrist_d401>
+      <xacro:sensor_d405 parent="${prefix}arm_l_link7" use_nominal_extrinsics="false" name="${prefix}camera_left">
+         <origin xyz="0.108236 -0.021 -0.062552" rpy="-1.57079632679 1.66678943569 0"/>
+      </xacro:sensor_d405>
 
 
       <joint name="${prefix}arm_r_joint1" type="revolute">
          <parent link="${prefix}arm_base_link" />
          <child link="${prefix}arm_r_link1" />
-         <origin xyz="0.055 -0.1127 0.030" rpy="0 0 0" />
+         <origin xyz="0 -0.1045 0" rpy="0 0 0" />
          <axis xyz="0 1 0" />
          <limit velocity="4.8" effort="1000" lower="-3.14" upper="3.14" />
          <dynamics damping="0.1" />
@@ -364,17 +366,17 @@
             </geometry>
          </collision>
          <inertial>
-            <origin xyz="1.6161601e-02 -9.9099464e-02  4.5548967e-04" />
-            <mass value="1.6662823e+00" />
-            <inertia ixx="1.8992258e-03" ixy="1.2525706e-04" ixz="2.5538169e-05"
-            iyy="1.9795141e-03" iyz="5.3849924e-06"
-            izz="2.1753136e-03" />
+            <origin xyz="1.421037300e-02 -1.155371800e-01 -1.120644000e-04" />
+            <mass value="2.001332200e+00" />
+            <inertia ixx="2.507557700e-03" ixy="2.196355800e-04" ixz="-1.151251900e-05"
+            iyy="2.865299700e-03" iyz="-2.311007900e-06"
+            izz="3.365371600e-03" />
          </inertial>
       </link>
       <joint name="${prefix}arm_r_joint2" type="revolute">
          <parent link="${prefix}arm_r_link1" />
          <child link="${prefix}arm_r_link2" />
-         <origin xyz="0.0177 -0.1038 0" rpy="0 0 0" />
+         <origin xyz="0 -0.123 0" rpy="0 0 0" />
          <axis xyz="1 0 0" />
          <limit velocity="4.8" effort="1000" lower="-3.14" upper="0" />
          <dynamics damping="0.1" />
@@ -396,17 +398,17 @@
             </geometry>
          </collision>
          <inertial>
-            <origin xyz="-4.7932834e-03 -3.6365989e-04 -1.4793293e-01" />
-            <mass value="1.6614851e+00" />
-            <inertia ixx="1.2799021e-02" ixy="-1.0141311e-05" ixz="-2.8067078e-03"
-            iyy="1.3746814e-02" iyz="-1.7301358e-05"
-            izz="2.4850685e-03" />
+            <origin xyz="9.109841300e-03 -1.053016500e-04 -1.438640700e-01" />
+            <mass value="2.128261000e+00" />
+            <inertia ixx="9.976166600e-03" ixy="-1.420641600e-06" ixz="-2.370609000e-03"
+            iyy="1.088835300e-02" iyz="4.832141500e-06"
+            izz="3.168582700e-03" />
          </inertial>
       </link>
       <joint name="${prefix}arm_r_joint3" type="revolute">
          <parent link="${prefix}arm_r_link2" />
          <child link="${prefix}arm_r_link3" />
-         <origin xyz="-0.0177 0 -0.2072" rpy="0 0 0" />
+         <origin xyz="0 0 -0.165" rpy="0 0 0" />
          <axis xyz="0 0 1" />
          <limit velocity="4.8" effort="1000" lower="-3.14" upper="3.14" />
          <dynamics damping="0.1" />
@@ -428,17 +430,17 @@
             </geometry>
          </collision>
          <inertial>
-            <origin xyz="3.0366958e-02 -4.3478352e-04 -1.0193949e-01" />
-            <mass value="1.3993699e+00" />
-            <inertia ixx="1.7583992e-03" ixy="1.8810347e-05" ixz="4.4958773e-04"
-            iyy="1.9778809e-03" iyz="7.1289503e-06"
-            izz="1.7198305e-03" />
+            <origin xyz="2.984576500e-02 -1.392295900e-02 -1.210435100e-01" />
+            <mass value="1.684755100e+00" />
+            <inertia ixx="2.877971200e-03" ixy="2.632159900e-04" ixz="6.677998500e-04"
+            iyy="2.707378400e-03" iyz="-3.275929900e-04"
+            izz="2.563528600e-03" />
          </inertial>
       </link>
       <joint name="${prefix}arm_r_joint4" type="revolute">
          <parent link="${prefix}arm_r_link3" />
          <child link="${prefix}arm_r_link4" />
-         <origin xyz="0.0410041 -0.0007 -0.1128" rpy="0 0 0" />
+         <origin xyz="0.041004 0 -0.135" rpy="0 0 0" />
          <axis xyz="0 1 0" />
          <limit velocity="4.8" effort="1000" lower="-2.9361" upper="1.0786" />
          <dynamics damping="0.1" />
@@ -460,17 +462,17 @@
             </geometry>
          </collision>
          <inertial>
-            <origin xyz="-3.8706426e-02 -5.1676612e-03 -1.2214915e-01" />
-            <mass value="1.3772843e+00" />
-            <inertia ixx="4.9174555e-03" ixy="1.5715408e-04" ixz="-4.7682901e-04"
-            iyy="4.8531335e-03" iyz="8.6296322e-04"
-            izz="1.5324742e-03" />
+            <origin xyz="-3.867746800e-02 -9.308009900e-03 -1.322971300e-01" />
+            <mass value="1.494251100e+00" />
+            <inertia ixx="6.032357900e-03" ixy="2.028997300e-04" ixz="-4.854051900e-04"
+            iyy="5.536423500e-03" iyz="1.507124600e-03"
+            izz="2.032999700e-03" />
          </inertial>
       </link>
       <joint name="${prefix}arm_r_joint5" type="revolute">
          <parent link="${prefix}arm_r_link4" />
          <child link="${prefix}arm_r_link5" />
-         <origin xyz="-0.041 0.0007 -0.1477" rpy="0 0 0" />
+         <origin xyz="-0.041004 0 -0.1489" rpy="0 0 0" />
          <axis xyz="0 0 1" />
          <limit velocity="4.8" effort="1000" lower="-3.14" upper="3.14" />
          <dynamics damping="0.1" />
@@ -492,17 +494,17 @@
             </geometry>
          </collision>
          <inertial>
-            <origin xyz="-5.1467576e-04 -4.9136133e-04 -9.0195149e-02" />
-            <mass value="1.1737265e+00" />
-            <inertia ixx="1.2076426e-03" ixy="1.8803027e-05" ixz="-5.2130775e-06"
-            iyy="1.0521662e-03" iyz="-3.1711301e-06"
-            izz="1.0867318e-03" />
+            <origin xyz="8.387686000e-04 -1.679849900e-02 -9.873815600e-02" />
+            <mass value="1.391783100e+00" />
+            <inertia ixx="1.882492800e-03" ixy="3.480391000e-05" ixz="6.806743100e-06"
+            iyy="1.288452200e-03" iyz="-1.285963700e-04"
+            izz="1.689335300e-03" />
          </inertial>
       </link>
       <joint name="${prefix}arm_r_joint6" type="revolute">
          <parent link="${prefix}arm_r_link5" />
          <child link="${prefix}arm_r_link6" />
-         <origin xyz="0 -0.0007 -0.0948" rpy="0 0 0" />
+         <origin xyz="0 0 -0.1041" rpy="0 0 0" />
          <axis xyz="0 1 0" />
          <limit velocity="4.8" effort="1000" lower="-1.57" upper="1.57" />
          <dynamics damping="0.1" />
@@ -524,17 +526,17 @@
             </geometry>
          </collision>
          <inertial>
-            <origin xyz="1.1353146e-03 -1.0236979e-02 -5.7145614e-02" />
-            <mass value="6.1050378e-01" />
-            <inertia ixx="8.8108938e-04" ixy="-7.5803639e-06" ixz="1.4070848e-05"
-            iyy="8.9206945e-04" iyz="2.8977182e-04"
-            izz="6.0021475e-04" />
+            <origin xyz="3.267491200e-03 -1.861259000e-02 -6.479261600e-02" />
+            <mass value="6.577074100e-01" />
+            <inertia ixx="1.417976200e-03" ixy="-1.325841000e-05" ixz="6.534407900e-06"
+            iyy="1.139647400e-03" iyz="5.366707300e-04"
+            izz="1.017476200e-03" />
          </inertial>
       </link>
       <joint name="${prefix}arm_r_joint7" type="revolute">
          <parent link="${prefix}arm_r_link6" />
          <child link="${prefix}arm_r_link7" />
-         <origin xyz="-0.00025 -0.0007 -0.0775" rpy="0 0 0" />
+         <origin xyz="0 0 -0.0885" rpy="0 0 0" />
          <axis xyz="1 0 0" />
          <limit velocity="4.8" effort="1000" lower="-1.8201" upper="1.5804" />
          <dynamics damping="0.1" />
@@ -556,16 +558,16 @@
             </geometry>
          </collision>
          <inertial>
-            <origin xyz="5.0778477e-03  0.0000000e-03 -3.1576679e-02" />
-            <mass value="1.4594797e-01" />
-            <inertia ixx="7.6276195e-05" ixy="0.000000000e+00" ixz="6.4673549e-06"
-            iyy="2.4260619e-04" iyz="0.000000000e+00"
-            izz="2.2469260e-04" />
+            <origin xyz="2.546836200e-02 1.396001200e-03 -5.539533100e-02" />
+            <mass value="1.668563000e-01" />
+            <inertia ixx="1.046318100e-04" ixy="-1.906515900e-05" ixz="1.097223300e-05"
+            iyy="4.514078500e-04" iyz="6.013716400e-07"
+            izz="4.156884400e-04" />
          </inertial>
       </link>
-      <xacro:wrist_d401 parent="${prefix}arm_r_link7" name="${prefix}camera_right">
-         <origin xyz="0.0275 0.0 -0.0847501" rpy="-1.57079632679 1.57079632679 0"/>
-      </xacro:wrist_d401>
+      <xacro:sensor_d405 parent="${prefix}arm_r_link7" use_nominal_extrinsics="false" name="${prefix}camera_right">
+         <origin xyz="0.108236 -0.021 -0.062552" rpy="-1.57079632679 1.66678943569 0"/>
+      </xacro:sensor_d405>
 
    </xacro:macro>
 

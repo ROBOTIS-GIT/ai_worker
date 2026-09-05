@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:macro name="ffw_swerve_f_lidar_gazebo" params="prefix side topic">
+  <xacro:macro name="follower_lidar_gazebo" params="prefix side topic">
     <gazebo reference="${prefix}lidar_${side}_link">
       <sensor name="${prefix}lidar_${side}" type="gpu_lidar">
         <pose>0 0 0 0 0 0</pose>
@@ -42,7 +42,7 @@
       <maxVel>1.0</maxVel>
       <minDepth>0.001</minDepth>
     </gazebo>
-    <xacro:ffw_swerve_f_lidar_gazebo prefix="${prefix}" side="l" topic="scan_left" />
-    <xacro:ffw_swerve_f_lidar_gazebo prefix="${prefix}" side="r" topic="scan_right" />
+    <xacro:follower_lidar_gazebo prefix="${prefix}" side="l" topic="scan_left" />
+    <xacro:follower_lidar_gazebo prefix="${prefix}" side="r" topic="scan_right" />
   </xacro:macro>
 </robot>
