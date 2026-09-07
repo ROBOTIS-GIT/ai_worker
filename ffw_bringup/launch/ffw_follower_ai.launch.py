@@ -42,14 +42,6 @@ import yaml
 
 
 CONTROLLER_REMAPS = {
-    'arm_l_controller':
-        '/leader/joint_trajectory_command_broadcaster_left/joint_trajectory',
-    'arm_r_controller':
-        '/leader/joint_trajectory_command_broadcaster_right/joint_trajectory',
-    'gripper_l_controller':
-        '/leader/joint_trajectory_command_broadcaster_left/gripper_joint_trajectory',
-    'gripper_r_controller':
-        '/leader/joint_trajectory_command_broadcaster_right/gripper_joint_trajectory',
     'hand_l_controller':
         '/leader/joint_trajectory_command_broadcaster_left_hand/joint_trajectory',
     'hand_r_controller':
@@ -182,6 +174,13 @@ def launch_setup(context):
         robot_state_publisher,
         joint_state_spawner,
         controller_spawner,
+        # Split /leader/joint_trajectory_command_broadcaster_{left,right}/joint_trajectory
+        # into modular arm and gripper controller topics.
+        Node(
+            package='ffw_bringup',
+            executable='joint_trajectory_splitter',
+            output='screen',
+        ),
     ]
 
     actions.append(Node(

@@ -59,6 +59,7 @@ setup(
     entry_points={
         'console_scripts': [
             'joint_trajectory_executor = ffw_bringup.joint_trajectory_executor:main',
+            'joint_trajectory_splitter = ffw_bringup.joint_trajectory_splitter:main',
             'head_eef_tracker = ffw_bringup.head_eef_tracker:main',
             'finish_monitor = ffw_bringup.finish_monitor:main',
             'foot_switch_node = ffw_bringup.foot_switch:main',
