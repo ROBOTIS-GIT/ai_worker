@@ -66,7 +66,12 @@ RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc  && \
     echo "source ${COLCON_WS}/install/setup.bash" >> ~/.bashrc  && \
     echo "alias cb='colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release'" >> ~/.bashrc && \
     echo "alias ffw_lg2_leader_ai='ros2 launch ffw_bringup ffw_lg2_leader_ai.launch.py'" >> ~/.bashrc && \
-    echo "alias ffw_follower_ai='ros2 launch ffw_bringup ffw_follower_ai.launch.py start_rviz:=true use_mock_hardware:=true launch_cameras:=false launch_lidar:=false'" >> ~/.bashrc && \
+    echo "alias ffw_sg2_follower_ai='ros2 launch ffw_bringup ffw_follower_ai.launch.py robot:=sg2 start_rviz:=true use_mock_hardware:=true launch_cameras:=false launch_lidar:=false'" >> ~/.bashrc && \
+    echo "alias ffw_sh5_follower_ai='ros2 launch ffw_bringup ffw_follower_ai.launch.py robot:=sh5 start_rviz:=true use_mock_hardware:=true launch_cameras:=false launch_lidar:=false'" >> ~/.bashrc && \
+    echo "alias ffw_bh5_follower_ai='ros2 launch ffw_bringup ffw_follower_ai.launch.py robot:=bh5 start_rviz:=true use_mock_hardware:=true launch_cameras:=false launch_lidar:=false'" >> ~/.bashrc && \
+    echo "alias ffw_bg2_follower_ai='ros2 launch ffw_bringup ffw_follower_ai.launch.py robot:=bg2 start_rviz:=true use_mock_hardware:=true launch_cameras:=false launch_lidar:=false'" >> ~/.bashrc && \
+    echo "alias ffw_f1_follower_ai='ros2 launch ffw_bringup ffw_follower_ai.launch.py robot:=f1 start_rviz:=true use_mock_hardware:=true launch_cameras:=false launch_lidar:=false'" >> ~/.bashrc && \
+    echo "alias ffw_f2_follower_ai='ros2 launch ffw_bringup ffw_follower_ai.launch.py robot:=f2 start_rviz:=true use_mock_hardware:=true launch_cameras:=false launch_lidar:=false'" >> ~/.bashrc && \
     echo "alias zenohd='ros2 run rmw_zenoh_cpp rmw_zenohd'" >> ~/.bashrc && \
     echo "export RMW_IMPLEMENTATION=rmw_zenoh_cpp" >> ~/.bashrc && \
     echo "export ROS_DOMAIN_ID=30" >> ~/.bashrc
