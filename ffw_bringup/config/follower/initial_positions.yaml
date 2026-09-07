@@ -5,7 +5,7 @@
                     arm_l_joint5, arm_l_joint6, arm_l_joint7]
       step_names: [step0, step1]
       step0: [1.57, 0.0, 0.0, -2.8, 0.0, 0.0, 0.0]
-      step1: [0.0, 0.0, 0.0, -1.57, 0.0, 0.0, 0.0]
+      step1: [0.75, 0.0, 0.0, -1.57, 0.0, 0.0, 0.0]
       duration: 5.0
       position_tolerance: 0.1
       velocity_tolerance: 0.01
@@ -18,7 +18,7 @@
                     arm_r_joint5, arm_r_joint6, arm_r_joint7]
       step_names: [step0, step1]
       step0: [1.57, 0.0, 0.0, -2.8, 0.0, 0.0, 0.0]
-      step1: [0.0, 0.0, 0.0, -1.57, 0.0, 0.0, 0.0]
+      step1: [0.75, 0.0, 0.0, -1.57, 0.0, 0.0, 0.0]
       duration: 5.0
       position_tolerance: 0.1
       velocity_tolerance: 0.01
