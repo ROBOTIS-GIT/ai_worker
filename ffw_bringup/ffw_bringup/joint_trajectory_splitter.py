@@ -59,10 +59,9 @@ class JointTrajectorySplitter(Node):
     def __init__(self):
         super().__init__('joint_trajectory_splitter')
 
-        self._publishers = {}
-        self._subscriptions = []
+        self._trajectory_publishers = {}
         for side, suffix in (('left', 'l'), ('right', 'r')):
-            self._publishers[side] = (
+            self._trajectory_publishers[side] = (
                 self.create_publisher(
                     JointTrajectory, f'/arm_{suffix}_controller/joint_trajectory', 10
                 ),
@@ -70,12 +69,12 @@ class JointTrajectorySplitter(Node):
                     JointTrajectory, f'/gripper_{suffix}_controller/joint_trajectory', 10
                 ),
             )
-            self._subscriptions.append(self.create_subscription(
+            self.create_subscription(
                 JointTrajectory,
                 f'/leader/joint_trajectory_command_broadcaster_{side}/joint_trajectory',
                 lambda message, side=side: self._split(side, message),
                 10,
-            ))
+            )
 
     def _split(self, side, message):
         try:
@@ -84,7 +83,7 @@ class JointTrajectorySplitter(Node):
             self.get_logger().warning(f'Ignored invalid {side} trajectory: {error}')
             return
 
-        arm_publisher, gripper_publisher = self._publishers[side]
+        arm_publisher, gripper_publisher = self._trajectory_publishers[side]
         if arm.joint_names:
             arm_publisher.publish(arm)
         if gripper.joint_names:
@@ -100,7 +99,7 @@ def main(args=None):
         pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        rclpy.try_shutdown()
 
 
 if __name__ == '__main__':
