@@ -122,4 +122,4 @@
       sensorxel_r_joy_joint_trajectory_topic: "/leader/joystick_controller_right/joint_trajectory"
       sensorxel_l_joy_jog_scale: 0.06
       sensorxel_r_joy_jog_scale: 0.0007  # Range: 0.0~0.002 (max 0.2 m/s at 100 Hz)
-      deadzone: 0.90
+      deadzone: 0.80

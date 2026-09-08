@@ -79,7 +79,7 @@
 
       <gpio name="sensorxel_l_joy">
         <param name="type">sensor</param>
-        <param name="ID">10</param>
+        <param name="ID">40</param>
         <state_interface name="JOYSTICK X VALUE"/>
         <state_interface name="JOYSTICK Y VALUE"/>
         <state_interface name="JOYSTICK TACT SWITCH"/>

@@ -33,6 +33,11 @@ def generate_launch_description():
             description='URDF/XACRO file for the robot model.',
         ),
         DeclareLaunchArgument(
+            'use_mock_hardware',
+            default_value='false',
+            description='Use mock hardware mirroring command.',
+        ),
+        DeclareLaunchArgument(
             'launch_foot_switch',
             default_value='true',
             description='Whether to launch the foot switch node.',
@@ -40,6 +45,7 @@ def generate_launch_description():
     ]
 
     description_file = LaunchConfiguration('description_file')
+    use_mock_hardware = LaunchConfiguration('use_mock_hardware')
     launch_foot_switch = LaunchConfiguration('launch_foot_switch')
 
     # Robot controllers config file path
@@ -67,6 +73,8 @@ def generate_launch_description():
             PathJoinSubstitution(
                 [FindPackageShare('ffw_description'), 'urdf', 'ffw_lg2_mini_leader', description_file]
             ),
+            ' ',
+            'use_mock_hardware:=', use_mock_hardware,
         ]
     )
     robot_description = {'robot_description': robot_description_content}
