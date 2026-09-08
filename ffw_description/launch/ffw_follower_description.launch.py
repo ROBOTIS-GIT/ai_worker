@@ -33,7 +33,7 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             'robot',
-            description='Follower robot: bg2, sg2, bh5, sh5, f1, or f2',
+            description='Follower robot profile',
         ),
         DeclareLaunchArgument(
             'use_gui',

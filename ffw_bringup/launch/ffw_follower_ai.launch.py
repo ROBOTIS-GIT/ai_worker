@@ -384,7 +384,7 @@ def launch_setup(context):
 
 def generate_launch_description():
     return LaunchDescription([
-        DeclareLaunchArgument('robot', description='Follower robot profile.'),
+        DeclareLaunchArgument('robot', description='Follower robot name.'),
         DeclareLaunchArgument('start_rviz', default_value='false'),
         DeclareLaunchArgument('use_sim', default_value='false'),
         DeclareLaunchArgument('use_mock_hardware', default_value='false'),
