@@ -1,29 +1,34 @@
 <mujoco model="ffw_sg2">
   <compiler angle="radian" meshdir="../../"/>
   <option integrator="implicitfast" cone="elliptic" impratio="10"/>
+  <!-- Actuator gains and passive joint dynamics are approximate simulation parameters. Frictionloss for
+       geared DYNAMIXEL-Y joints uses published reducer back-drive torque, while joint damping approximates torque-speed
+       behavior. Hardware motion profiles are not modeled; force limits follow published specifications unless noted.
+       Tire contact friction uses MuJoCo defaults as a simulation approximation.
+       The tire collision mesh approximates the CAD tread; rubber deformation is not modeled. -->
   <default>
     <default class="YM070-210-R051-RH">
-      <!-- Approximate torque at the configured current limit. -->
-      <position kp="5000" forcerange="-16 16" dampratio="1"/>
+      <!-- Rounded maximum torque from the product specification. -->
+      <position kp="5000" forcerange="-16 16" dampratio="3"/>
     </default>
     <default class="YM080-230-B001-RH">
       <!-- Approximate ideal linear force. -->
-      <position kp="10000" forcerange="-780 780" dampratio="1"/>
+      <position kp="60000" kv="200" forcerange="-780 780"/>
     </default>
     <default class="XH540-V150-R">
-      <position kp="200" forcerange="-6.4 6.4" dampratio="1"/>
+      <position kp="400" forcerange="-6.4 6.4" dampratio="1"/>
     </default>
     <default class="XH430-V210-R">
-      <position kp="200" forcerange="-2.6 2.6" dampratio="1"/>
+      <position kp="300" forcerange="-2.6 2.6" dampratio="1"/>
     </default>
     <default class="YM080-230-R099-RH">
-      <position kp="600" forcerange="-61.4 61.4" dampratio="1"/>
+      <position kp="3000" kv="80" forcerange="-61.4 61.4"/>
     </default>
     <default class="YM070-210-R099-RH">
-      <position kp="600" forcerange="-31.7 31.7" dampratio="1"/>
+      <position kp="1800" kv="25" forcerange="-31.7 31.7"/>
     </default>
     <default class="PH42-020-S300-R">
-      <position kp="200" forcerange="-5.1 5.1" dampratio="1"/>
+      <position kp="400" kv="12" forcerange="-5.1 5.1"/>
     </default>
     <default class="RH-P12-RN">
       <!-- Approximate hinge torque used by the legacy model. -->
@@ -31,6 +36,7 @@
     </default>
   </default>
   <asset>
+    <mesh name="wheel_tire" file="meshes/common/follower/ffw_swerve/collision/wheel_tire.stl" scale="0.001 0.001 0.001"/>
     <mesh name="base_mobile_assy" content_type="model/stl" file="meshes/common/follower/ffw_swerve/base_mobile_assy.stl" scale="0.001 0.001 0.001"/>
     <mesh name="lift_link" content_type="model/stl" file="meshes/common/follower/ffw_swerve/lift_link.stl" scale="0.001 0.001 0.001"/>
     <mesh name="body_arm_assy" file="meshes/common/follower/ffw/body_arm_assy.stl" scale="0.001 0.001 0.001"/>
@@ -67,16 +73,16 @@
     <body name="base_link" pos="0 0 0.15">
       <freejoint name="floating_base"/>
       <inertial pos="0 0 0" quat="0.499993 0.500009 0.5 0.499999" mass="35.9894" diaginertia="3.98375 2.84614 1.72547"/>
-      <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.75 0.75 0.75 1" mesh="base_mobile_assy"/>
-      <!-- Keep the chassis collision clear of the three wheel assemblies. -->
-      <geom type="box" size="0.2 0.2 0.12" pos="0 0 0.24" group="3" density="0"/>
+      <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.2 0.2 0.2 1" mesh="base_mobile_assy"/>
+      <!-- Split the upper chassis and lower core to clear the wheel steering sweep. -->
+      <geom name="chassis_upper_collision" type="box" size="0.2 0.2 0.08" pos="0 0 0.28" group="3" density="0"/>
+      <geom name="chassis_lower_collision" type="box" size="0.19 0.15 0.04" pos="0 0 0.16" group="3" density="0"/>
+      <!-- LiDAR visuals are already included in the chassis mesh. -->
       <body name="lidar_l_link" pos="-0.111881 0.24 0.34432" quat="0.707107 0 0 0.707107">
         <inertial pos="0 0 0" mass="0.1" diaginertia="0.0001 0.0001 0.0001"/>
-        <geom size="0.03 0.015" type="cylinder" contype="0" conaffinity="0" group="2" density="0"/>
       </body>
       <body name="lidar_r_link" pos="-0.111881 -0.24 0.34432" quat="0.707107 0 0 -0.707107">
         <inertial pos="0 0 0" mass="0.1" diaginertia="0.0001 0.0001 0.0001"/>
-        <geom size="0.03 0.015" type="cylinder" contype="0" conaffinity="0" group="2" density="0" rgba="0 0 1 1"/>
       </body>
       <body name="imu_link" pos="-0.1464 0 0.26"/>
       <body name="lift_link">
@@ -86,17 +92,17 @@
       </body>
       <body name="arm_base_link" pos="-0.0199 0 1.4316">
         <inertial pos="-0.0149229 0.00273152 -0.0434253" quat="0.730117 0.682774 0.0194061 -0.0192877" mass="6.19396" diaginertia="0.108375 0.0796286 0.0542098"/>
-        <joint name="lift_joint" pos="0 0 0" axis="0 0 1" type="slide" range="-0.5 0" actuatorfrcrange="-1000 1000" damping="5000" armature="10" frictionloss="100"/>
+        <joint name="lift_joint" pos="0 0 0" axis="0 0 1" type="slide" range="-0.5 0" actuatorfrcrange="-1000 1000" damping="3000" armature="10" frictionloss="5"/>
         <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="1 1 1 1" mesh="body_arm_assy"/>
         <geom type="mesh" rgba="1 1 1 1" mesh="body_arm_assy" group="3" density="0"/>
         <body name="head_link1" pos="0.049483 0 0.10213">
           <inertial pos="0.0253397 0 0.0477451" quat="0.507983 0.491933 0.49206 0.507773" mass="0.123518" diaginertia="1.77151e-05 1.63207e-05 6.86142e-06"/>
-          <joint name="head_joint1" pos="0 0 0" axis="0 1 0" range="-0.2317 0.6951" actuatorfrcrange="-1000 1000" damping="5" armature="0.1" frictionloss="0.1"/>
+          <joint name="head_joint1" pos="0 0 0" axis="0 1 0" range="-0.2317 0.6951" actuatorfrcrange="-1000 1000" damping="1" armature="0.1" frictionloss="0.1"/>
           <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.2 0.2 0.2 1" mesh="head_link1"/>
           <geom type="mesh" rgba="0.2 0.2 0.2 1" mesh="head_link1" group="3" density="0"/>
           <body name="head_link2" pos="0.04 0 0.054">
             <inertial pos="0.00305256 0.00118048 -0.0159328" quat="0.519427 0.499754 -0.500511 0.47951" mass="0.325421" diaginertia="0.00134009 0.000890252 0.000762966"/>
-            <joint name="head_joint2" pos="0 0 0" axis="0 0 1" range="-0.35 0.35" actuatorfrcrange="-1000 1000" damping="5" armature="0.1" frictionloss="0.1"/>
+            <joint name="head_joint2" pos="0 0 0" axis="0 0 1" range="-0.35 0.35" actuatorfrcrange="-1000 1000" damping="0.5" armature="0.1" frictionloss="0.1"/>
             <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="1 1 1 1" mesh="head_link2"/>
             <geom type="mesh" rgba="1 1 1 1" mesh="head_link2" group="3" density="0"/>
             <body name="zed_camera_link" pos="0.0238122 -0.00651797 -0.0242094">
@@ -115,37 +121,37 @@
         </body>
         <body name="arm_l_link1" pos="0 0.1045 0">
           <inertial pos="0.0142104 0.115537 0.000112064" quat="-0.160859 0.694512 0.150136 0.685008" mass="2.00133" diaginertia="0.00336559 0.00296956 0.00240308"/>
-          <joint name="arm_l_joint1" pos="0 0 0" axis="0 1 0" range="-3.14 3.14" actuatorfrcrange="-1000 1000" damping="30" armature="0.5" frictionloss="0.1"/>
+          <joint name="arm_l_joint1" pos="0 0 0" axis="0 1 0" range="-3.14 3.14" actuatorfrcrange="-1000 1000" damping="17" armature="0.3" frictionloss="5"/>
           <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.2 0.2 0.2 1" mesh="arm_l_link1"/>
           <geom type="mesh" rgba="0.2 0.2 0.2 1" mesh="arm_l_link1" group="3" density="0"/>
           <body name="arm_l_link2" pos="0 0.123 0">
             <inertial pos="0.00910984 -0.000105302 -0.143864" quat="0.69312 0.108188 0.106056 0.704721" mass="2.12826" diaginertia="0.0108884 0.0107203 0.00242441"/>
-            <joint name="arm_l_joint2" pos="0 0 0" axis="1 0 0" range="0 3.14" actuatorfrcrange="-1000 1000" damping="30" armature="0.5" frictionloss="0.1"/>
+            <joint name="arm_l_joint2" pos="0 0 0" axis="1 0 0" range="0 3.14" actuatorfrcrange="-1000 1000" damping="17" armature="0.3" frictionloss="5"/>
             <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.2 0.2 0.2 1" mesh="arm_l_link2"/>
             <geom type="mesh" rgba="0.2 0.2 0.2 1" mesh="arm_l_link2" group="3" density="0"/>
             <body name="arm_l_link3" pos="0 0 -0.165">
               <inertial pos="0.0298754 0.0139139 -0.121014" quat="0.920594 0.210171 -0.32088 0.0732839" mass="1.68476" diaginertia="0.0034081 0.00290979 0.00183363"/>
-              <joint name="arm_l_joint3" pos="0 0 0" axis="0 0 1" range="-3.14 3.14" actuatorfrcrange="-1000 1000" damping="20" armature="0.5" frictionloss="0.1"/>
+              <joint name="arm_l_joint3" pos="0 0 0" axis="0 0 1" range="-3.14 3.14" actuatorfrcrange="-1000 1000" damping="17" armature="0.3" frictionloss="5"/>
               <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.2 0.2 0.2 1" mesh="arm_l_link3"/>
               <geom type="mesh" rgba="0.2 0.2 0.2 1" mesh="arm_l_link3" group="3" density="0"/>
               <body name="arm_l_link4" pos="0.041004 0 -0.135">
                 <inertial pos="-0.0385387 0.00980723 -0.131312" quat="0.914598 -0.188452 -0.011215 -0.35759" mass="1.50821" diaginertia="0.00633449 0.00629266 0.00142827"/>
-                <joint name="arm_l_joint4" pos="0 0 0" axis="0 1 0" range="-2.9361 1.0786" actuatorfrcrange="-1000 1000" damping="20" armature="0.5" frictionloss="0.1"/>
+                <joint name="arm_l_joint4" pos="0 0 0" axis="0 1 0" range="-2.9361 1.0786" actuatorfrcrange="-1000 1000" damping="5" armature="0.1" frictionloss="3"/>
                 <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.2 0.2 0.2 1" mesh="arm_l_link4"/>
                 <geom type="mesh" rgba="0.2 0.2 0.2 1" mesh="arm_l_link4" group="3" density="0"/>
                 <body name="arm_l_link5" pos="-0.041004 0 -0.1489">
                   <inertial pos="-3.12262e-05 0.0168192 -0.0987382" quat="0.799979 0.600024 -0.000384238 0.00208778" mass="1.39178" diaginertia="0.00188568 0.00172688 0.00124772"/>
-                  <joint name="arm_l_joint5" pos="0 0 0" axis="0 0 1" range="-3.14 3.14" actuatorfrcrange="-1000 1000" damping="20" armature="0.5" frictionloss="0.1"/>
+                  <joint name="arm_l_joint5" pos="0 0 0" axis="0 0 1" range="-3.14 3.14" actuatorfrcrange="-1000 1000" damping="5" armature="0.1" frictionloss="3"/>
                   <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.2 0.2 0.2 1" mesh="arm_l_link5"/>
                   <geom type="mesh" rgba="0.2 0.2 0.2 1" mesh="arm_l_link5" group="3" density="0"/>
                   <body name="arm_l_link6" pos="0 0 -0.1041">
                     <inertial pos="0.00224389 0.0187641 -0.0648056" quat="0.64976 -0.267048 0.236003 0.671417" mass="0.657707" diaginertia="0.00161927 0.00141848 0.000538247"/>
-                    <joint name="arm_l_joint6" pos="0 0 0" axis="0 1 0" range="-1.57 1.57" actuatorfrcrange="-1000 1000" damping="20" armature="0.5" frictionloss="0.1"/>
+                    <joint name="arm_l_joint6" pos="0 0 0" axis="0 1 0" range="-1.57 1.57" actuatorfrcrange="-1000 1000" damping="5" armature="0.1" frictionloss="3"/>
                     <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.2 0.2 0.2 1" mesh="arm_l_link6"/>
                     <geom type="mesh" rgba="0.2 0.2 0.2 1" mesh="arm_l_link6" group="3" density="0"/>
                     <body name="arm_l_link7" pos="0 0 -0.0885">
                       <inertial pos="0.0255066 0 -0.0553953" quat="0.491136 0.50871 0.50871 0.491136" mass="0.166856" diaginertia="0.000452453 0.000416075 0.0001032"/>
-                      <joint name="arm_l_joint7" pos="0 0 0" axis="1 0 0" range="-1.5804 1.8201" actuatorfrcrange="-1000 1000" damping="3" armature="0.1" frictionloss="0.1"/>
+                      <joint name="arm_l_joint7" pos="0 0 0" axis="1 0 0" range="-1.5804 1.8201" actuatorfrcrange="-1000 1000" damping="1.5" armature="0.1" frictionloss="0.1"/>
                       <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.2 0.2 0.2 1" mesh="arm_l_link7"/>
                       <geom type="mesh" rgba="0.2 0.2 0.2 1" mesh="arm_l_link7" group="3" density="0"/>
                       <body name="camera_left_bottom_screw_frame" pos="0.108236 -0.021 -0.062552" quat="0.475435 -0.475435 0.523413 0.523413">
@@ -196,37 +202,37 @@
         </body>
         <body name="arm_r_link1" pos="0 -0.1045 0">
           <inertial pos="0.0142104 -0.115537 -0.000112064" quat="0.150136 0.685008 -0.160859 0.694512" mass="2.00133" diaginertia="0.00336559 0.00296956 0.00240308"/>
-          <joint name="arm_r_joint1" pos="0 0 0" axis="0 1 0" range="-3.14 3.14" actuatorfrcrange="-1000 1000" damping="30" armature="0.5" frictionloss="0.1"/>
+          <joint name="arm_r_joint1" pos="0 0 0" axis="0 1 0" range="-3.14 3.14" actuatorfrcrange="-1000 1000" damping="17" armature="0.3" frictionloss="5"/>
           <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.2 0.2 0.2 1" mesh="arm_r_link1"/>
           <geom type="mesh" rgba="0.2 0.2 0.2 1" mesh="arm_r_link1" group="3" density="0"/>
           <body name="arm_r_link2" pos="0 -0.123 0">
             <inertial pos="0.00910984 -0.000105302 -0.143864" quat="0.69312 0.108188 0.106056 0.704721" mass="2.12826" diaginertia="0.0108884 0.0107203 0.00242441"/>
-            <joint name="arm_r_joint2" pos="0 0 0" axis="1 0 0" range="-3.14 0" actuatorfrcrange="-1000 1000" damping="30" armature="0.5" frictionloss="0.1"/>
+            <joint name="arm_r_joint2" pos="0 0 0" axis="1 0 0" range="-3.14 0" actuatorfrcrange="-1000 1000" damping="17" armature="0.3" frictionloss="5"/>
             <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.2 0.2 0.2 1" mesh="arm_r_link2"/>
             <geom type="mesh" rgba="0.2 0.2 0.2 1" mesh="arm_r_link2" group="3" density="0"/>
             <body name="arm_r_link3" pos="0 0 -0.165">
               <inertial pos="0.0298458 -0.013923 -0.121044" quat="0.920921 -0.210644 -0.320271 -0.0704282" mass="1.68476" diaginertia="0.00340682 0.00290928 0.00183278"/>
-              <joint name="arm_r_joint3" pos="0 0 0" axis="0 0 1" range="-3.14 3.14" actuatorfrcrange="-1000 1000" damping="20" armature="0.5" frictionloss="0.1"/>
+              <joint name="arm_r_joint3" pos="0 0 0" axis="0 0 1" range="-3.14 3.14" actuatorfrcrange="-1000 1000" damping="17" armature="0.3" frictionloss="5"/>
               <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.2 0.2 0.2 1" mesh="arm_r_link3"/>
               <geom type="mesh" rgba="0.2 0.2 0.2 1" mesh="arm_r_link3" group="3" density="0"/>
               <body name="arm_r_link4" pos="0.041004 0 -0.135">
                 <inertial pos="-0.0386775 -0.00930801 -0.132297" quat="0.896276 0.184195 -0.0197201 0.402956" mass="1.49425" diaginertia="0.00611519 0.00607254 0.00141405"/>
-                <joint name="arm_r_joint4" pos="0 0 0" axis="0 1 0" range="-2.9361 1.0786" actuatorfrcrange="-1000 1000" damping="20" armature="0.5" frictionloss="0.1"/>
+                <joint name="arm_r_joint4" pos="0 0 0" axis="0 1 0" range="-2.9361 1.0786" actuatorfrcrange="-1000 1000" damping="5" armature="0.1" frictionloss="3"/>
                 <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.2 0.2 0.2 1" mesh="arm_r_link4"/>
                 <geom type="mesh" rgba="0.2 0.2 0.2 1" mesh="arm_r_link4" group="3" density="0"/>
                 <body name="arm_r_link5" pos="-0.041004 0 -0.1489">
                   <inertial pos="0.000838769 -0.0167985 -0.0987382" quat="0.599551 0.799786 0.0249451 0.0160843" mass="1.39178" diaginertia="0.00188453 0.00172697 0.00124878"/>
-                  <joint name="arm_r_joint5" pos="0 0 0" axis="0 0 1" range="-3.14 3.14" actuatorfrcrange="-1000 1000" damping="20" armature="0.5" frictionloss="0.1"/>
+                  <joint name="arm_r_joint5" pos="0 0 0" axis="0 0 1" range="-3.14 3.14" actuatorfrcrange="-1000 1000" damping="5" armature="0.1" frictionloss="3"/>
                   <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.2 0.2 0.2 1" mesh="arm_r_link5"/>
                   <geom type="mesh" rgba="0.2 0.2 0.2 1" mesh="arm_r_link5" group="3" density="0"/>
                   <body name="arm_r_link6" pos="0 0 -0.1041">
                     <inertial pos="0.00326749 -0.0186126 -0.0647926" quat="0.653466 0.243284 -0.260528 0.667773" mass="0.657707" diaginertia="0.00161885 0.00141804 0.000538212"/>
-                    <joint name="arm_r_joint6" pos="0 0 0" axis="0 1 0" range="-1.57 1.57" actuatorfrcrange="-1000 1000" damping="20" armature="0.5" frictionloss="0.1"/>
+                    <joint name="arm_r_joint6" pos="0 0 0" axis="0 1 0" range="-1.57 1.57" actuatorfrcrange="-1000 1000" damping="5" armature="0.1" frictionloss="3"/>
                     <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.2 0.2 0.2 1" mesh="arm_r_link6"/>
                     <geom type="mesh" rgba="0.2 0.2 0.2 1" mesh="arm_r_link6" group="3" density="0"/>
                     <body name="arm_r_link7" pos="0 0 -0.0885">
                       <inertial pos="0.0254684 0.001396 -0.0553953" quat="0.477506 0.494593 0.522446 0.504397" mass="0.166856" diaginertia="0.000452453 0.000416075 0.0001032"/>
-                      <joint name="arm_r_joint7" pos="0 0 0" axis="1 0 0" range="-1.8201 1.5804" actuatorfrcrange="-1000 1000" damping="3" armature="0.1" frictionloss="0.1"/>
+                      <joint name="arm_r_joint7" pos="0 0 0" axis="1 0 0" range="-1.8201 1.5804" actuatorfrcrange="-1000 1000" damping="1.5" armature="0.1" frictionloss="0.1"/>
                       <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.2 0.2 0.2 1" mesh="arm_r_link7"/>
                       <geom type="mesh" rgba="0.2 0.2 0.2 1" mesh="arm_r_link7" group="3" density="0"/>
                       <body name="camera_right_bottom_screw_frame" pos="0.108236 -0.021 -0.062552" quat="0.475435 -0.475435 0.523413 0.523413">
@@ -278,38 +284,38 @@
       </body>
       <body name="left_wheel_steer_link" pos="0.1371 0.2554 0.27555">
         <inertial pos="0.00980277 -0.0547124 -0.137653" quat="0.705239 0.00684932 0.109571 0.700418" mass="0.755095" diaginertia="0.00362424 0.00283022 0.00160873"/>
-        <joint name="left_wheel_steer" pos="0 0 0" axis="0 0 1" range="-18.8496 18.8496" armature="0.5" frictionloss="0.1" damping="200"/>
+        <joint name="left_wheel_steer" pos="0 0 0" axis="0 0 1" range="-18.8496 18.8496" armature="0.5" frictionloss="3" damping="1.1"/>
         <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.75 0.75 0.75 1" mesh="left_wheel_steer_link"/>
         <geom type="mesh" rgba="0.75 0.75 0.75 1" mesh="left_wheel_steer_link" group="3" density="0"/>
         <body name="left_wheel_drive_link" pos="0 0 -0.18905">
           <inertial pos="0 -0.0014996 0" quat="0.5 0.5 0.5 0.5" mass="3.79546" diaginertia="0.011564 0.00718798 0.00718788"/>
-          <joint name="left_wheel_drive" pos="0 0 0" axis="0 1 0" frictionloss="0.2" damping="2"/>
-          <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.75 0.75 0.75 1" mesh="left_wheel_drive_link"/>
-          <geom size="0.0865 0.025" quat="0.707105 0.707108 0 0" type="cylinder" rgba="0.75 0.75 0.75 1" friction="5 1 0.3" group="3" density="0"/>
+          <joint name="left_wheel_drive" pos="0 0 0" axis="0 1 0" frictionloss="0.2" damping="0.1"/>
+          <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.5 0.5 0.5 1" mesh="left_wheel_drive_link"/>
+          <geom type="mesh" mesh="wheel_tire" rgba="0.5 0.5 0.5 1" friction="1 0.005 0.0001" group="3" density="0"/>
         </body>
       </body>
       <body name="right_wheel_steer_link" pos="0.1371 -0.2554 0.27555">
         <inertial pos="0.00980273 0.0547124 -0.137653" quat="0.700418 0.10957 0.00684873 0.705239" mass="0.755095" diaginertia="0.00362424 0.00283021 0.00160873"/>
-        <joint name="right_wheel_steer" pos="0 0 0" axis="0 0 1" range="-18.8496 18.8496" armature="0.5" frictionloss="0.1" damping="200"/>
+        <joint name="right_wheel_steer" pos="0 0 0" axis="0 0 1" range="-18.8496 18.8496" armature="0.5" frictionloss="3" damping="1.1"/>
         <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.75 0.75 0.75 1" mesh="right_wheel_steer_link"/>
         <geom type="mesh" rgba="0.75 0.75 0.75 1" mesh="right_wheel_steer_link" group="3" density="0"/>
         <body name="right_wheel_drive_link" pos="0 0 -0.18905">
           <inertial pos="0 0.0014996 0" quat="0.5 0.5 0.5 0.5" mass="3.79546" diaginertia="0.011564 0.00718798 0.00718788"/>
-          <joint name="right_wheel_drive" pos="0 0 0" axis="0 1 0" frictionloss="0.2" damping="2"/>
-          <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.75 0.75 0.75 1" mesh="right_wheel_drive_link"/>
-          <geom size="0.0865 0.025" quat="0.707105 0.707108 0 0" type="cylinder" rgba="0.75 0.75 0.75 1" friction="5 1 0.3" group="3" density="0"/>
+          <joint name="right_wheel_drive" pos="0 0 0" axis="0 1 0" frictionloss="0.2" damping="0.1"/>
+          <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.5 0.5 0.5 1" mesh="right_wheel_drive_link"/>
+          <geom type="mesh" mesh="wheel_tire" rgba="0.5 0.5 0.5 1" friction="1 0.005 0.0001" group="3" density="0"/>
         </body>
       </body>
       <body name="rear_wheel_steer_link" pos="-0.2899 0 0.27555">
         <inertial pos="0.00980273 0.0547124 -0.137653" quat="0.700418 0.10957 0.00684873 0.705239" mass="0.755095" diaginertia="0.00362424 0.00283021 0.00160873"/>
-        <joint name="rear_wheel_steer" pos="0 0 0" axis="0 0 1" range="-18.8496 18.8496" armature="0.5" frictionloss="0.1" damping="200"/>
+        <joint name="rear_wheel_steer" pos="0 0 0" axis="0 0 1" range="-18.8496 18.8496" armature="0.5" frictionloss="3" damping="1.1"/>
         <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.75 0.75 0.75 1" mesh="rear_wheel_steer_link"/>
         <geom type="mesh" rgba="0.75 0.75 0.75 1" mesh="rear_wheel_steer_link" group="3" density="0"/>
         <body name="rear_wheel_drive_link" pos="0 0 -0.18905">
           <inertial pos="0 0.0014996 0" quat="0.5 0.5 0.5 0.5" mass="3.79546" diaginertia="0.011564 0.00718798 0.00718788"/>
-          <joint name="rear_wheel_drive" pos="0 0 0" axis="0 1 0" frictionloss="0.2" damping="2"/>
-          <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.75 0.75 0.75 1" mesh="rear_wheel_drive_link"/>
-          <geom size="0.0865 0.025" quat="0.707105 0.707108 0 0" type="cylinder" rgba="0.75 0.75 0.75 1" friction="5 1 0.3" group="3" density="0"/>
+          <joint name="rear_wheel_drive" pos="0 0 0" axis="0 1 0" frictionloss="0.2" damping="0.1"/>
+          <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.5 0.5 0.5 1" mesh="rear_wheel_drive_link"/>
+          <geom type="mesh" mesh="wheel_tire" rgba="0.5 0.5 0.5 1" friction="1 0.005 0.0001" group="3" density="0"/>
         </body>
       </body>
     </body>
@@ -318,9 +324,9 @@
     <position name="left_wheel_steer" joint="left_wheel_steer" class="YM070-210-R051-RH" inheritrange="1"/>
     <position name="right_wheel_steer" joint="right_wheel_steer" class="YM070-210-R051-RH" inheritrange="1"/>
     <position name="rear_wheel_steer" joint="rear_wheel_steer" class="YM070-210-R051-RH" inheritrange="1"/>
-    <velocity name="left_wheel_drive" joint="left_wheel_drive" kv="1" ctrllimited="true" ctrlrange="-50 50"/>
-    <velocity name="right_wheel_drive" joint="right_wheel_drive" kv="1" ctrllimited="true" ctrlrange="-50 50"/>
-    <velocity name="rear_wheel_drive" joint="rear_wheel_drive" kv="1" ctrllimited="true" ctrlrange="-50 50"/>
+    <velocity name="left_wheel_drive" joint="left_wheel_drive" kv="5" ctrllimited="true" ctrlrange="-50 50"/>
+    <velocity name="right_wheel_drive" joint="right_wheel_drive" kv="5" ctrllimited="true" ctrlrange="-50 50"/>
+    <velocity name="rear_wheel_drive" joint="rear_wheel_drive" kv="5" ctrllimited="true" ctrlrange="-50 50"/>
     <position name="lift_joint" joint="lift_joint" class="YM080-230-B001-RH" inheritrange="1"/>
     <position name="head_joint1" joint="head_joint1" class="XH540-V150-R" inheritrange="1"/>
     <position name="head_joint2" joint="head_joint2" class="XH430-V210-R" inheritrange="1"/>
