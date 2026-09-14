@@ -148,8 +148,8 @@
             <geom type="mesh" rgba="1 1 1 1" mesh="head_link2" group="3" density="0"/>
             <body name="zed_camera_link" pos="0.0238122 -0.00651797 -0.0242094">
               <body name="zed_camera_center" pos="0 0 0.01325">
-                <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="0.25 0.25 0.25 1" mesh="zedm"/>
-                <geom type="mesh" rgba="0.25 0.25 0.25 1" mesh="zedm" group="3" density="0"/>
+                <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" rgba="1 1 1 1" mesh="zedm"/>
+                <geom type="mesh" rgba="1 1 1 1" mesh="zedm" group="3" density="0"/>
                 <body name="zed_left_camera_frame" pos="0 0.0315 0">
                   <body name="zed_left_camera_optical_frame" quat="0.5 -0.5 0.5 -0.5"/>
                 </body>
