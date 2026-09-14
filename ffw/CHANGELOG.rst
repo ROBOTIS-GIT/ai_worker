@@ -2,6 +2,12 @@
 Changelog for package ffw
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.7 (2026-09-14)
+------------------
+* Updated Dynamixel SDK in Docker container environment
+* Changed serial buffer reading in the Dynamixel SDK from a busy loop using `read()` to a `poll()`-based approach with a maximum wait time of 1 ms.
+* Contributors: Hyungyu Kim
+
 2.2.6 (2026-09-04)
 ------------------
 * Updated BH5 and SH5 urdf xacro
