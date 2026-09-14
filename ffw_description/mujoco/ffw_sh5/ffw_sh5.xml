@@ -9,7 +9,7 @@
   <default>
     <default class="YM070-210-R051-RH">
       <!-- Rounded maximum torque from the product specification. -->
-      <position kp="5000" forcerange="-16 16" dampratio="3"/>
+      <position kp="700" forcerange="-16 16" dampratio="2"/>
     </default>
     <default class="YM080-230-B001-RH">
       <!-- Approximate ideal linear force. -->
