@@ -125,7 +125,7 @@ def generate_launch_description():
             '-p', '50',
             '/leader/trigger_position_controller/commands',
             'std_msgs/msg/Float64MultiArray',
-            'data: [0.0, 0.0]',
+            'data: [-0.15, -0.15]',
         ],
     )
 
@@ -147,6 +147,7 @@ def generate_launch_description():
             control_node,
             robot_controller_spawner,
             robot_state_publisher_node,
+            delay_position_command_after_controllers,
             gripper_trigger_node,
         ]
     )
