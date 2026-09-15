@@ -10,8 +10,8 @@
       joint_trajectory_command_broadcaster:
         type: joint_trajectory_command_broadcaster/JointTrajectoryCommandBroadcaster
 
-      spring_actuator_controller:
-        type: spring_actuator_controller/SpringActuatorController
+      trigger_position_controller:
+        type: position_controllers/JointGroupPositionController
 
       joystick_controller:
         type: joystick_controller/JoystickController
@@ -36,7 +36,7 @@
         - 0.0
         - 0.0
         - 0.0
-        - 0.1
+        - 0.0
       right_joints:
         - arm_r_joint1
         - arm_r_joint2
@@ -54,7 +54,7 @@
         - 0.0
         - 0.0
         - 0.0
-        - 0.1
+        - 0.0
       trigger_threshold: -0.5
       save_pose_duration: 2.0
       save_pose_ids: [3, 4]
@@ -65,22 +65,11 @@
       right_save_pose_4: [0.4310126487211491, -0.3037162117764516, -0.15187608222558382, -2.4574492064177025, 0.26688868864229087, 0.6856534595101655, 0.9479904508402741, 1.0]
 
 /**:
-  spring_actuator_controller:
+  trigger_position_controller:
     ros__parameters:
       joints:
-        - gripper_l_joint1
         - gripper_r_joint1
-      command_interfaces:
-        - effort
-      state_interfaces:
-        - position
-        - velocity
-      trigger_spring_stiffness: [0.06, 0.06]
-      trigger_neutral_position: [0.0, 0.0]
-      trigger_damping: [0.004, 0.004]
-      static_friction_scalars: [0.1, 0.1]
-      static_friction_velocity_thresholds: [0.3, 0.3]
-      torque_scaling_factors: [1.0, 1.0]
+        - gripper_l_joint1
 
 /**:
   joystick_controller:

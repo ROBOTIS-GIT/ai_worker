@@ -17,7 +17,7 @@
 # Authors: Sungho Woo, Woojin Wie, Wonho Yun
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, GroupAction
+from launch.actions import DeclareLaunchArgument, GroupAction, RegisterEventHandler
 from launch.conditions import IfCondition
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node, PushRosNamespace
@@ -83,7 +83,7 @@ def generate_launch_description():
         executable='spawner',
         arguments=[
             'joint_trajectory_command_broadcaster',
-            'spring_actuator_controller',
+            'trigger_position_controller',
             'joystick_controller',
             'joint_state_broadcaster',
         ],
@@ -112,6 +112,31 @@ def generate_launch_description():
         name='gripper_trigger',
         output='both',
         parameters=[{'gripper_threshold': -0.5}],
+    )
+
+    # Execute process to publish position command
+    position_command_process = ExecuteProcess(
+        name='trigger_position_command',
+        cmd=[
+            'ros2', 'topic', 'pub',
+            '-r', '50',
+            '-t', '50',
+            '-p', '50',
+            '/leader/trigger_position_controller/commands',
+            'std_msgs/msg/Float64MultiArray',
+            'data: [0.0, 0.0]',
+        ],
+    )
+
+    # Note: leader_position_controller commands are now continuously published by
+    # joint_trajectory_command_broadcaster (mirrors follower poses every cycle).
+    # No initial-kick process needed.
+
+    delay_position_command_after_controllers = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=robot_controller_spawner,
+            on_exit=[position_command_process],
+        )
     )
 
     # Wrap everything in a namespace 'leader'
