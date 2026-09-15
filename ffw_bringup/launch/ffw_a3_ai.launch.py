@@ -112,7 +112,7 @@ def generate_launch_description():
         executable='gripper_trigger',
         name='gripper_trigger',
         output='both',
-        parameters=[{'gripper_threshold': -0.5}],
+        parameters=[{'gripper_threshold': -1.0}],
     )
 
     # Execute process to publish position command
