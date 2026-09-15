@@ -277,7 +277,7 @@ const getSafetyPrepDurationSec = (
 /** SAFETY: effort 램프·모터 homing 대상 순서 (joint 번호 1..7) */
 const SAFETY_PREP_CALIB_JOINT_NUMS = [2, 4, 6, 7, 1, 3, 5] as const
 
-const SET_DXL_DATA_SERVICE = '/dynamixel_hardware_interface/set_dxl_data'
+const SET_DXL_DATA_SERVICE = '/ffw_follower/set_dxl_data'
 const SET_DXL_DATA_TYPE = 'dynamixel_interfaces/srv/SetDataToDxl'
 /** Homing 단계: effort 0 직후, Torque OFF↔Homing↔Torque ON 사이, Torque ON 직후 */
 const DXL_HOMING_STEP_PAUSE_MS = 500
