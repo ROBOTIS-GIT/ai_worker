@@ -20,6 +20,10 @@
   controller_manager:
     ros__parameters:
       update_rate: 100
+      arm_l_effort_controller:
+        type: forward_command_controller/ForwardCommandController
+      arm_r_effort_controller:
+        type: forward_command_controller/ForwardCommandController
       arm_l_controller:
         type: joint_trajectory_controller/JointTrajectoryController
       arm_r_controller:
@@ -70,3 +74,13 @@
     ros__parameters:
       disable_torque_on_error: false
       set_led_error_on_error: true
+
+  arm_l_effort_controller:
+    ros__parameters:
+      joints: [arm_l_joint1, arm_l_joint2, arm_l_joint3, arm_l_joint4, arm_l_joint5, arm_l_joint6, arm_l_joint7]
+      interface_name: effort
+
+  arm_r_effort_controller:
+    ros__parameters:
+      joints: [arm_r_joint1, arm_r_joint2, arm_r_joint3, arm_r_joint4, arm_r_joint5, arm_r_joint6, arm_r_joint7]
+      interface_name: effort

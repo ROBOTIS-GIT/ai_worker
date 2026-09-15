@@ -38,6 +38,7 @@ from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
+import math
 import yaml
 
 
@@ -64,6 +65,14 @@ def controller_spawn_config(path):
         raise RuntimeError(f'Missing controller_spawn in {path}') from error
 
 
+def calibration_effort_values(value):
+    values = yaml.safe_load(value)
+    if (not isinstance(values, list) or len(values) != 7 or
+            any(type(v) not in (int, float) or not math.isfinite(v) for v in values)):
+        raise ValueError('calibration_effort must contain 7 finite numbers (arm joints 1-7)')
+    return [float(v) for v in values]
+
+
 def launch_setup(context):
     robot = LaunchConfiguration('robot').perform(context)
     description_share = get_package_share_directory('ffw_description')
@@ -79,6 +88,9 @@ def launch_setup(context):
     body = robot_config['body']
     base = robot_config['base']
     end_tool = robot_config['end_tool']
+    calibration = IfCondition(LaunchConfiguration('calibration')).evaluate(context)
+    if calibration and body != 'ffw_body':
+        raise RuntimeError('calibration requires the ffw_body hardware configuration')
 
     controller_root = Path(bringup_share, 'config', 'follower', 'controllers')
     controller_files = [
@@ -99,6 +111,9 @@ def launch_setup(context):
         for key in ('initial_controller', 'initial_executor', 'active_controller'):
             if key in spawn_config:
                 controller_switch[key] = spawn_config[key]
+
+    if calibration:
+        controllers.extend(['arm_l_effort_controller', 'arm_r_effort_controller'])
 
     use_sim = LaunchConfiguration('use_sim')
     use_mock_hardware = LaunchConfiguration('use_mock_hardware')
@@ -122,6 +137,7 @@ def launch_setup(context):
         ' use_mock_hardware:=', use_mock_hardware,
         ' mock_sensor_commands:=', mock_sensor_commands,
         ' port_name:=', port_name,
+        ' calibration:=', LaunchConfiguration('calibration'),
     ])
     robot_description = {'robot_description': robot_description_content}
 
@@ -265,6 +281,25 @@ def launch_setup(context):
         condition=IfCondition(init_position),
     ))
 
+    # TODO: Consider moving effort command publishing to an effort executor node.
+    if calibration:
+        effort = calibration_effort_values(
+            LaunchConfiguration('calibration_effort').perform(context))
+        processes = [ExecuteProcess(
+            name=f'{side}_arm_calibration_effort',
+            cmd=[
+                'ros2', 'topic', 'pub', '-r', '50', '-t', '50', '-p', '50',
+                f'/arm_{side}_effort_controller/commands',
+                'std_msgs/msg/Float64MultiArray', f'data: {effort}',
+            ],
+            condition=UnlessCondition(use_sim),
+        ) for side in ('l', 'r')]
+        actions.append(RegisterEventHandler(OnProcessExit(
+            target_action=controller_spawner,
+            on_exit=lambda event, context: processes if event.returncode == 0 else [],
+        )))
+
+    # TODO: Consider moving effort command publishing to an effort executor node.
     if 'effort_l_controller' in controllers:
         current_command = (
             'data: [' + ', '.join(['300.0'] * 20) + ']'
@@ -385,6 +420,12 @@ def launch_setup(context):
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('robot', description='Follower robot name.'),
+        DeclareLaunchArgument(
+            'calibration', default_value='false',
+            description='Enable arm effort interfaces and controllers for calibration.'),
+        DeclareLaunchArgument(
+            'calibration_effort', default_value='[30, 25, 25, 20, 20, 20, 1000]',
+            description='Initial effort for joints 1-7, shared by both arms.'),
         DeclareLaunchArgument('start_rviz', default_value='false'),
         DeclareLaunchArgument('use_sim', default_value='false'),
         DeclareLaunchArgument('use_mock_hardware', default_value='false'),
