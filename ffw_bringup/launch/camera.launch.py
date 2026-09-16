@@ -23,11 +23,15 @@ from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     IncludeLaunchDescription,
+    ExecuteProcess,
+    RegisterEventHandler,
     TimerAction,
 )
 from launch.conditions import IfCondition
+from launch.event_handlers import OnProcessExit
+from launch.logging import get_logger
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PythonExpression
+from launch.substitutions import FindExecutable, LaunchConfiguration, PythonExpression
 
 
 def generate_launch_description():
@@ -52,6 +56,13 @@ def generate_launch_description():
         launch_arguments={'head_camera_type': head_camera_type}.items(),
     )
 
+    # Prepare serials before starting cameras; registered hosts skip discovery.
+    configurator = ExecuteProcess(
+        name='camera_serial_configurator',
+        cmd=[FindExecutable(name='ros2'), 'run', 'ffw_bringup', 'camera_serial_configurator',
+             '--head-camera-type', head_camera_type],
+        output='screen',
+    )
     return LaunchDescription([
         DeclareLaunchArgument(
             'head_camera_type',
@@ -60,6 +71,13 @@ def generate_launch_description():
             description='Head camera type. zed launches a ZED Mini head; realsense launches '
                         'a D455 head.'
         ),
-        camera_zed,
-        TimerAction(period=10.0, actions=[camera_realsense]),
+        RegisterEventHandler(OnProcessExit(
+            target_action=configurator,
+            on_exit=lambda event, _: [
+                camera_zed,
+                TimerAction(period=10.0, actions=[camera_realsense]),
+            ] if event.returncode == 0 else get_logger('camera').warning(
+                'Camera serial configurator node failed.'),
+        )),
+        configurator,
     ])

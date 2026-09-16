@@ -56,6 +56,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'camera_serial_configurator = ffw_bringup.camera_serial_configurator:main',
             'joint_trajectory_executor = ffw_bringup.joint_trajectory_executor:main',
             'joint_trajectory_splitter = ffw_bringup.joint_trajectory_splitter:main',
             'head_eef_tracker = ffw_bringup.head_eef_tracker:main',

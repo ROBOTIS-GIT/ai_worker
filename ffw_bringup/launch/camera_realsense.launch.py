@@ -31,6 +31,7 @@ import os
 import sys
 
 from ament_index_python.packages import get_package_share_directory
+from ffw_bringup.camera_serial_configurator import DEFAULT_SERIALS_PATH
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.conditions import IfCondition
@@ -51,9 +52,8 @@ def yaml_to_dict(path_to_yaml):
         return yaml.load(f, Loader=yaml.SafeLoader)
 
 
-# Read serial numbers from rs_serial.yaml
-serials_path = os.path.join(get_package_share_directory('ffw_bringup'), 'config', 'common',
-                            'rs_serial.yaml')
+# Read serial numbers after the configurator has finished in camera.launch.py.
+serials_path = os.path.expanduser(DEFAULT_SERIALS_PATH)
 serials = yaml_to_dict(serials_path)
 host = socket.gethostname().split('.')[0]
 host_serials = serials.get('hosts', {}).get(host) or serials.get('default', serials)
@@ -117,14 +117,8 @@ def generate_launch_description():
     params2 = duplicate_params(rs_launch.configurable_parameters, '2')
     params3 = duplicate_params(rs_launch.configurable_parameters, '3')
     return LaunchDescription(
-        [
-            DeclareLaunchArgument(
-                'head_camera_type',
-                default_value='zed',
-                choices=['zed', 'realsense'],
-                description='Launch a D455 head camera when set to realsense.'
-            ),
-        ] +
+        [DeclareLaunchArgument(
+            'head_camera_type', default_value='zed', choices=['zed', 'realsense'])] +
         rs_launch.declare_configurable_parameters(local_parameters) +
         rs_launch.declare_configurable_parameters(params1) +
         rs_launch.declare_configurable_parameters(params2) +
