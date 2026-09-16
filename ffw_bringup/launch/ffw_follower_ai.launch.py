@@ -435,5 +435,6 @@ def generate_launch_description():
         DeclareLaunchArgument('launch_lidar', default_value='true'),
         DeclareLaunchArgument('init_position', default_value='true'),
         DeclareLaunchArgument('use_head_eef_tracker', default_value='false'),
+        DeclareLaunchArgument('head_camera_type', default_value='zed'),
         OpaqueFunction(function=launch_setup),
     ])
