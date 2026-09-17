@@ -85,6 +85,7 @@ def launch_setup(context):
         raise RuntimeError(f"Unsupported robot '{robot}'. Choose one of: {supported}")
 
     robot_config = robots[robot]
+    camera_type_arg = LaunchConfiguration('head_camera_type').perform(context)
     body = robot_config['body']
     base = robot_config['base']
     end_tool = robot_config['end_tool']
@@ -336,7 +337,10 @@ def launch_setup(context):
     camera_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(bringup_launch_dir, 'camera.launch.py')),
         launch_arguments={
-            'head_camera_type': robot_config['head_camera_type'],
+            'head_camera_type': (
+                robot_config['head_camera_type']
+                if camera_type_arg == 'auto' else camera_type_arg
+            ),
         }.items(),
         condition=IfCondition(launch_cameras),
     )
@@ -435,6 +439,11 @@ def generate_launch_description():
         DeclareLaunchArgument('launch_lidar', default_value='true'),
         DeclareLaunchArgument('init_position', default_value='true'),
         DeclareLaunchArgument('use_head_eef_tracker', default_value='false'),
-        DeclareLaunchArgument('head_camera_type', default_value='zed'),
+        DeclareLaunchArgument(
+            'head_camera_type',
+            default_value='auto',
+            choices=['auto', 'zed', 'realsense'],
+            description='Head camera type. auto uses the robot configuration.',
+        ),
         OpaqueFunction(function=launch_setup),
     ])
