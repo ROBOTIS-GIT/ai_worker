@@ -4,6 +4,7 @@
   <xacro:arg name="use_mock_hardware" default="false" />
   <xacro:arg name="mock_sensor_commands" default="false" />
   <xacro:arg name="prefix" default="" />
+  <xacro:arg name="port_name" default="/dev/leader" />
 
   <xacro:include filename="$(find ffw_description)/urdf/leader/ffw_mini_leader_body.urdf.xacro" />
 
@@ -18,6 +19,7 @@
   <xacro:ffw_a3_system
       use_sim="$(arg use_sim)"
       use_mock_hardware="$(arg use_mock_hardware)"
+      port_name="$(arg port_name)"
       mock_sensor_commands="$(arg mock_sensor_commands)" />
 
 </robot>

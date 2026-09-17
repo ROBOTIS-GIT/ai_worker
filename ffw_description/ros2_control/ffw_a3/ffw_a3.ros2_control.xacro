@@ -2,7 +2,7 @@
 
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <xacro:macro name="ffw_a3_system" params="use_sim:=^|false use_mock_hardware:=^|false mock_sensor_commands:=^|false">
+  <xacro:macro name="ffw_a3_system" params="use_sim:=^|false use_mock_hardware:=^|false mock_sensor_commands:=^|false port_name:=^|/dev/leader">
     <xacro:property name="initial_positions" value="${load_yaml(initial_positions_file)['initial_positions']}"/>
 
     <ros2_control name="ffw_a3" type="system" is_async="true">
@@ -21,7 +21,7 @@
           </xacro:if>
           <xacro:unless value="${use_mock_hardware}">
             <plugin>dynamixel_hardware_interface/DynamixelHardware</plugin>
-            <param name="port_name">/dev/leader</param>
+            <param name="port_name">${port_name}</param>
             <param name="baud_rate">4000000</param>
             <param name="dynamixel_model_folder">/param/dxl_model</param>
             <param name="number_of_joints">16</param>

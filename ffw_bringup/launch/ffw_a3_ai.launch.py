@@ -16,13 +16,68 @@
 #
 # Authors: Sungho Woo, Woojin Wie, Wonho Yun
 
+from pathlib import Path
+
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess, GroupAction, RegisterEventHandler
+from launch.actions import (
+    DeclareLaunchArgument, ExecuteProcess, GroupAction, OpaqueFunction, RegisterEventHandler,
+)
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node, PushRosNamespace
 from launch_ros.substitutions import FindPackageShare
+
+
+def find_leader_port():
+    candidates = {}
+    for path in sorted(Path('/dev/serial/by-id').glob('*')):
+        if path.exists() and any(name in path.name.upper() for name in (
+            'STM32_VIRTUAL_COMPORT', 'ROBOTIS_AVATAR_CONTROLLER'
+        )):
+            candidates.setdefault(path.resolve(), path)
+    if not candidates:
+        raise RuntimeError('No leader port found. Connect the leader.')
+    if len(candidates) > 1:
+        found = ', '.join(str(path) for path in candidates.values())
+        raise RuntimeError(
+            f'Multiple leader ports found ({len(candidates)}). Connect only one leader.\n'
+            f'Detected ports: {found}'
+        )
+    path = next(iter(candidates.values()))
+    if 'STM32_VIRTUAL_COMPORT' in path.name.upper():
+        return str(path)
+
+    port = None
+    try:
+        from dynamixel_sdk import COMM_SUCCESS, PacketHandler, PortHandler
+
+        port = PortHandler(str(path))
+        packet = PacketHandler(2.0)
+        if not port.openPort():
+            raise RuntimeError('ROBOTIS Avatar Controller: could not open port')
+        if not port.setBaudRate(4_000_000):
+            raise RuntimeError('ROBOTIS Avatar Controller: could not set baud rate to 4000000')
+        data, result, error = packet.readTxRx(port, 200, 10001, 12)
+        if result != COMM_SUCCESS:
+            raise RuntimeError(f'ROBOTIS Avatar Controller: {packet.getTxRxResult(result)}')
+        if error:
+            raise RuntimeError(f'ROBOTIS Avatar Controller: {packet.getRxPacketError(error)}')
+        if len(data) != 12:
+            raise RuntimeError(
+                f'ROBOTIS Avatar Controller: expected 12 name bytes, received {len(data)}'
+            )
+        name = bytes(data).split(b'\x00', 1)[0].decode('ascii')
+        if name != 'LEADER_A2':
+            raise RuntimeError(f'ROBOTIS Avatar Controller: expected LEADER_A2, received {name!r}')
+    except Exception as exc:
+        raise RuntimeError(
+            f'ROBOTIS Avatar Controller identification failed on {path}: {exc}'
+        ) from exc
+    finally:
+        if port is not None and port.is_open:
+            port.closePort()
+    return str(path)
 
 
 def generate_launch_description():
@@ -44,8 +99,18 @@ def generate_launch_description():
         ),
     ]
 
+    return LaunchDescription(declared_arguments + [OpaqueFunction(function=launch_setup)])
+
+
+def launch_setup(context):
     description_file = LaunchConfiguration('description_file')
     use_mock_hardware = LaunchConfiguration('use_mock_hardware')
+
+    if IfCondition(use_mock_hardware).evaluate(context):
+        port_name = '/dev/null'
+    else:
+        port_name = find_leader_port()
+
     launch_foot_switch = LaunchConfiguration('launch_foot_switch')
 
     # Robot controllers config file path
@@ -75,6 +140,8 @@ def generate_launch_description():
             ),
             ' ',
             'use_mock_hardware:=', use_mock_hardware,
+            ' ',
+            'port_name:=', port_name,
         ]
     )
     robot_description = {'robot_description': robot_description_content}
@@ -152,5 +219,4 @@ def generate_launch_description():
         ]
     )
 
-    # Return combined LaunchDescription
-    return LaunchDescription(declared_arguments + [leader_with_namespace, foot_switch_node])
+    return [leader_with_namespace, foot_switch_node]
