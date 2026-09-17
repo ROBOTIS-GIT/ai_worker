@@ -322,7 +322,7 @@
         <state_interface name="Present Velocity"/>
         <state_interface name="Present Current"/>
         <state_interface name="Hardware Error Status"/>
-        <param name="Drive Mode">4</param>
+        <param name="Drive Mode">4</param>  <!-- Motor mounted opposite to ffw_body_f, so Drive Mode differs. -->
         <param name="Operating Mode">3</param>
         <param name="Return Delay Time">0</param>
         <param name="Velocity Limit">2920</param>
@@ -507,7 +507,7 @@
         <state_interface name="Present Velocity"/>
         <state_interface name="Present Current"/>
         <state_interface name="Hardware Error Status"/>
-        <param name="Drive Mode">4</param>
+        <param name="Drive Mode">4</param>  <!-- Motor mounted opposite to ffw_body_f, so Drive Mode differs. -->
         <param name="Operating Mode">3</param>
         <param name="Return Delay Time">0</param>
         <param name="Velocity Limit">2920</param>
