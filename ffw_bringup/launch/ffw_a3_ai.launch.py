@@ -16,7 +16,9 @@
 #
 # Authors: Sungho Woo, Woojin Wie, Wonho Yun
 
+import importlib
 from pathlib import Path
+import subprocess
 
 from launch import LaunchDescription
 from launch.actions import (
@@ -93,7 +95,7 @@ def generate_launch_description():
             description='Use mock hardware mirroring command.',
         ),
         DeclareLaunchArgument(
-            'launch_foot_switch',
+            'enable_foot_switch',
             default_value='true',
             description='Whether to launch the foot switch node.',
         ),
@@ -109,9 +111,23 @@ def launch_setup(context):
     if IfCondition(use_mock_hardware).evaluate(context):
         port_name = '/dev/null'
     else:
+        # Temporary workaround for the missing pySerial dependency.
+        # TODO: Remove once pySerial is included in the Docker image.
+        try:
+            importlib.import_module('serial')
+        except ModuleNotFoundError as exc:
+            if exc.name != 'serial':
+                raise
+            print('pySerial is missing; installing python3-serial...', flush=True)
+            subprocess.run(['apt-get', 'update'], check=True, timeout=120)
+            subprocess.run(
+                ['apt-get', 'install', '-y', 'python3-serial'], check=True, timeout=120
+            )
+            importlib.invalidate_caches()
+            importlib.import_module('serial')
         port_name = detect_leader_port()
 
-    launch_foot_switch = LaunchConfiguration('launch_foot_switch')
+    enable_foot_switch = LaunchConfiguration('enable_foot_switch')
 
     # Robot controllers config file path
     robot_controllers = PathJoinSubstitution(
@@ -171,7 +187,7 @@ def launch_setup(context):
         name='foot_switch_node',
         output='both',
         parameters=[{'controller_config_path': robot_controllers}],
-        condition=IfCondition(launch_foot_switch),
+        condition=IfCondition(enable_foot_switch),
     )
 
     gripper_trigger_node = Node(
