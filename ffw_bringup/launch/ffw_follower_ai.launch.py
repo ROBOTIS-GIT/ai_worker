@@ -27,6 +27,7 @@ from launch.actions import GroupAction
 from launch.actions import IncludeLaunchDescription
 from launch.actions import OpaqueFunction
 from launch.actions import RegisterEventHandler
+from launch.actions import SetLaunchConfiguration
 from launch.actions import TimerAction
 from launch.conditions import IfCondition
 from launch.conditions import UnlessCondition
@@ -340,6 +341,8 @@ def launch_setup(context):
         }.items(),
         condition=IfCondition(launch_cameras),
     )
+    actions.append(SetLaunchConfiguration(
+        'head_camera_type', robot_config['head_camera_type']))
     actions.append(GroupAction(
         actions=[
             TimerAction(
