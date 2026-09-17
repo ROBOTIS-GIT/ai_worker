@@ -29,7 +29,7 @@ from launch_ros.actions import Node, PushRosNamespace
 from launch_ros.substitutions import FindPackageShare
 
 
-def find_leader_port():
+def detect_leader_port():
     candidates = {}
     for path in sorted(Path('/dev/serial/by-id').glob('*')):
         if path.exists() and any(name in path.name.upper() for name in (
@@ -109,7 +109,7 @@ def launch_setup(context):
     if IfCondition(use_mock_hardware).evaluate(context):
         port_name = '/dev/null'
     else:
-        port_name = find_leader_port()
+        port_name = detect_leader_port()
 
     launch_foot_switch = LaunchConfiguration('launch_foot_switch')
 
