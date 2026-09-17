@@ -23,6 +23,7 @@ import subprocess
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument, ExecuteProcess, GroupAction, OpaqueFunction, RegisterEventHandler,
+    TimerAction,
 )
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
@@ -231,7 +232,7 @@ def launch_setup(context):
             robot_controller_spawner,
             robot_state_publisher_node,
             delay_position_command_after_controllers,
-            gripper_trigger_node,
+            TimerAction(period=2.0, actions=[gripper_trigger_node]),
         ]
     )
 
