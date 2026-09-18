@@ -297,6 +297,12 @@ controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_confi
           if (j && j->limits) {
             lowers.push_back(j->limits->lower);
             uppers.push_back(j->limits->upper);
+          } else if (jn == "gripper_l_joint1" || jn == "gripper_r_joint1") {
+            lowers.push_back(0.0);
+            uppers.push_back(1.1);
+            RCLCPP_WARN(get_node()->get_logger(),
+              "[%s] No limit for joint '%s' in follower URDF; using [0.0, 1.1] rad",
+              group_name.c_str(), jn.c_str());
           } else {
             lowers.push_back(-std::numeric_limits<double>::infinity());
             uppers.push_back(std::numeric_limits<double>::infinity());

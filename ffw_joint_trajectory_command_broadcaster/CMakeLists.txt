@@ -117,6 +117,13 @@ target_compile_features(joint_trajectory_splitter PUBLIC cxx_std_17)
 ament_target_dependencies(joint_trajectory_splitter rclcpp trajectory_msgs)
 
 ################################################################################
+# gripper_to_hand standalone node
+################################################################################
+add_executable(gripper_to_hand src/gripper_to_hand.cpp)
+target_compile_features(gripper_to_hand PUBLIC cxx_std_17)
+ament_target_dependencies(gripper_to_hand rclcpp trajectory_msgs std_msgs urdf)
+
+################################################################################
 # Install
 ################################################################################
 install(
@@ -135,7 +142,7 @@ install(
 )
 
 install(
-  TARGETS leader_feedback gripper_trigger head_eef_tracker joint_trajectory_splitter
+  TARGETS leader_feedback gripper_trigger head_eef_tracker joint_trajectory_splitter gripper_to_hand
   DESTINATION lib/${PROJECT_NAME}
 )
 
