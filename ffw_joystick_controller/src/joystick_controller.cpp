@@ -410,11 +410,9 @@ void JoystickController::handle_tact_switches(
     auto press_duration = current_time - right_tact_press_start_time_;
     if (press_duration.seconds() >= params_.long_press_duration) {
       std_msgs::msg::String trigger_msg;
-      trigger_msg.data = middle_pedal_held_ ? "right_long_time_middle" : "right_long_time";
+      trigger_msg.data = "right_long_time";
       tact_trigger_pub_->publish(trigger_msg);
-      RCLCPP_INFO(
-        get_node()->get_logger(), "Right tact switch long press triggered! (middle: %s)",
-        middle_pedal_held_ ? "held" : "not held");
+      RCLCPP_INFO(get_node()->get_logger(), "Right tact switch long press triggered!");
       right_tact_long_press_triggered_ = true;
     }
   }

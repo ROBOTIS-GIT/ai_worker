@@ -2,6 +2,7 @@
 
 This repository contains the official ROS 2 packages for the ROBOTIS AI Worker platform. These packages provide the necessary interfaces and tools to control the robot, integrate with its sensors, and develop physical AI applications, including those utilizing frameworks like LeRobot. For detailed usage instructions, please refer to the documentation below.
   - [Documentation for AI Worker](https://ai.robotis.com/)
+  - [Local ROS 2 CLI / Python SDK (`aiw`)](ai_worker_sdk/README.md)
 
 To learn more about the Physical AI Tools, visit:
   - [Physical AI Tools](https://github.com/ROBOTIS-GIT/physical_ai_tools)

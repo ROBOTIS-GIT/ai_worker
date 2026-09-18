@@ -533,3 +533,6 @@ doc/
 *.ar
 
 ffw_bringup/config/common/rs_serial.yaml
+
+# Temporary: exclude the SDK until it is ready to commit.
+/ai_worker_sdk/

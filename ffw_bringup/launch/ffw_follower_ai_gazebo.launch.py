@@ -209,7 +209,7 @@ def launch_setup(context):
         robot_state_publisher,
         spawn_entity,
         Node(
-            package='ffw_bringup',
+            package='ffw_joint_trajectory_command_broadcaster',
             executable='joint_trajectory_splitter',
             output='screen',
         ),

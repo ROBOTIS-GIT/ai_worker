@@ -194,7 +194,7 @@ def launch_setup(context):
         # Split /leader/joint_trajectory_command_broadcaster_{left,right}/joint_trajectory
         # into modular arm and gripper controller topics.
         Node(
-            package='ffw_bringup',
+            package='ffw_joint_trajectory_command_broadcaster',
             executable='joint_trajectory_splitter',
             output='screen',
         ),

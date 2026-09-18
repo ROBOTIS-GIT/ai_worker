@@ -30,6 +30,7 @@
   <exec_depend>ros2_controllers</exec_depend>
   <exec_depend>rviz2</exec_depend>
   <exec_depend>ffw_description</exec_depend>
+  <exec_depend>ffw_joint_trajectory_command_broadcaster</exec_depend>
   <exec_depend>xacro</exec_depend>
   <exec_depend>image_transport_plugins</exec_depend>
   <exec_depend>python3-yaml</exec_depend>

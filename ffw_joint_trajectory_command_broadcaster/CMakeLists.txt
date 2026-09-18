@@ -110,6 +110,13 @@ ament_target_dependencies(head_eef_tracker
 )
 
 ################################################################################
+# joint_trajectory_splitter standalone node
+################################################################################
+add_executable(joint_trajectory_splitter src/joint_trajectory_splitter.cpp)
+target_compile_features(joint_trajectory_splitter PUBLIC cxx_std_17)
+ament_target_dependencies(joint_trajectory_splitter rclcpp trajectory_msgs)
+
+################################################################################
 # Install
 ################################################################################
 install(
@@ -128,7 +135,7 @@ install(
 )
 
 install(
-  TARGETS leader_feedback gripper_trigger head_eef_tracker
+  TARGETS leader_feedback gripper_trigger head_eef_tracker joint_trajectory_splitter
   DESTINATION lib/${PROJECT_NAME}
 )
 
