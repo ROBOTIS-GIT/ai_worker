@@ -10,13 +10,12 @@
       joint_trajectory_command_broadcaster:
         type: leader_joint_trajectory_command_broadcaster/LeaderJointTrajectoryCommandBroadcaster
 
-      spring_actuator_controller:
-        type: spring_actuator_controller/SpringActuatorController
+      trigger_position_controller:
+        type: position_controllers/JointGroupPositionController
 
       joystick_controller:
         type: joystick_controller/LeaderJoystickController
 
-/**:
   joint_trajectory_command_broadcaster:
     ros__parameters:
       enable_teleoperation: true
@@ -43,7 +42,7 @@
         - 0.0
         - 0.0
         - 0.0
-        - 0.3
+        - 0.4
       right_joints:
         - arm_r_joint1
         - arm_r_joint2
@@ -61,28 +60,17 @@
         - 0.0
         - 0.0
         - 0.0
-        - 0.3
+        - 0.4
       trigger_threshold: -0.5
 
-/**:
-  spring_actuator_controller:
+  trigger_position_controller:
     ros__parameters:
+      left_neutral_position: -0.4
+      right_neutral_position: -0.4
       joints:
         - gripper_l_joint1
         - gripper_r_joint1
-      command_interfaces:
-        - effort
-      state_interfaces:
-        - position
-        - velocity
-      trigger_spring_stiffness: [0.06, 0.06]
-      trigger_neutral_position: [0.0, 0.0]
-      trigger_damping: [0.004, 0.004]
-      static_friction_scalars: [0.1, 0.1]
-      static_friction_velocity_thresholds: [0.3, 0.3]
-      torque_scaling_factors: [1.0, 1.0]
 
-/**:
   joystick_controller:
     ros__parameters:
       teleoperation_toggle_enabled: true
