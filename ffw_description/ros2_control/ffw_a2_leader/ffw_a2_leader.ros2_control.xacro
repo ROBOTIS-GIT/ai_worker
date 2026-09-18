@@ -118,7 +118,7 @@
         <param name="Position P Gain">150</param>
         <param name="Position D Gain">300</param>
         <param name="Current Limit">100</param>
-        <param name="Homing Offset">0</param>
+        <param name="Homing Offset">200</param>
       </gpio>
       <gpio name="dxl31">
         <param name="type">dxl</param>
@@ -204,7 +204,7 @@
         <param name="Position P Gain">150</param>
         <param name="Position D Gain">300</param>
         <param name="Current Limit">100</param>
-        <param name="Homing Offset">0</param>
+        <param name="Homing Offset">-200</param>
       </gpio>
       <gpio name="dxl1">
         <param name="type">dxl</param>
