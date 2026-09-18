@@ -16,6 +16,11 @@ leader_joint_trajectory_command_broadcaster:
     default_value: "/joint_states",
     description: "Topic name for subscribing to follower's joint states to check synchronization."
   }
+  follower_state_timeout: {
+    type: double,
+    default_value: 0.5,
+    description: "Maximum age in seconds of complete follower feedback used for synchronization."
+  }
   sync_threshold: {
     type: double,
     default_value: 0.01,

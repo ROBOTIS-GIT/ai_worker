@@ -19,6 +19,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include <functional>
 #include <cmath>
@@ -203,10 +204,13 @@ controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on
 
     // Store the groups for later use
     trajectory_groups_ = groups;
+    follower_joint_snapshot_non_rt_ = FollowerJointSnapshot{};
+    follower_joint_snapshot_buffer_.writeFromNonRT(follower_joint_snapshot_non_rt_);
 
     // Create subscriber for follower joint states
+    const auto follower_qos = rclcpp::SensorDataQoS().keep_last(1);
     joint_states_subscriber_ = get_node()->create_subscription<sensor_msgs::msg::JointState>(
-      params_.follower_joint_states_topic, rclcpp::SystemDefaultsQoS(),
+      params_.follower_joint_states_topic, follower_qos,
       std::bind(&LeaderJointTrajectoryCommandBroadcaster::joint_states_callback, this,
         std::placeholders::_1));
 
@@ -410,13 +414,55 @@ double get_value(
 void LeaderJointTrajectoryCommandBroadcaster::joint_states_callback(
   const sensor_msgs::msg::JointState::SharedPtr msg)
 {
-  // Build the complete follower snapshot outside the real-time update loop.
+  if (!msg || msg->name.size() != msg->position.size()) {
+    return;
+  }
+
+  std::unordered_map<std::string, size_t> message_indices;
   for (size_t i = 0; i < msg->name.size(); ++i) {
-    if (i < msg->position.size()) {
-      follower_joint_positions_non_rt_[msg->name[i]] = msg->position[i];
+    if (!message_indices.emplace(msg->name[i], i).second) {
+      return;
     }
   }
-  follower_joint_positions_buffer_.writeFromNonRT(follower_joint_positions_non_rt_);
+
+  FollowerJointSnapshot next_snapshot = follower_joint_snapshot_non_rt_;
+  const rclcpp::Time received_time = get_node()->now();
+  bool snapshot_updated = false;
+  for (const auto & group : group_joint_names_) {
+    size_t required_joint_count = 0;
+    bool group_complete = true;
+    for (const auto & joint_name : group.second) {
+      if (joint_name.find("gripper") != std::string::npos) {
+        continue;
+      }
+      ++required_joint_count;
+      const auto message_it = message_indices.find(joint_name);
+      if (
+        message_it == message_indices.end() ||
+        !std::isfinite(msg->position[message_it->second]))
+      {
+        group_complete = false;
+        break;
+      }
+    }
+    if (!group_complete || required_joint_count == 0) {
+      continue;
+    }
+    for (const auto & joint_name : group.second) {
+      if (joint_name.find("gripper") != std::string::npos) {
+        continue;
+      }
+      next_snapshot.positions[joint_name] =
+        msg->position[message_indices.at(joint_name)];
+    }
+    next_snapshot.group_received_times[group.first] = received_time;
+    snapshot_updated = true;
+  }
+
+  if (snapshot_updated) {
+    follower_joint_snapshot_non_rt_ = std::move(next_snapshot);
+    follower_joint_snapshot_buffer_.writeFromNonRT(follower_joint_snapshot_non_rt_);
+  }
 
   // Debug logging (only log occasionally to avoid spam)
   static int callback_count = 0;
@@ -427,77 +473,53 @@ void LeaderJointTrajectoryCommandBroadcaster::joint_states_callback(
 }
 
 double LeaderJointTrajectoryCommandBroadcaster::calculate_mean_error(
-  const FollowerJointPositions & follower_positions) const
+  const FollowerJointSnapshot & follower_snapshot,
+  const rclcpp::Time & current_time) const
 {
-  // Check if we have received any follower joint states
-  if (follower_positions.empty()) {
-    return std::numeric_limits<double>::max();  // Return max error if no follower data
-  }
-
   double total_error = 0.0;
-  int valid_joints = 0;
-
-  // Calculate mean error across all joints in all groups
-  for (const auto & group_pair : group_joint_names_) {
-    const auto & group_name = group_pair.first;
-    const auto & group_joints = group_pair.second;
-    // Safely get group offsets and reverse joints
-    std::vector<double> group_offsets;
-    std::vector<std::string> group_reverse_joints;
-
-    auto offsets_it = group_joint_offsets_.find(group_name);
-    if (offsets_it != group_joint_offsets_.end()) {
-      group_offsets = offsets_it->second;
+  size_t total_joint_count = 0;
+  for (const auto & group : group_joint_names_) {
+    size_t group_joint_count = 0;
+    for (const auto & joint_name : group.second) {
+      if (joint_name.find("gripper") == std::string::npos) {
+        ++group_joint_count;
+      }
     }
-
-    auto reverse_it = group_reverse_joints_.find(group_name);
-    if (reverse_it != group_reverse_joints_.end()) {
-      group_reverse_joints = reverse_it->second;
+    if (group_joint_count == 0) {
+      continue;
     }
-
-    for (size_t i = 0; i < group_joints.size(); ++i) {
-      const auto & joint_name = group_joints[i];
-      auto follower_it = follower_positions.find(joint_name);
-      if (follower_it == follower_positions.end()) {
-        continue;  // Skip joints not available in follower
-      }
-
-      double leader_pos = get_value(name_if_value_mapping_, joint_name, HW_IF_POSITION);
-      if (std::isnan(leader_pos)) {
-        continue;  // Skip joints without valid leader position
-      }
-
-      // Apply reverse and offset to leader position for comparison
-      if (std::find(group_reverse_joints.begin(), group_reverse_joints.end(), joint_name) !=
-        group_reverse_joints.end())
-      {
-        leader_pos = -leader_pos;
-      }
-
-      // Apply group offset
-      if (i < group_offsets.size()) {
-        leader_pos += group_offsets[i];
-      }
-
-      total_error += std::abs(leader_pos - follower_it->second);
-      valid_joints++;
+    double group_error = 0.0;
+    if (!calculate_group_mean_error(
+        group.first, follower_snapshot, current_time, group_error))
+    {
+      return std::numeric_limits<double>::max();
     }
+    total_error += group_error * static_cast<double>(group_joint_count);
+    total_joint_count += group_joint_count;
   }
-
-  return valid_joints > 0 ? total_error / valid_joints : std::numeric_limits<double>::max();
+  return total_joint_count > 0 ? total_error / static_cast<double>(total_joint_count) :
+         std::numeric_limits<double>::max();
 }
 
-double LeaderJointTrajectoryCommandBroadcaster::calculate_group_mean_error(
+bool LeaderJointTrajectoryCommandBroadcaster::calculate_group_mean_error(
   const std::string & group_name,
-  const FollowerJointPositions & follower_positions) const
+  const FollowerJointSnapshot & follower_snapshot,
+  const rclcpp::Time & current_time,
+  double & mean_error) const
 {
-  if (follower_positions.empty()) {
-    return std::numeric_limits<double>::max();
+  mean_error = 0.0;
+  const auto received_time_it = follower_snapshot.group_received_times.find(group_name);
+  if (received_time_it == follower_snapshot.group_received_times.end()) {
+    return false;
+  }
+  const double feedback_age = (current_time - received_time_it->second).seconds();
+  if (feedback_age < 0.0 || feedback_age > params_.follower_state_timeout) {
+    return false;
   }
 
   const auto joints_it = group_joint_names_.find(group_name);
   if (joints_it == group_joint_names_.end()) {
-    return std::numeric_limits<double>::max();
+    return false;
   }
 
   const auto offsets_it = group_joint_offsets_.find(group_name);
@@ -517,14 +539,17 @@ double LeaderJointTrajectoryCommandBroadcaster::calculate_group_mean_error(
     if (joint_name.find("gripper") != std::string::npos) {
       continue;
     }
-    const auto follower_it = follower_positions.find(joint_name);
-    if (follower_it == follower_positions.end()) {
-      continue;
+    const auto follower_it = follower_snapshot.positions.find(joint_name);
+    if (
+      follower_it == follower_snapshot.positions.end() ||
+      !std::isfinite(follower_it->second))
+    {
+      return false;
     }
 
     double leader_position = get_value(name_if_value_mapping_, joint_name, HW_IF_POSITION);
-    if (std::isnan(leader_position)) {
-      continue;
+    if (!std::isfinite(leader_position)) {
+      return false;
     }
     if (
       std::find(reverse_joints.begin(), reverse_joints.end(), joint_name) !=
@@ -535,12 +560,17 @@ double LeaderJointTrajectoryCommandBroadcaster::calculate_group_mean_error(
     if (i < offsets.size()) {
       leader_position += offsets[i];
     }
+    if (!std::isfinite(leader_position)) {
+      return false;
+    }
     total_error += std::abs(leader_position - follower_it->second);
     ++valid_joints;
   }
-  return valid_joints > 0 ?
-         total_error / static_cast<double>(valid_joints) :
-         std::numeric_limits<double>::max();
+  if (valid_joints == 0) {
+    return false;
+  }
+  mean_error = total_error / static_cast<double>(valid_joints);
+  return std::isfinite(mean_error);
 }
 
 bool LeaderJointTrajectoryCommandBroadcaster::check_trigger_active() const
@@ -954,7 +984,7 @@ controller_interface::return_type LeaderJointTrajectoryCommandBroadcaster::updat
   }
 
   // Use one immutable follower snapshot throughout this controller update.
-  const auto * follower_positions = follower_joint_positions_buffer_.readFromRT();
+  const auto * follower_snapshot = follower_joint_snapshot_buffer_.readFromRT();
 
   double mean_error = 0.0;
   uint8_t requested_arms = 0;
@@ -974,7 +1004,7 @@ controller_interface::return_type LeaderJointTrajectoryCommandBroadcaster::updat
       return controller_interface::return_type::OK;
     }
 
-    mean_error = calculate_mean_error(*follower_positions);
+    mean_error = calculate_mean_error(*follower_snapshot, time);
     const bool current_synced = mean_error <= params_.sync_threshold;
     if (first_publish_) {
       joints_synced_ = false;
@@ -1050,21 +1080,30 @@ controller_interface::return_type LeaderJointTrajectoryCommandBroadcaster::updat
       // duration for its MoveJ slow start and still publishes immediate follower commands.
       if (params_.enable_teleoperation) {
         const uint8_t group_arm = arms_from_name(group_name);
-        if (
-          group_arm == 0 ||
-          (requested_arms & group_arm) == 0 ||
-          (unsynced_arms_rt_ & group_arm) == 0)
+        if (group_arm == 0 || (requested_arms & group_arm) == 0)
         {
           traj_msg.points[0].time_from_start = rclcpp::Duration(0, 0);
         } else {
-          double group_error = calculate_group_mean_error(group_name, *follower_positions);
+          double group_error = 0.0;
+          if (!calculate_group_mean_error(
+              group_name, *follower_snapshot, time, group_error))
+          {
+            unsynced_arms_rt_ |= group_arm;
+            RCLCPP_WARN_THROTTLE(
+              get_node()->get_logger(), *get_node()->get_clock(), 2000,
+              "%s raw leader command paused: follower feedback is incomplete or stale",
+              group_name.c_str());
+            continue;
+          }
           if (group_error <= params_.sync_threshold) {
-            unsynced_arms_rt_ &= static_cast<uint8_t>(~group_arm);
             traj_msg.points[0].time_from_start = rclcpp::Duration(0, 0);
-            RCLCPP_INFO(
-              get_node()->get_logger(),
-              "%s MoveJ slow start synchronized at mean error %.4f rad",
-              group_name.c_str(), group_error);
+            if ((unsynced_arms_rt_ & group_arm) != 0) {
+              unsynced_arms_rt_ &= static_cast<uint8_t>(~group_arm);
+              RCLCPP_INFO(
+                get_node()->get_logger(),
+                "%s MoveJ slow start synchronized at mean error %.4f rad",
+                group_name.c_str(), group_error);
+            }
           } else {
             if (group_error < params_.min_error) {
               group_error = params_.min_error;

@@ -101,13 +101,22 @@ public:
 
 protected:
   using FollowerJointPositions = std::unordered_map<std::string, double>;
+  struct FollowerJointSnapshot
+  {
+    FollowerJointPositions positions;
+    std::unordered_map<std::string, rclcpp::Time> group_received_times;
+  };
 
   bool init_joint_data();
   void joint_states_callback(const sensor_msgs::msg::JointState::SharedPtr msg);
-  double calculate_mean_error(const FollowerJointPositions & follower_positions) const;
-  double calculate_group_mean_error(
+  double calculate_mean_error(
+    const FollowerJointSnapshot & follower_snapshot,
+    const rclcpp::Time & current_time) const;
+  bool calculate_group_mean_error(
     const std::string & group_name,
-    const FollowerJointPositions & follower_positions) const;
+    const FollowerJointSnapshot & follower_snapshot,
+    const rclcpp::Time & current_time,
+    double & mean_error) const;
   void update_trigger_state(const rclcpp::Time & current_time);
   bool check_trigger_active() const;
   void update_initial_pose_trigger_state(const rclcpp::Time & current_time);
@@ -163,8 +172,8 @@ protected:
 
   // Follower joint states tracking
   std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::JointState>> joint_states_subscriber_;
-  FollowerJointPositions follower_joint_positions_non_rt_;
-  realtime_tools::RealtimeBuffer<FollowerJointPositions> follower_joint_positions_buffer_;
+  FollowerJointSnapshot follower_joint_snapshot_non_rt_;
+  realtime_tools::RealtimeBuffer<FollowerJointSnapshot> follower_joint_snapshot_buffer_;
   bool joints_synced_ = false;
   bool first_publish_ = true;
 
