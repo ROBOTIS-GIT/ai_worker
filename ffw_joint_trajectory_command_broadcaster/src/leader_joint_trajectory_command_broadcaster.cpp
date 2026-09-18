@@ -334,10 +334,14 @@ controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on
 {
   joint_names_.clear();
   name_if_value_mapping_.clear();
-  group_joint_names_.clear();
-  group_joint_offsets_.clear();
-  group_topic_names_.clear();
-  group_reverse_joints_.clear();
+  joints_synced_ = false;
+  first_publish_ = true;
+  trigger_counting_ = false;
+  mode_changed_in_this_trigger_ = false;
+  left_initial_pose_trigger_ = TriggerHoldState{};
+  right_initial_pose_trigger_ = TriggerHoldState{};
+  previous_requested_arms_rt_ = 0;
+  unsynced_arms_rt_ = 0;
 
   return CallbackReturn::SUCCESS;
 }
@@ -406,12 +410,13 @@ double get_value(
 void LeaderJointTrajectoryCommandBroadcaster::joint_states_callback(
   const sensor_msgs::msg::JointState::SharedPtr msg)
 {
-  // Update follower joint positions
+  // Build the complete follower snapshot outside the real-time update loop.
   for (size_t i = 0; i < msg->name.size(); ++i) {
     if (i < msg->position.size()) {
-      follower_joint_positions_[msg->name[i]] = msg->position[i];
+      follower_joint_positions_non_rt_[msg->name[i]] = msg->position[i];
     }
   }
+  follower_joint_positions_buffer_.writeFromNonRT(follower_joint_positions_non_rt_);
 
   // Debug logging (only log occasionally to avoid spam)
   static int callback_count = 0;
@@ -421,10 +426,11 @@ void LeaderJointTrajectoryCommandBroadcaster::joint_states_callback(
   }
 }
 
-double LeaderJointTrajectoryCommandBroadcaster::calculate_mean_error() const
+double LeaderJointTrajectoryCommandBroadcaster::calculate_mean_error(
+  const FollowerJointPositions & follower_positions) const
 {
   // Check if we have received any follower joint states
-  if (follower_joint_positions_.empty()) {
+  if (follower_positions.empty()) {
     return std::numeric_limits<double>::max();  // Return max error if no follower data
   }
 
@@ -451,8 +457,8 @@ double LeaderJointTrajectoryCommandBroadcaster::calculate_mean_error() const
 
     for (size_t i = 0; i < group_joints.size(); ++i) {
       const auto & joint_name = group_joints[i];
-      auto follower_it = follower_joint_positions_.find(joint_name);
-      if (follower_it == follower_joint_positions_.end()) {
+      auto follower_it = follower_positions.find(joint_name);
+      if (follower_it == follower_positions.end()) {
         continue;  // Skip joints not available in follower
       }
 
@@ -482,9 +488,10 @@ double LeaderJointTrajectoryCommandBroadcaster::calculate_mean_error() const
 }
 
 double LeaderJointTrajectoryCommandBroadcaster::calculate_group_mean_error(
-  const std::string & group_name) const
+  const std::string & group_name,
+  const FollowerJointPositions & follower_positions) const
 {
-  if (follower_joint_positions_.empty()) {
+  if (follower_positions.empty()) {
     return std::numeric_limits<double>::max();
   }
 
@@ -510,8 +517,8 @@ double LeaderJointTrajectoryCommandBroadcaster::calculate_group_mean_error(
     if (joint_name.find("gripper") != std::string::npos) {
       continue;
     }
-    const auto follower_it = follower_joint_positions_.find(joint_name);
-    if (follower_it == follower_joint_positions_.end()) {
+    const auto follower_it = follower_positions.find(joint_name);
+    if (follower_it == follower_positions.end()) {
       continue;
     }
 
@@ -682,12 +689,6 @@ void LeaderJointTrajectoryCommandBroadcaster::update_initial_pose_trigger_state(
   if (triggered_arms != 0) {
     request_final_initial_pose(triggered_arms);
   }
-}
-
-bool LeaderJointTrajectoryCommandBroadcaster::check_joints_synced() const
-{
-  double mean_error = calculate_mean_error();
-  return mean_error <= params_.sync_threshold;
 }
 
 void LeaderJointTrajectoryCommandBroadcaster::publish_control_command(
@@ -952,6 +953,9 @@ controller_interface::return_type LeaderJointTrajectoryCommandBroadcaster::updat
     }
   }
 
+  // Use one immutable follower snapshot throughout this controller update.
+  const auto * follower_positions = follower_joint_positions_buffer_.readFromRT();
+
   double mean_error = 0.0;
   uint8_t requested_arms = 0;
   uint8_t newly_enabled_arms = 0;
@@ -970,8 +974,8 @@ controller_interface::return_type LeaderJointTrajectoryCommandBroadcaster::updat
       return controller_interface::return_type::OK;
     }
 
-    mean_error = calculate_mean_error();
-    const bool current_synced = check_joints_synced();
+    mean_error = calculate_mean_error(*follower_positions);
+    const bool current_synced = mean_error <= params_.sync_threshold;
     if (first_publish_) {
       joints_synced_ = false;
       first_publish_ = false;
@@ -1053,7 +1057,7 @@ controller_interface::return_type LeaderJointTrajectoryCommandBroadcaster::updat
         {
           traj_msg.points[0].time_from_start = rclcpp::Duration(0, 0);
         } else {
-          double group_error = calculate_group_mean_error(group_name);
+          double group_error = calculate_group_mean_error(group_name, *follower_positions);
           if (group_error <= params_.sync_threshold) {
             unsynced_arms_rt_ &= static_cast<uint8_t>(~group_arm);
             traj_msg.points[0].time_from_start = rclcpp::Duration(0, 0);
