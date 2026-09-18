@@ -11,7 +11,7 @@
         - arm_l_joint7
         - gripper_l_joint1
       step_names: [step0]
-      step0: [0.0, 0.0, -1.57, 0.0, 0.0, 0.0, 0.0, 0.0]
+      step0: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.1]
       duration: 5.0
       position_tolerance: 0.1
       velocity_tolerance: 0.01
@@ -31,7 +31,7 @@
         - arm_r_joint7
         - gripper_r_joint1
       step_names: [step0]
-      step0: [0.0, 0.0, 1.57, 0.0, 0.0, 0.0, 0.0, 0.0]
+      step0: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.1]
       duration: 5.0
       position_tolerance: 0.1
       velocity_tolerance: 0.01
@@ -58,7 +58,7 @@
       joint_names:
         - lift_joint
       step_names: [step0]
-      step0: [-0.145]
+      step0: [-0.068]
       duration: 10.0
       position_tolerance: 0.1
       velocity_tolerance: 0.01
