@@ -221,43 +221,6 @@ def launch_setup(context):
         for executor in executors
     ]
 
-    hand_sides = [side for side in ('l', 'r') if f'hand_{side}_controller' in controllers]
-    if hand_sides:
-        gripper_to_hand = Node(
-            package='ffw_joint_trajectory_command_broadcaster',
-            executable='gripper_to_hand',
-            name='gripper_to_hand',
-            parameters=[{
-                'left_enabled': 'l' in hand_sides,
-                'right_enabled': 'r' in hand_sides,
-                'use_sim_time': use_sim,
-            }],
-            output='screen',
-        )
-        if IfCondition(init_position).evaluate(context):
-            pending_hands = {f'hand_{side}_joint_trajectory_executor' for side in hand_sides}
-            if not pending_hands.issubset(executors):
-                raise RuntimeError('Hand controllers require hand initialization executors')
-
-            def hand_initialized(event, context, executor):
-                if event.returncode != 0:
-                    return []
-                pending_hands.discard(executor)
-                return [gripper_to_hand] if not pending_hands else []
-
-            for executor, executor_node in zip(executors, executor_nodes):
-                if executor in pending_hands:
-                    actions.insert(0, RegisterEventHandler(OnProcessExit(
-                        target_action=executor_node,
-                        on_exit=lambda event, context, executor=executor:
-                            hand_initialized(event, context, executor),
-                    )))
-        else:
-            actions.insert(0, RegisterEventHandler(OnProcessExit(
-                target_action=controller_spawner,
-                on_exit=lambda event, context: [gripper_to_hand] if event.returncode == 0 else [],
-            )))
-
     initial_executor = controller_switch.get('initial_executor')
     if initial_executor:
         swerve_executor = Node(

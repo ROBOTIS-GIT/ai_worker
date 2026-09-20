@@ -225,24 +225,6 @@ def launch_setup(context):
         ),
     ]
 
-    hand_sides = [side for side in ('l', 'r') if f'hand_{side}_controller' in controllers]
-    if hand_sides:
-        gripper_to_hand = Node(
-            package='ffw_joint_trajectory_command_broadcaster',
-            executable='gripper_to_hand',
-            name='gripper_to_hand',
-            parameters=[{
-                'left_enabled': 'l' in hand_sides,
-                'right_enabled': 'r' in hand_sides,
-                'use_sim_time': True,
-            }],
-            output='screen',
-        )
-        actions.insert(0, RegisterEventHandler(OnProcessExit(
-            target_action=controller_spawner,
-            on_exit=lambda event, context: [gripper_to_hand] if event.returncode == 0 else [],
-        )))
-
     if is_swerve:
         actions.append(Node(
             package='dual_laser_merger',

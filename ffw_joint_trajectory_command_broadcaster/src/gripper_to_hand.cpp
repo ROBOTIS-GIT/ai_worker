@@ -92,6 +92,13 @@ public:
           if (hand_joint_names_[hand].empty()) {
             continue;
           }
+          // A3 can control gripper-only followers too; skip absent hands.
+          const bool has_hand = std::any_of(
+            hand_joint_names_[hand].begin(), hand_joint_names_[hand].end(),
+            [&model](const std::string & name) {return static_cast<bool>(model.getJoint(name));});
+          if (!has_hand) {
+            continue;
+          }
           const std::string gripper_name = hand == 0 ? "gripper_l_joint1" : "gripper_r_joint1";
           const auto gripper = model.getJoint(gripper_name);
           auto & range = gripper_limits[hand];

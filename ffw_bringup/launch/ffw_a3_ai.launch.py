@@ -17,8 +17,9 @@
 # Authors: Sungho Woo, Woojin Wie, Wonho Yun
 
 import importlib
-from pathlib import Path
 import subprocess
+
+from ffw_bringup.leader_initializer import detect_leader_port
 
 from launch import LaunchDescription
 from launch.actions import (
@@ -30,57 +31,6 @@ from launch.event_handlers import OnProcessExit
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node, PushRosNamespace
 from launch_ros.substitutions import FindPackageShare
-
-
-def detect_leader_port():
-    candidates = {}
-    for path in sorted(Path('/dev/serial/by-id').glob('*')):
-        if path.exists() and any(name in path.name.upper() for name in (
-            'STM32_VIRTUAL_COMPORT', 'ROBOTIS_AVATAR_CONTROLLER'
-        )):
-            candidates.setdefault(path.resolve(), path)
-    if not candidates:
-        raise RuntimeError('No leader port found. Connect the leader.')
-    if len(candidates) > 1:
-        found = ', '.join(str(path) for path in candidates.values())
-        raise RuntimeError(
-            f'Multiple leader ports found ({len(candidates)}). Connect only one leader.\n'
-            f'Detected ports: {found}'
-        )
-    path = next(iter(candidates.values()))
-    if 'STM32_VIRTUAL_COMPORT' in path.name.upper():
-        return str(path)
-
-    port = None
-    try:
-        from dynamixel_sdk import COMM_SUCCESS, PacketHandler, PortHandler
-
-        port = PortHandler(str(path))
-        packet = PacketHandler(2.0)
-        if not port.openPort():
-            raise RuntimeError('ROBOTIS Avatar Controller: could not open port')
-        if not port.setBaudRate(4_000_000):
-            raise RuntimeError('ROBOTIS Avatar Controller: could not set baud rate to 4000000')
-        data, result, error = packet.readTxRx(port, 200, 10001, 12)
-        if result != COMM_SUCCESS:
-            raise RuntimeError(f'ROBOTIS Avatar Controller: {packet.getTxRxResult(result)}')
-        if error:
-            raise RuntimeError(f'ROBOTIS Avatar Controller: {packet.getRxPacketError(error)}')
-        if len(data) != 12:
-            raise RuntimeError(
-                f'ROBOTIS Avatar Controller: expected 12 name bytes, received {len(data)}'
-            )
-        name = bytes(data).split(b'\x00', 1)[0].decode('ascii')
-        if name != 'LEADER_A2':
-            raise RuntimeError(f'ROBOTIS Avatar Controller: expected LEADER_A2, received {name!r}')
-    except Exception as exc:
-        raise RuntimeError(
-            f'ROBOTIS Avatar Controller identification failed on {path}: {exc}'
-        ) from exc
-    finally:
-        if port is not None and port.is_open:
-            port.closePort()
-    return str(path)
 
 
 def generate_launch_description():
@@ -199,6 +149,13 @@ def launch_setup(context):
         parameters=[{'gripper_threshold': -1.0}],
     )
 
+    gripper_to_hand_node = Node(
+        package='ffw_joint_trajectory_command_broadcaster',
+        executable='gripper_to_hand',
+        name='gripper_to_hand',
+        output='screen',
+    )
+
     # Execute process to publish position command
     position_command_process = ExecuteProcess(
         name='trigger_position_command',
@@ -231,6 +188,7 @@ def launch_setup(context):
             control_node,
             robot_controller_spawner,
             robot_state_publisher_node,
+            gripper_to_hand_node,
             delay_position_command_after_controllers,
             TimerAction(period=2.0, actions=[gripper_trigger_node]),
         ]
