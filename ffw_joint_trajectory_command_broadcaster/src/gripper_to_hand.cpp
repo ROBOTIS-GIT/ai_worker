@@ -27,7 +27,9 @@ public:
   : Node("gripper_to_hand")
   {
     for (const std::string side : {"left", "right"}) {
-      if (!declare_parameter<bool>(side + "_enabled", true)) {
+      const auto end_tool = declare_parameter<std::string>(
+        "follower_end_tool." + side, "");
+      if (end_tool != "hand") {
         continue;
       }
       const size_t hand = side == "left" ? 0 : 1;
@@ -77,6 +79,7 @@ public:
       subscriptions_.push_back(create_subscription<Trajectory>(
         "/gripper_" + suffix + "_controller/joint_trajectory", 1, callback));
     }
+    // TODO: Use joint limits from leader_initializer to improve maintainability.
     hand_description_sub_ = create_subscription<std_msgs::msg::String>(
       "/robot_description", rclcpp::QoS(1).transient_local().reliable(),
       [this](std_msgs::msg::String::ConstSharedPtr message) {
@@ -90,13 +93,6 @@ public:
         std::array<std::pair<double, double>, 2> gripper_limits;
         for (size_t hand = 0; hand < hand_joint_names_.size(); ++hand) {
           if (hand_joint_names_[hand].empty()) {
-            continue;
-          }
-          // A3 can control gripper-only followers too; skip absent hands.
-          const bool has_hand = std::any_of(
-            hand_joint_names_[hand].begin(), hand_joint_names_[hand].end(),
-            [&model](const std::string & name) {return static_cast<bool>(model.getJoint(name));});
-          if (!has_hand) {
             continue;
           }
           const std::string gripper_name = hand == 0 ? "gripper_l_joint1" : "gripper_r_joint1";

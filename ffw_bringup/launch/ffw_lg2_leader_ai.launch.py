@@ -16,8 +16,11 @@
 #
 # Authors: Sungho Woo, Woojin Wie, Wonho Yun
 
+from ffw_bringup.leader_initializer import initialize_leader
+
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, GroupAction
+from launch.actions import DeclareLaunchArgument, GroupAction, OpaqueFunction
+from launch.conditions import IfCondition
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node, PushRosNamespace
 from launch_ros.substitutions import FindPackageShare
@@ -40,11 +43,23 @@ def generate_launch_description():
             default_value='false',
             description='Use mock hardware mirroring command.',
         ),
+        DeclareLaunchArgument(
+            'use_foot_switch',
+            default_value='true',
+            description='Whether to launch the foot switch node.',
+        ),
     ]
 
+    return LaunchDescription(declared_arguments + [OpaqueFunction(function=launch_setup)])
+
+
+def launch_setup(context):
     model = LaunchConfiguration('model')
     description_file = LaunchConfiguration('description_file')
     use_mock_hardware = LaunchConfiguration('use_mock_hardware')
+    use_foot_switch = LaunchConfiguration('use_foot_switch')
+
+    init_info = initialize_leader(detect_port=False)
 
     # Robot controllers config file path
     robot_controllers = PathJoinSubstitution([
@@ -87,7 +102,14 @@ def generate_launch_description():
             'joystick_controller',
             'joint_state_broadcaster',
         ],
-        parameters=[robot_description],
+        parameters=[
+            robot_description,
+            {
+                'follower_current_position': init_info['follower_current_position'],
+                'follower_end_tool': init_info['follower_end_tool'],
+                'follower_joint_limits': init_info['follower_joint_limits'],
+            },
+        ],
     )
 
     robot_state_publisher_node = Node(
@@ -97,6 +119,24 @@ def generate_launch_description():
         parameters=[robot_description, {'frame_prefix': 'leader_'}],
     )
 
+    foot_switch_node = Node(
+        package='ffw_bringup',
+        executable='foot_switch_node',
+        name='foot_switch_node',
+        output='both',
+        parameters=[{'controller_config_path': robot_controllers}],
+        condition=IfCondition(use_foot_switch),
+    )
+
+    gripper_to_hand_node = Node(
+        package='ffw_joint_trajectory_command_broadcaster',
+        executable='gripper_to_hand',
+        name='gripper_to_hand',
+        parameters=[{'follower_end_tool': init_info['follower_end_tool']}],
+        output='screen',
+        condition=IfCondition(str('hand' in init_info['follower_end_tool'].values())),
+    )
+
     # Wrap everything in a namespace 'leader'
     leader_with_namespace = GroupAction(
         actions=[
@@ -104,7 +144,8 @@ def generate_launch_description():
             control_node,
             robot_controller_spawner,
             robot_state_publisher_node,
+            gripper_to_hand_node,
         ]
     )
 
-    return LaunchDescription(declared_arguments + [leader_with_namespace])
+    return [leader_with_namespace, foot_switch_node]

@@ -14,15 +14,14 @@
 
 #include "joint_trajectory_command_broadcaster/joint_trajectory_command_broadcaster.hpp"
 
-#include <chrono>
 #include <cstddef>
 #include <limits>
+#include <map>
 #include <memory>
+#include <stdexcept>
 #include <string>
-#include <thread>
 #include <unordered_map>
 #include <vector>
-#include <functional>
 #include <cmath>
 #include <algorithm>
 #include <iterator>
@@ -31,9 +30,7 @@
 #include "rclcpp/qos.hpp"
 #include "rclcpp/time.hpp"
 #include "std_msgs/msg/header.hpp"
-#include "std_msgs/msg/string.hpp"
 #include "trajectory_msgs/msg/joint_trajectory.hpp"
-#include "sensor_msgs/msg/joint_state.hpp"
 #include "urdf/model.h"
 
 namespace rclcpp_lifecycle
@@ -53,6 +50,19 @@ controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_init(
   try {
     param_listener_ = std::make_shared<ParamListener>(get_node());
     params_ = param_listener_->get_params();
+
+    // Declare follower parameters supplied by leader_initializer.
+    for (const auto & [name, value] :
+      get_node()->get_node_parameters_interface()->get_parameter_overrides())
+    {
+      if (name.rfind("follower_current_position.", 0) == 0 ||
+        name.rfind("follower_joint_limits.", 0) == 0)
+      {
+        auto_declare<double>(name, value.get<double>());
+      } else if (name.rfind("follower_end_tool.", 0) == 0) {
+        auto_declare<std::string>(name, value.get<std::string>());
+      }
+    }
   } catch (const std::exception & e) {
     fprintf(stderr, "Exception thrown during init stage with message: %s \n", e.what());
     return CallbackReturn::ERROR;
@@ -102,40 +112,18 @@ controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_confi
     std::vector<std::string> groups = {"left", "right"};
 
     for (const auto & group_name : groups) {
-      // Get joints for this group
-      std::vector<std::string> group_joints;
-      if (group_name == "left" && !params_.left_joints.empty()) {
-        group_joints = params_.left_joints;
-      } else if (group_name == "right" && !params_.right_joints.empty()) {
-        group_joints = params_.right_joints;
-      }
-
+      const auto & group_joints =
+        group_name == "left" ? params_.left_joints : params_.right_joints;
       if (group_joints.empty()) {
         continue;  // Skip empty groups
       }
 
       group_joint_names_[group_name] = group_joints;
-
-      // Get offsets for this group
-      if (group_name == "left" && !params_.left_offsets.empty()) {
-        group_joint_offsets_[group_name] = params_.left_offsets;
-      } else if (group_name == "right" && !params_.right_offsets.empty()) {
-        group_joint_offsets_[group_name] = params_.right_offsets;
-      } else {
-        // Initialize empty offsets if not provided
-        group_joint_offsets_[group_name] = std::vector<double>();
-      }
-
-      // Get reverse joints for this group
-      if (group_name == "left" && !params_.left_reverse_joints.empty()) {
-        group_reverse_joints_[group_name] = params_.left_reverse_joints;
-      } else if (group_name == "right" && !params_.right_reverse_joints.empty()) {
-        group_reverse_joints_[group_name] = params_.right_reverse_joints;
-      } else {
-        // Initialize empty reverse joints if not provided
-        group_reverse_joints_[group_name] = std::vector<std::string>();
-      }
-
+      group_joint_offsets_[group_name] =
+        group_name == "left" ? params_.left_offsets : params_.right_offsets;
+      // Reverse joints are currently unused in leader controller configs (default: []).
+      group_reverse_joints_[group_name] =
+        group_name == "left" ? params_.left_reverse_joints : params_.right_reverse_joints;
 
       // Create topic name with group-specific namespace
       std::string topic_name;
@@ -188,44 +176,63 @@ controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_confi
       }
     }
 
-    // One-shot follower subscriptions: init last_target once, then ignore
-    for (const auto & group_name : trajectory_groups_) {
-      group_last_target_initialized_[group_name] = false;
+    // Read follower positions, limits, and end tools.
+    std::map<std::string, double> follower_current_position;
+    if (!get_node()->get_parameters("follower_current_position", follower_current_position)) {
+      throw std::runtime_error("Missing follower_current_position parameter");
     }
-
-    auto make_follower_cb = [this](const std::string & group_name) {
-      return [this, group_name](sensor_msgs::msg::JointState::SharedPtr msg) {
-        if (group_last_target_initialized_[group_name]) {
-          return;
+    std::map<std::string, double> follower_joint_limits;
+    get_node()->get_parameters("follower_joint_limits", follower_joint_limits);
+    std::map<std::string, std::string> follower_end_tool;
+    get_node()->get_parameters("follower_end_tool", follower_end_tool);
+    for (const auto & group_name : trajectory_groups_) {
+      const auto & joints = group_joint_names_[group_name];
+      std::vector<double> positions, lowers, uppers;
+      for (const auto & joint : joints) {
+        if ((joint == "gripper_l_joint1" || joint == "gripper_r_joint1") &&
+          follower_end_tool[group_name] != "gripper")
+        {
+          // Use defaults when the follower end tool is not a gripper.
+          positions.push_back(0.0);
+          lowers.push_back(0.0);
+          uppers.push_back(1.1);
+          continue;
         }
-        const auto & joints = group_joint_names_[group_name];
-        if (joints.empty()) {
-          return;
-        }
-        std::vector<double> positions(joints.size(), kUninitializedValue);
-        const size_t n = std::min(msg->name.size(), msg->position.size());
-        for (size_t i = 0; i < joints.size(); ++i) {
-          for (size_t j = 0; j < n; ++j) {
-            if (msg->name[j] == joints[i]) {
-              positions[i] = msg->position[j];
-              break;
-            }
+        const auto it = follower_current_position.find(joint);
+        if (it != follower_current_position.end()) {
+          if (!std::isfinite(it->second)) {
+            throw std::runtime_error("Follower position must be finite: " + joint);
           }
+          positions.push_back(it->second);
+        } else if (joint == "gripper_l_joint1" || joint == "gripper_r_joint1") {
+          // Use zero if the follower has no gripper joint state.
+          positions.push_back(0.0);
+        } else {
+          throw std::runtime_error("Missing follower position: " + joint);
         }
-        group_last_target_[group_name] = positions;
-        group_last_target_initialized_[group_name] = true;
-        RCLCPP_INFO(get_node()->get_logger(),
-          "[%s] last_target initialized from follower joint_states",
-          group_name.c_str());
-      };
-    };
 
-    left_follower_js_sub_ = get_node()->create_subscription<sensor_msgs::msg::JointState>(
-      params_.left_follower_joint_states_topic, rclcpp::SystemDefaultsQoS(),
-      make_follower_cb("left"));
-    right_follower_js_sub_ = get_node()->create_subscription<sensor_msgs::msg::JointState>(
-      params_.right_follower_joint_states_topic, rclcpp::SystemDefaultsQoS(),
-      make_follower_cb("right"));
+        const auto lower_it = follower_joint_limits.find(joint + ".lower");
+        const auto upper_it = follower_joint_limits.find(joint + ".upper");
+        // Missing bounds are unlimited.
+        const double lower = lower_it != follower_joint_limits.end() ? lower_it->second :
+          -std::numeric_limits<double>::infinity();
+        const double upper = upper_it != follower_joint_limits.end() ? upper_it->second :
+          std::numeric_limits<double>::infinity();
+        if ((lower_it != follower_joint_limits.end() && !std::isfinite(lower)) ||
+          (upper_it != follower_joint_limits.end() && !std::isfinite(upper)) || lower > upper)
+        {
+          throw std::runtime_error("Invalid follower joint limits: " + joint);
+        }
+        lowers.push_back(lower);
+        uppers.push_back(upper);
+      }
+      group_last_target_[group_name] = positions;
+      group_lower_limits_[group_name] = lowers;
+      group_upper_limits_[group_name] = uppers;
+      RCLCPP_INFO(get_node()->get_logger(),
+        "[%s] Loaded follower positions and joint limits",
+        group_name.c_str());
+    }
 
     // Enable topic subscriptions
     //   0=disable, 1=enable, 2=toggle, 3+=disable + trigger save pose <N>
@@ -241,24 +248,6 @@ controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_confi
         handle_enable_msg("right", msg->data);
       });
 
-    // Block until follower joint_states init last_target for every group
-    while (rclcpp::ok()) {
-      bool all_init = true;
-      for (const auto & g : trajectory_groups_) {
-        if (!group_last_target_initialized_[g]) {
-          all_init = false;
-          break;
-        }
-      }
-      if (all_init) {
-        break;
-      }
-      RCLCPP_WARN_THROTTLE(
-        get_node()->get_logger(), *get_node()->get_clock(), 2000,
-        "Waiting for follower joint_states to initialize last_target...");
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
-
     RCLCPP_INFO(get_node()->get_logger(), "Controller configured successfully.");
   } catch (const std::exception & e) {
     // get_node() may throw, logging raw here
@@ -273,66 +262,6 @@ controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_confi
       get_node()->get_logger(),
       "Failed to parse robot description. Will proceed without URDF-based filtering.");
   }
-
-  // Subscribe to follower's robot_description once to extract joint limits for TELEOP clamping
-  bool follower_urdf_loaded = false;
-  auto urdf_sub = get_node()->create_subscription<std_msgs::msg::String>(
-    params_.follower_robot_description_topic,
-    rclcpp::QoS(1).transient_local().reliable(),
-    [this, &follower_urdf_loaded](std_msgs::msg::String::SharedPtr msg) {
-      if (follower_urdf_loaded) {
-        return;
-      }
-      urdf::Model follower_model;
-      if (!follower_model.initString(msg->data)) {
-        RCLCPP_ERROR(get_node()->get_logger(),
-          "Failed to parse follower robot_description");
-        return;
-      }
-      for (const auto & group_name : trajectory_groups_) {
-        const auto & joints = group_joint_names_[group_name];
-        std::vector<double> lowers, uppers;
-        for (const auto & jn : joints) {
-          auto j = follower_model.getJoint(jn);
-          if (j && j->limits) {
-            lowers.push_back(j->limits->lower);
-            uppers.push_back(j->limits->upper);
-          } else if (jn == "gripper_l_joint1" || jn == "gripper_r_joint1") {
-            lowers.push_back(0.0);
-            uppers.push_back(1.1);
-            RCLCPP_WARN(get_node()->get_logger(),
-              "[%s] No limit for joint '%s' in follower URDF; using [0.0, 1.1] rad",
-              group_name.c_str(), jn.c_str());
-          } else {
-            lowers.push_back(-std::numeric_limits<double>::infinity());
-            uppers.push_back(std::numeric_limits<double>::infinity());
-            RCLCPP_WARN(get_node()->get_logger(),
-              "[%s] No limit for joint '%s' in follower URDF",
-              group_name.c_str(), jn.c_str());
-          }
-        }
-        group_lower_limits_[group_name] = lowers;
-        group_upper_limits_[group_name] = uppers;
-        RCLCPP_INFO(get_node()->get_logger(),
-          "[%s] Loaded follower joint limits (%zu joints)",
-          group_name.c_str(), lowers.size());
-      }
-      follower_urdf_loaded = true;
-    });
-
-  RCLCPP_INFO(get_node()->get_logger(),
-    "Waiting for follower robot_description on '%s'...",
-    params_.follower_robot_description_topic.c_str());
-  while (rclcpp::ok() && !follower_urdf_loaded) {
-    RCLCPP_WARN_THROTTLE(
-      get_node()->get_logger(), *get_node()->get_clock(), 2000,
-      "Still waiting for follower robot_description...");
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  }
-  if (!rclcpp::ok()) {
-    return CallbackReturn::ERROR;
-  }
-  // urdf_sub goes out of scope here, effectively unsubscribing
 
   return CallbackReturn::SUCCESS;
 }
@@ -563,7 +492,7 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
     }
 
     // last_target is valid only after first enable/interp
-    bool valid = last_target.size() == num_joints &&
+    bool valid = !last_target.empty() && last_target.size() == num_joints &&
                  !std::isnan(last_target[0]);
 
     // Publish trajectory (always when last_target valid)

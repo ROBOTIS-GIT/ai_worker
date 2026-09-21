@@ -27,7 +27,6 @@
 #include \
   <ffw_joint_trajectory_command_broadcaster/joint_trajectory_command_broadcaster_parameters.hpp>
 #include "realtime_tools/realtime_publisher.hpp"
-#include "sensor_msgs/msg/joint_state.hpp"
 #include "std_msgs/msg/u_int8.hpp"
 #include "urdf/model.h"
 #include "trajectory_msgs/msg/joint_trajectory.hpp"
@@ -133,11 +132,6 @@ protected:
 
   // Last published target per group (used as blend/interp start)
   std::unordered_map<std::string, std::vector<double>> group_last_target_;
-
-  // One-shot follower subscriptions to init last_target at startup
-  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr left_follower_js_sub_;
-  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr right_follower_js_sub_;
-  std::unordered_map<std::string, bool> group_last_target_initialized_;
 
   // Save poses per group: map<pose_id, positions>
   std::unordered_map<std::string, std::unordered_map<uint8_t, std::vector<double>>>

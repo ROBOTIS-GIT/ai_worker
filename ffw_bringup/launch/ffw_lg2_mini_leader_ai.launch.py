@@ -16,8 +16,13 @@
 #
 # Authors: Sungho Woo, Woojin Wie, Wonho Yun
 
+from ffw_bringup.leader_initializer import initialize_leader
+
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess, GroupAction, RegisterEventHandler
+from launch.actions import (
+    DeclareLaunchArgument, ExecuteProcess, GroupAction, OpaqueFunction, RegisterEventHandler,
+    TimerAction,
+)
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
@@ -38,15 +43,21 @@ def generate_launch_description():
             description='Use mock hardware mirroring command.',
         ),
         DeclareLaunchArgument(
-            'launch_foot_switch',
+            'use_foot_switch',
             default_value='true',
             description='Whether to launch the foot switch node.',
         ),
     ]
 
+    return LaunchDescription(declared_arguments + [OpaqueFunction(function=launch_setup)])
+
+
+def launch_setup(context):
     description_file = LaunchConfiguration('description_file')
     use_mock_hardware = LaunchConfiguration('use_mock_hardware')
-    launch_foot_switch = LaunchConfiguration('launch_foot_switch')
+    use_foot_switch = LaunchConfiguration('use_foot_switch')
+
+    init_info = initialize_leader(detect_port=False)
 
     # Robot controllers config file path
     robot_controllers = PathJoinSubstitution(
@@ -83,19 +94,19 @@ def generate_launch_description():
         package='controller_manager',
         executable='spawner',
         arguments=[
-            # '--controller-ros-args',
-            # '-r /leader/joint_trajectory_command_broadcaster_left/joint_trajectory:='
-            # '/leader/joint_trajectory_command_broadcaster_left/raw_joint_trajectory',
-            # '--controller-ros-args',
-            # '-r /leader/joint_trajectory_command_broadcaster_right/joint_trajectory:='
-            # '/leader/joint_trajectory_command_broadcaster_right/raw_joint_trajectory',
-            'joint_state_broadcaster',
             'joint_trajectory_command_broadcaster',
             'trigger_position_controller',
-            # 'leader_position_controller',
             'joystick_controller',
+            'joint_state_broadcaster',
         ],
-        parameters=[robot_description],
+        parameters=[
+            robot_description,
+            {
+                'follower_current_position': init_info['follower_current_position'],
+                'follower_end_tool': init_info['follower_end_tool'],
+                'follower_joint_limits': init_info['follower_joint_limits'],
+            },
+        ],
     )
 
     robot_state_publisher_node = Node(
@@ -111,21 +122,23 @@ def generate_launch_description():
         name='foot_switch_node',
         output='both',
         parameters=[{'controller_config_path': robot_controllers}],
-        condition=IfCondition(launch_foot_switch),
+        condition=IfCondition(use_foot_switch),
     )
-
-    # leader_feedback_node = Node(
-    #     package='ffw_joint_trajectory_command_broadcaster',
-    #     executable='leader_feedback',
-    #     name='leader_feedback',
-    #     output='both',
-    # )
 
     gripper_trigger_node = Node(
         package='ffw_joint_trajectory_command_broadcaster',
         executable='gripper_trigger',
         name='gripper_trigger',
         output='both',
+    )
+
+    gripper_to_hand_node = Node(
+        package='ffw_joint_trajectory_command_broadcaster',
+        executable='gripper_to_hand',
+        name='gripper_to_hand',
+        parameters=[{'follower_end_tool': init_info['follower_end_tool']}],
+        output='screen',
+        condition=IfCondition(str('hand' in init_info['follower_end_tool'].values())),
     )
 
     # Execute process to publish position command
@@ -160,12 +173,10 @@ def generate_launch_description():
             control_node,
             robot_controller_spawner,
             robot_state_publisher_node,
+            gripper_to_hand_node,
             delay_position_command_after_controllers,
-            # leader_feedback_node,
-            gripper_trigger_node,
+            TimerAction(period=2.0, actions=[gripper_trigger_node]),
         ]
     )
 
-    # Return combined LaunchDescription
-    return LaunchDescription(declared_arguments + [
-        leader_with_namespace, foot_switch_node])
+    return [leader_with_namespace, foot_switch_node]
