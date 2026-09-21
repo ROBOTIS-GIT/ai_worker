@@ -20,8 +20,6 @@ import math
 from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
-import yaml
-
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument, ExecuteProcess, GroupAction, LogInfo, RegisterEventHandler,
@@ -31,6 +29,7 @@ from launch.event_handlers import OnProcessExit
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node, PushRosNamespace
 from launch_ros.substitutions import FindPackageShare
+import yaml
 
 
 def generate_launch_description():
@@ -65,12 +64,16 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'trigger_left_neutral_position',
             default_value=str(trigger_config['left_neutral_position']),
-            description='Left trigger return position in radians, in the current joint coordinates.',
+            description=(
+                'Left trigger return position in radians, in the current joint coordinates.'
+            ),
         ),
         DeclareLaunchArgument(
             'trigger_right_neutral_position',
             default_value=str(trigger_config['right_neutral_position']),
-            description='Right trigger return position in radians, in the current joint coordinates.',
+            description=(
+                'Right trigger return position in radians, in the current joint coordinates.'
+            ),
         ),
     ]
 

@@ -22,7 +22,7 @@ namespace leader_joystick_controller
 {
 namespace
 {
-constexpr char kArmControlMode[] = "arm_control";
+constexpr char kHeadControlMode[] = "head_control";
 constexpr char kSwerveMode[] = "swerve";
 }  // namespace
 
@@ -58,6 +58,7 @@ controller_interface::CallbackReturn LeaderJoystickController::on_configure(
   leader_params_ = leader_param_listener_->get_params();
 
   if (leader_params_.teleoperation_toggle_enabled) {
+    current_mode_ = kHeadControlMode;
     teleoperation_command_pub_ =
       get_node()->create_publisher<robotis_interfaces::msg::TeleoperationCommand>(
       leader_params_.teleoperation_command_topic, 10);
@@ -164,7 +165,7 @@ void LeaderJoystickController::handle_tact_switches(
         !left_tact_long_press_triggered_ && !right_tact_long_press_triggered_)
       {
         std_msgs::msg::String mode_msg;
-        current_mode_ = current_mode_ == kArmControlMode ? kSwerveMode : kArmControlMode;
+        current_mode_ = current_mode_ == kHeadControlMode ? kSwerveMode : kHeadControlMode;
         mode_msg.data = current_mode_;
         mode_pub_->publish(mode_msg);
         RCLCPP_INFO(

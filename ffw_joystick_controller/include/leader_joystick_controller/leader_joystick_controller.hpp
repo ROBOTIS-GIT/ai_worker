@@ -16,6 +16,7 @@
 #define LEADER_JOYSTICK_CONTROLLER__LEADER_JOYSTICK_CONTROLLER_HPP_
 
 #include <cstdint>
+#include <memory>
 #include <string>
 
 #include "leader_joystick_controller/visibility_control.h"

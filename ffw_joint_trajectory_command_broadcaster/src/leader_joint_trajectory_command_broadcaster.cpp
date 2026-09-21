@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "leader_joint_trajectory_command_broadcaster/leader_joint_trajectory_command_broadcaster.hpp"
+#include \
+  "leader_joint_trajectory_command_broadcaster/leader_joint_trajectory_command_broadcaster.hpp"
 
 #include <cstddef>
 #include <limits>
@@ -587,7 +588,8 @@ bool LeaderJointTrajectoryCommandBroadcaster::check_trigger_active() const
          gripper_l_pos * params_.trigger_sign >= params_.trigger_threshold * params_.trigger_sign);
 }
 
-void LeaderJointTrajectoryCommandBroadcaster::update_trigger_state(const rclcpp::Time & current_time)
+void LeaderJointTrajectoryCommandBroadcaster::update_trigger_state(
+  const rclcpp::Time & current_time)
 {
   bool current_trigger_active = check_trigger_active();
 
@@ -1080,8 +1082,7 @@ controller_interface::return_type LeaderJointTrajectoryCommandBroadcaster::updat
       // duration for its MoveJ slow start and still publishes immediate follower commands.
       if (params_.enable_teleoperation) {
         const uint8_t group_arm = arms_from_name(group_name);
-        if (group_arm == 0 || (requested_arms & group_arm) == 0)
-        {
+        if (group_arm == 0 || (requested_arms & group_arm) == 0) {
           traj_msg.points[0].time_from_start = rclcpp::Duration(0, 0);
         } else {
           double group_error = 0.0;

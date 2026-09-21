@@ -21,11 +21,15 @@
   <depend>ros_gz_image</depend>
   <exec_depend>ffw_description</exec_depend>
   <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>controller_manager</exec_depend>
   <exec_depend>python3-yaml</exec_depend>
   <exec_depend>cyclo_motion_controller_models</exec_depend>
   <exec_depend>cyclo_teleoperation</exec_depend>
+  <exec_depend>ffw_joint_trajectory_command_broadcaster</exec_depend>
+  <exec_depend>ffw_joystick_controller</exec_depend>
   <exec_depend>gz_ros2_control</exec_depend>
   <exec_depend>image_transport_plugins</exec_depend>
+  <exec_depend>joint_state_broadcaster</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>ros2_control</exec_depend>
   <exec_depend>ros2_controllers</exec_depend>
