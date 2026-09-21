@@ -2,9 +2,11 @@
 Changelog for package ffw
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2.3.0 (2026-08-06)
+2.3.0 (2026-09-21)
 ------------------
 * Added support for the A2 leader
+* Added extensible A2 teleoperation modes, presets, and pose transitions
+* Added automatic A2 leader serial-port mapping in the Docker environment
 * Contributors: Yeonguk Kim
 
 2.2.7 (2026-09-14)
