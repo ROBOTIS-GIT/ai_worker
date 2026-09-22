@@ -127,20 +127,27 @@ def generate_launch_description():
             OpaqueFunction(
                 function=rs_launch.launch_setup,
                 kwargs={
-                    'params': set_configurable_parameters(params1),
+                    'params': {
+                        **set_configurable_parameters(params1),
+                        'depth_module.enable_auto_white_balance': False,
+                    },
                     'param_name_suffix': '1'
                 }
             ),
             OpaqueFunction(
                 function=rs_launch.launch_setup,
                 kwargs={
-                    'params': set_configurable_parameters(params2),
+                    'params': {
+                        **set_configurable_parameters(params2),
+                        'depth_module.enable_auto_white_balance': False,
+                    },
                     'param_name_suffix': '2'
                 }
             ),
             OpaqueFunction(
                 function=rs_launch.launch_setup,
                 kwargs={
+                    # D455: consider setting rgb_camera.enable_auto_white_balance=False.
                     'params': set_configurable_parameters(params3),
                     'param_name_suffix': '3'
                 },
