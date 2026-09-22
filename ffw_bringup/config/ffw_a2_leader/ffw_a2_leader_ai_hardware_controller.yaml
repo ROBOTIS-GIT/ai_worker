@@ -19,8 +19,9 @@
   joint_trajectory_command_broadcaster:
     ros__parameters:
       enable_teleoperation: true
-      sync_threshold: 0.03
-      max_delay: 0.25
+      slow_start_min_duration: 1.0
+      slow_start_max_duration: 6.0
+      slow_start_error_for_max_duration: 1.5
       output_topic_suffix: raw_joint_trajectory
       default_control_mode: 1
       default_left_preset_id: 1

@@ -119,7 +119,8 @@ protected:
     const std::string & group_name,
     const FollowerJointSnapshot & follower_snapshot,
     const rclcpp::Time & current_time,
-    double & mean_error) const;
+    double & mean_error,
+    double * maximum_error = nullptr) const;
   void update_trigger_state(const rclcpp::Time & current_time);
   bool check_trigger_active() const;
   void update_initial_pose_trigger_state(const rclcpp::Time & current_time);
@@ -225,7 +226,6 @@ protected:
   std::mutex teleoperation_mutex_;
   std::atomic<uint8_t> requested_arms_rt_{0};
   uint8_t previous_requested_arms_rt_ = 0;
-  uint8_t unsynced_arms_rt_ = 0;
 };
 
 }  // namespace leader_joint_trajectory_command_broadcaster

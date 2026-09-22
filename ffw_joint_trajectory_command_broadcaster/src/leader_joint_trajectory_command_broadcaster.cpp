@@ -139,6 +139,21 @@ controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on
   }
   params_ = param_listener_->get_params();
 
+  if (
+    params_.enable_teleoperation &&
+    (!std::isfinite(params_.slow_start_min_duration) ||
+    !std::isfinite(params_.slow_start_max_duration) ||
+    !std::isfinite(params_.slow_start_error_for_max_duration) ||
+    params_.slow_start_min_duration < 0.0 ||
+    params_.slow_start_max_duration < params_.slow_start_min_duration ||
+    params_.slow_start_error_for_max_duration <= 0.0))
+  {
+    RCLCPP_ERROR(
+      get_node()->get_logger(),
+      "Slow-start durations must satisfy 0 <= min <= max and error scale must be positive");
+    return controller_interface::CallbackReturn::ERROR;
+  }
+
   // Map interface if needed
   map_interface_to_joint_state_.clear();
   map_interface_to_joint_state_[HW_IF_POSITION] = params_.map_interface_to_joint_state.position;
@@ -232,7 +247,6 @@ controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on
       preset_busy_arms_ = 0;
       requested_arms_rt_.store(0, std::memory_order_relaxed);
       previous_requested_arms_rt_ = 0;
-      unsynced_arms_rt_ = 0;
       left_initial_pose_trigger_ = TriggerHoldState{};
       right_initial_pose_trigger_ = TriggerHoldState{};
       auto command_qos = rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local();
@@ -346,7 +360,6 @@ controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on
   left_initial_pose_trigger_ = TriggerHoldState{};
   right_initial_pose_trigger_ = TriggerHoldState{};
   previous_requested_arms_rt_ = 0;
-  unsynced_arms_rt_ = 0;
 
   return CallbackReturn::SUCCESS;
 }
@@ -506,9 +519,13 @@ bool LeaderJointTrajectoryCommandBroadcaster::calculate_group_mean_error(
   const std::string & group_name,
   const FollowerJointSnapshot & follower_snapshot,
   const rclcpp::Time & current_time,
-  double & mean_error) const
+  double & mean_error,
+  double * maximum_error) const
 {
   mean_error = 0.0;
+  if (maximum_error != nullptr) {
+    *maximum_error = 0.0;
+  }
   const auto received_time_it = follower_snapshot.group_received_times.find(group_name);
   if (received_time_it == follower_snapshot.group_received_times.end()) {
     return false;
@@ -564,7 +581,11 @@ bool LeaderJointTrajectoryCommandBroadcaster::calculate_group_mean_error(
     if (!std::isfinite(leader_position)) {
       return false;
     }
-    total_error += std::abs(leader_position - follower_it->second);
+    const double joint_error = std::abs(leader_position - follower_it->second);
+    total_error += joint_error;
+    if (maximum_error != nullptr) {
+      *maximum_error = std::max(*maximum_error, joint_error);
+    }
     ++valid_joints;
   }
   if (valid_joints == 0) {
@@ -996,8 +1017,6 @@ controller_interface::return_type LeaderJointTrajectoryCommandBroadcaster::updat
     requested_arms = requested_arms_rt_.load(std::memory_order_acquire);
     newly_enabled_arms = requested_arms &
       static_cast<uint8_t>(~previous_requested_arms_rt_);
-    unsynced_arms_rt_ |= newly_enabled_arms;
-    unsynced_arms_rt_ &= requested_arms;
     previous_requested_arms_rt_ = requested_arms;
   } else {
     // Keep the legacy gripper-trigger behavior for existing leader models.
@@ -1078,48 +1097,38 @@ controller_interface::return_type LeaderJointTrajectoryCommandBroadcaster::updat
         traj_msg.points[0].positions[i] = pos_value;
       }
 
-      // Teleoperation uses a per-arm adaptive duration. Cyclo teleoperation consumes this
-      // duration for its MoveJ slow start and still publishes immediate follower commands.
+      // Mode-aware teleoperation publishes an error-based duration candidate. Cyclo latches
+      // the first candidate after a group is enabled, performs the fixed-duration interpolation
+      // internally, and still publishes immediate follower commands.
       if (params_.enable_teleoperation) {
         const uint8_t group_arm = arms_from_name(group_name);
         if (group_arm == 0 || (requested_arms & group_arm) == 0) {
           traj_msg.points[0].time_from_start = rclcpp::Duration(0, 0);
         } else {
-          double group_error = 0.0;
+          double group_mean_error = 0.0;
+          double group_maximum_error = 0.0;
           if (!calculate_group_mean_error(
-              group_name, *follower_snapshot, time, group_error))
+              group_name, *follower_snapshot, time, group_mean_error, &group_maximum_error))
           {
-            unsynced_arms_rt_ |= group_arm;
             RCLCPP_WARN_THROTTLE(
               get_node()->get_logger(), *get_node()->get_clock(), 2000,
               "%s raw leader command paused: follower feedback is incomplete or stale",
               group_name.c_str());
             continue;
           }
-          if (group_error <= params_.sync_threshold) {
-            traj_msg.points[0].time_from_start = rclcpp::Duration(0, 0);
-            if ((unsynced_arms_rt_ & group_arm) != 0) {
-              unsynced_arms_rt_ &= static_cast<uint8_t>(~group_arm);
-              RCLCPP_INFO(
-                get_node()->get_logger(),
-                "%s MoveJ slow start synchronized at mean error %.4f rad",
-                group_name.c_str(), group_error);
-            }
-          } else {
-            if (group_error < params_.min_error) {
-              group_error = params_.min_error;
-            }
-            const double error_ratio = std::min(group_error / params_.max_error, 1.0);
-            const double adaptive_delay =
-              params_.min_delay + (params_.max_delay - params_.min_delay) * error_ratio;
-            traj_msg.points[0].time_from_start =
-              rclcpp::Duration::from_seconds(adaptive_delay);
-            if ((newly_enabled_arms & group_arm) != 0) {
-              RCLCPP_INFO(
-                get_node()->get_logger(),
-                "%s MoveJ slow start began: mean error %.4f rad, time_from_start %.3f s",
-                group_name.c_str(), group_error, adaptive_delay);
-            }
+          const double error_ratio = std::clamp(
+            group_maximum_error / params_.slow_start_error_for_max_duration, 0.0, 1.0);
+          const double duration =
+            params_.slow_start_min_duration +
+            (params_.slow_start_max_duration - params_.slow_start_min_duration) * error_ratio;
+          traj_msg.points[0].time_from_start = rclcpp::Duration::from_seconds(duration);
+          if ((newly_enabled_arms & group_arm) != 0) {
+            RCLCPP_INFO(
+              get_node()->get_logger(),
+              "%s fixed-duration MoveJ slow start requested: maximum joint error %.4f rad, "
+              "mean error %.4f rad, "
+              "duration %.3f s",
+              group_name.c_str(), group_maximum_error, group_mean_error, duration);
           }
         }
       } else if (joints_synced_) {

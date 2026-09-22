@@ -1,7 +1,6 @@
 cyclo_teleoperation:
   ros__parameters:
     control_frequency: 100.0
-    trajectory_time: 0.0
     joint_state_timeout: 0.5
     leader_command_timeout: 0.5
 
