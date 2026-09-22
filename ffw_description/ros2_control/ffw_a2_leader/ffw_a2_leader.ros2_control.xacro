@@ -43,9 +43,8 @@
         <state_interface name="JOYSTICK TACT SWITCH"/>
       </sensor>
       <joint name="gripper_l_joint1">
-        <command_interface name="effort"/>
+        <command_interface name="position"/>
         <state_interface name="position"/>
-        <state_interface name="velocity"/>
       </joint>
       <joint name="arm_l_joint1">
         <state_interface name="position"/>
@@ -75,9 +74,8 @@
         <state_interface name="JOYSTICK TACT SWITCH"/>
       </sensor>
       <joint name="gripper_r_joint1">
-        <command_interface name="effort"/>
+        <command_interface name="position"/>
         <state_interface name="position"/>
-        <state_interface name="velocity"/>
       </joint>
       <joint name="arm_r_joint1">
         <state_interface name="position"/>

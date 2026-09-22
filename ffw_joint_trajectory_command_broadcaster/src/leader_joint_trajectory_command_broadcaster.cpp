@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "a2_joint_trajectory_command_broadcaster/a2_joint_trajectory_command_broadcaster.hpp"
+#include \
+  "leader_joint_trajectory_command_broadcaster/leader_joint_trajectory_command_broadcaster.hpp"
 
 #include <cstddef>
 #include <limits>
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include <functional>
 #include <cmath>
@@ -38,7 +40,7 @@ namespace rclcpp_lifecycle
 class State;
 }  // namespace rclcpp_lifecycle
 
-namespace a2_joint_trajectory_command_broadcaster
+namespace leader_joint_trajectory_command_broadcaster
 {
 const auto kUninitializedValue = std::numeric_limits<double>::quiet_NaN();
 using hardware_interface::HW_IF_POSITION;
@@ -90,9 +92,9 @@ bool preset_state_busy(const uint8_t state)
 }
 }  // namespace
 
-A2JointTrajectoryCommandBroadcaster::A2JointTrajectoryCommandBroadcaster() {}
+LeaderJointTrajectoryCommandBroadcaster::LeaderJointTrajectoryCommandBroadcaster() {}
 
-controller_interface::CallbackReturn A2JointTrajectoryCommandBroadcaster::on_init()
+controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on_init()
 {
   try {
     param_listener_ = std::make_shared<ParamListener>(get_node());
@@ -106,13 +108,13 @@ controller_interface::CallbackReturn A2JointTrajectoryCommandBroadcaster::on_ini
 }
 
 controller_interface::InterfaceConfiguration
-A2JointTrajectoryCommandBroadcaster::command_interface_configuration() const
+LeaderJointTrajectoryCommandBroadcaster::command_interface_configuration() const
 {
   return controller_interface::InterfaceConfiguration{
     controller_interface::interface_configuration_type::NONE};
 }
 
-controller_interface::InterfaceConfiguration A2JointTrajectoryCommandBroadcaster::
+controller_interface::InterfaceConfiguration LeaderJointTrajectoryCommandBroadcaster::
 state_interface_configuration()
 const
 {
@@ -128,7 +130,7 @@ const
   return state_interfaces_config;
 }
 
-controller_interface::CallbackReturn A2JointTrajectoryCommandBroadcaster::on_configure(
+controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on_configure(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
   if (!param_listener_) {
@@ -136,6 +138,21 @@ controller_interface::CallbackReturn A2JointTrajectoryCommandBroadcaster::on_con
     return controller_interface::CallbackReturn::ERROR;
   }
   params_ = param_listener_->get_params();
+
+  if (
+    params_.enable_teleoperation &&
+    (!std::isfinite(params_.slow_start_min_duration) ||
+    !std::isfinite(params_.slow_start_max_duration) ||
+    !std::isfinite(params_.slow_start_error_for_max_duration) ||
+    params_.slow_start_min_duration < 0.0 ||
+    params_.slow_start_max_duration < params_.slow_start_min_duration ||
+    params_.slow_start_error_for_max_duration <= 0.0))
+  {
+    RCLCPP_ERROR(
+      get_node()->get_logger(),
+      "Slow-start durations must satisfy 0 <= min <= max and error scale must be positive");
+    return controller_interface::CallbackReturn::ERROR;
+  }
 
   // Map interface if needed
   map_interface_to_joint_state_.clear();
@@ -203,11 +220,14 @@ controller_interface::CallbackReturn A2JointTrajectoryCommandBroadcaster::on_con
 
     // Store the groups for later use
     trajectory_groups_ = groups;
+    follower_joint_snapshot_non_rt_ = FollowerJointSnapshot{};
+    follower_joint_snapshot_buffer_.writeFromNonRT(follower_joint_snapshot_non_rt_);
 
     // Create subscriber for follower joint states
+    const auto follower_qos = rclcpp::SensorDataQoS().keep_last(1);
     joint_states_subscriber_ = get_node()->create_subscription<sensor_msgs::msg::JointState>(
-      params_.follower_joint_states_topic, rclcpp::SystemDefaultsQoS(),
-      std::bind(&A2JointTrajectoryCommandBroadcaster::joint_states_callback, this,
+      params_.follower_joint_states_topic, follower_qos,
+      std::bind(&LeaderJointTrajectoryCommandBroadcaster::joint_states_callback, this,
         std::placeholders::_1));
 
     RCLCPP_INFO(
@@ -225,6 +245,8 @@ controller_interface::CallbackReturn A2JointTrajectoryCommandBroadcaster::on_con
       initial_pose_available_arms_ = 0;
       initial_pose_busy_arms_ = 0;
       preset_busy_arms_ = 0;
+      requested_arms_rt_.store(0, std::memory_order_relaxed);
+      previous_requested_arms_rt_ = 0;
       left_initial_pose_trigger_ = TriggerHoldState{};
       right_initial_pose_trigger_ = TriggerHoldState{};
       auto command_qos = rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local();
@@ -235,31 +257,31 @@ controller_interface::CallbackReturn A2JointTrajectoryCommandBroadcaster::on_con
         get_node()->create_subscription<robotis_interfaces::msg::TeleoperationCommand>(
         params_.joystick_command_topic, rclcpp::SystemDefaultsQoS(),
         std::bind(
-          &A2JointTrajectoryCommandBroadcaster::teleoperation_command_callback,
+          &LeaderJointTrajectoryCommandBroadcaster::teleoperation_command_callback,
           this, std::placeholders::_1));
       control_status_subscriber_ =
         get_node()->create_subscription<robotis_interfaces::msg::ControlModeStatus>(
         params_.control_status_topic, command_qos,
         std::bind(
-          &A2JointTrajectoryCommandBroadcaster::control_status_callback,
+          &LeaderJointTrajectoryCommandBroadcaster::control_status_callback,
           this, std::placeholders::_1));
       set_control_mode_service_ =
         get_node()->create_service<robotis_interfaces::srv::SetControlMode>(
         params_.set_mode_service,
         std::bind(
-          &A2JointTrajectoryCommandBroadcaster::set_control_mode_callback,
+          &LeaderJointTrajectoryCommandBroadcaster::set_control_mode_callback,
           this, std::placeholders::_1, std::placeholders::_2));
       set_teleoperation_service_ =
         get_node()->create_service<robotis_interfaces::srv::SetTeleoperation>(
         params_.set_teleoperation_service,
         std::bind(
-          &A2JointTrajectoryCommandBroadcaster::set_teleoperation_callback,
+          &LeaderJointTrajectoryCommandBroadcaster::set_teleoperation_callback,
           this, std::placeholders::_1, std::placeholders::_2));
       set_preset_service_ =
         get_node()->create_service<robotis_interfaces::srv::SetPreset>(
         params_.set_preset_service,
         std::bind(
-          &A2JointTrajectoryCommandBroadcaster::set_preset_callback,
+          &LeaderJointTrajectoryCommandBroadcaster::set_preset_callback,
           this, std::placeholders::_1, std::placeholders::_2));
       RCLCPP_INFO(
         get_node()->get_logger(),
@@ -283,7 +305,7 @@ controller_interface::CallbackReturn A2JointTrajectoryCommandBroadcaster::on_con
   return CallbackReturn::SUCCESS;
 }
 
-controller_interface::CallbackReturn A2JointTrajectoryCommandBroadcaster::on_activate(
+controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on_activate(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
   if (!init_joint_data()) {
@@ -326,15 +348,18 @@ controller_interface::CallbackReturn A2JointTrajectoryCommandBroadcaster::on_act
 }
 
 
-controller_interface::CallbackReturn A2JointTrajectoryCommandBroadcaster::on_deactivate(
+controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on_deactivate(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
   joint_names_.clear();
   name_if_value_mapping_.clear();
-  group_joint_names_.clear();
-  group_joint_offsets_.clear();
-  group_topic_names_.clear();
-  group_reverse_joints_.clear();
+  joints_synced_ = false;
+  first_publish_ = true;
+  trigger_counting_ = false;
+  mode_changed_in_this_trigger_ = false;
+  left_initial_pose_trigger_ = TriggerHoldState{};
+  right_initial_pose_trigger_ = TriggerHoldState{};
+  previous_requested_arms_rt_ = 0;
 
   return CallbackReturn::SUCCESS;
 }
@@ -352,7 +377,7 @@ bool has_any_key(
   return false;
 }
 
-bool A2JointTrajectoryCommandBroadcaster::init_joint_data()
+bool LeaderJointTrajectoryCommandBroadcaster::init_joint_data()
 {
   joint_names_.clear();
   if (state_interfaces_.empty()) {
@@ -400,14 +425,57 @@ double get_value(
   }
 }
 
-void A2JointTrajectoryCommandBroadcaster::joint_states_callback(
+void LeaderJointTrajectoryCommandBroadcaster::joint_states_callback(
   const sensor_msgs::msg::JointState::SharedPtr msg)
 {
-  // Update follower joint positions
+  if (!msg || msg->name.size() != msg->position.size()) {
+    return;
+  }
+
+  std::unordered_map<std::string, size_t> message_indices;
   for (size_t i = 0; i < msg->name.size(); ++i) {
-    if (i < msg->position.size()) {
-      follower_joint_positions_[msg->name[i]] = msg->position[i];
+    if (!message_indices.emplace(msg->name[i], i).second) {
+      return;
     }
+  }
+
+  FollowerJointSnapshot next_snapshot = follower_joint_snapshot_non_rt_;
+  const rclcpp::Time received_time = get_node()->now();
+  bool snapshot_updated = false;
+  for (const auto & group : group_joint_names_) {
+    size_t required_joint_count = 0;
+    bool group_complete = true;
+    for (const auto & joint_name : group.second) {
+      if (joint_name.find("gripper") != std::string::npos) {
+        continue;
+      }
+      ++required_joint_count;
+      const auto message_it = message_indices.find(joint_name);
+      if (
+        message_it == message_indices.end() ||
+        !std::isfinite(msg->position[message_it->second]))
+      {
+        group_complete = false;
+        break;
+      }
+    }
+    if (!group_complete || required_joint_count == 0) {
+      continue;
+    }
+    for (const auto & joint_name : group.second) {
+      if (joint_name.find("gripper") != std::string::npos) {
+        continue;
+      }
+      next_snapshot.positions[joint_name] =
+        msg->position[message_indices.at(joint_name)];
+    }
+    next_snapshot.group_received_times[group.first] = received_time;
+    snapshot_updated = true;
+  }
+
+  if (snapshot_updated) {
+    follower_joint_snapshot_non_rt_ = std::move(next_snapshot);
+    follower_joint_snapshot_buffer_.writeFromNonRT(follower_joint_snapshot_non_rt_);
   }
 
   // Debug logging (only log occasionally to avoid spam)
@@ -418,67 +486,116 @@ void A2JointTrajectoryCommandBroadcaster::joint_states_callback(
   }
 }
 
-double A2JointTrajectoryCommandBroadcaster::calculate_mean_error() const
+double LeaderJointTrajectoryCommandBroadcaster::calculate_mean_error(
+  const FollowerJointSnapshot & follower_snapshot,
+  const rclcpp::Time & current_time) const
 {
-  // Check if we have received any follower joint states
-  if (follower_joint_positions_.empty()) {
-    return std::numeric_limits<double>::max();  // Return max error if no follower data
-  }
-
   double total_error = 0.0;
-  int valid_joints = 0;
-
-  // Calculate mean error across all joints in all groups
-  for (const auto & group_pair : group_joint_names_) {
-    const auto & group_name = group_pair.first;
-    const auto & group_joints = group_pair.second;
-    // Safely get group offsets and reverse joints
-    std::vector<double> group_offsets;
-    std::vector<std::string> group_reverse_joints;
-
-    auto offsets_it = group_joint_offsets_.find(group_name);
-    if (offsets_it != group_joint_offsets_.end()) {
-      group_offsets = offsets_it->second;
+  size_t total_joint_count = 0;
+  for (const auto & group : group_joint_names_) {
+    size_t group_joint_count = 0;
+    for (const auto & joint_name : group.second) {
+      if (joint_name.find("gripper") == std::string::npos) {
+        ++group_joint_count;
+      }
     }
-
-    auto reverse_it = group_reverse_joints_.find(group_name);
-    if (reverse_it != group_reverse_joints_.end()) {
-      group_reverse_joints = reverse_it->second;
+    if (group_joint_count == 0) {
+      continue;
     }
-
-    for (size_t i = 0; i < group_joints.size(); ++i) {
-      const auto & joint_name = group_joints[i];
-      auto follower_it = follower_joint_positions_.find(joint_name);
-      if (follower_it == follower_joint_positions_.end()) {
-        continue;  // Skip joints not available in follower
-      }
-
-      double leader_pos = get_value(name_if_value_mapping_, joint_name, HW_IF_POSITION);
-      if (std::isnan(leader_pos)) {
-        continue;  // Skip joints without valid leader position
-      }
-
-      // Apply reverse and offset to leader position for comparison
-      if (std::find(group_reverse_joints.begin(), group_reverse_joints.end(), joint_name) !=
-        group_reverse_joints.end())
-      {
-        leader_pos = -leader_pos;
-      }
-
-      // Apply group offset
-      if (i < group_offsets.size()) {
-        leader_pos += group_offsets[i];
-      }
-
-      total_error += std::abs(leader_pos - follower_it->second);
-      valid_joints++;
+    double group_error = 0.0;
+    if (!calculate_group_mean_error(
+        group.first, follower_snapshot, current_time, group_error))
+    {
+      return std::numeric_limits<double>::max();
     }
+    total_error += group_error * static_cast<double>(group_joint_count);
+    total_joint_count += group_joint_count;
   }
-
-  return valid_joints > 0 ? total_error / valid_joints : std::numeric_limits<double>::max();
+  return total_joint_count > 0 ? total_error / static_cast<double>(total_joint_count) :
+         std::numeric_limits<double>::max();
 }
 
-bool A2JointTrajectoryCommandBroadcaster::check_trigger_active() const
+bool LeaderJointTrajectoryCommandBroadcaster::calculate_group_mean_error(
+  const std::string & group_name,
+  const FollowerJointSnapshot & follower_snapshot,
+  const rclcpp::Time & current_time,
+  double & mean_error,
+  double * maximum_error) const
+{
+  mean_error = 0.0;
+  if (maximum_error != nullptr) {
+    *maximum_error = 0.0;
+  }
+  const auto received_time_it = follower_snapshot.group_received_times.find(group_name);
+  if (received_time_it == follower_snapshot.group_received_times.end()) {
+    return false;
+  }
+  const double feedback_age = (current_time - received_time_it->second).seconds();
+  if (feedback_age < 0.0 || feedback_age > params_.follower_state_timeout) {
+    return false;
+  }
+
+  const auto joints_it = group_joint_names_.find(group_name);
+  if (joints_it == group_joint_names_.end()) {
+    return false;
+  }
+
+  const auto offsets_it = group_joint_offsets_.find(group_name);
+  const auto reverse_it = group_reverse_joints_.find(group_name);
+  const std::vector<double> empty_offsets;
+  const std::vector<std::string> empty_reverse_joints;
+  const auto & offsets = offsets_it == group_joint_offsets_.end() ?
+    empty_offsets : offsets_it->second;
+  const auto & reverse_joints = reverse_it == group_reverse_joints_.end() ?
+    empty_reverse_joints : reverse_it->second;
+
+  double total_error = 0.0;
+  size_t valid_joints = 0;
+  for (size_t i = 0; i < joints_it->second.size(); ++i) {
+    const auto & joint_name = joints_it->second[i];
+    // Gripper commands remain immediate in MoveJ and must not prolong arm synchronization.
+    if (joint_name.find("gripper") != std::string::npos) {
+      continue;
+    }
+    const auto follower_it = follower_snapshot.positions.find(joint_name);
+    if (
+      follower_it == follower_snapshot.positions.end() ||
+      !std::isfinite(follower_it->second))
+    {
+      return false;
+    }
+
+    double leader_position = get_value(name_if_value_mapping_, joint_name, HW_IF_POSITION);
+    if (!std::isfinite(leader_position)) {
+      return false;
+    }
+    if (
+      std::find(reverse_joints.begin(), reverse_joints.end(), joint_name) !=
+      reverse_joints.end())
+    {
+      leader_position = -leader_position;
+    }
+    if (i < offsets.size()) {
+      leader_position += offsets[i];
+    }
+    if (!std::isfinite(leader_position)) {
+      return false;
+    }
+    const double joint_error = std::abs(leader_position - follower_it->second);
+    total_error += joint_error;
+    if (maximum_error != nullptr) {
+      *maximum_error = std::max(*maximum_error, joint_error);
+    }
+    ++valid_joints;
+  }
+  if (valid_joints == 0) {
+    return false;
+  }
+  mean_error = total_error / static_cast<double>(valid_joints);
+  return std::isfinite(mean_error);
+}
+
+bool LeaderJointTrajectoryCommandBroadcaster::check_trigger_active() const
 {
   // Check if gripper trigger joints are above threshold
   double gripper_r_pos = get_value(name_if_value_mapping_, "gripper_r_joint1", HW_IF_POSITION);
@@ -492,7 +609,8 @@ bool A2JointTrajectoryCommandBroadcaster::check_trigger_active() const
          gripper_l_pos * params_.trigger_sign >= params_.trigger_threshold * params_.trigger_sign);
 }
 
-void A2JointTrajectoryCommandBroadcaster::update_trigger_state(const rclcpp::Time & current_time)
+void LeaderJointTrajectoryCommandBroadcaster::update_trigger_state(
+  const rclcpp::Time & current_time)
 {
   bool current_trigger_active = check_trigger_active();
 
@@ -537,7 +655,7 @@ void A2JointTrajectoryCommandBroadcaster::update_trigger_state(const rclcpp::Tim
   }
 }
 
-bool A2JointTrajectoryCommandBroadcaster::check_arm_trigger_active(const uint8_t arm) const
+bool LeaderJointTrajectoryCommandBroadcaster::check_arm_trigger_active(const uint8_t arm) const
 {
   const char * joint_name = arm == kLeftArm ? "gripper_l_joint1" : "gripper_r_joint1";
   const double position = get_value(name_if_value_mapping_, joint_name, HW_IF_POSITION);
@@ -546,7 +664,7 @@ bool A2JointTrajectoryCommandBroadcaster::check_arm_trigger_active(const uint8_t
          params_.trigger_threshold * params_.trigger_sign;
 }
 
-void A2JointTrajectoryCommandBroadcaster::request_final_initial_pose(
+void LeaderJointTrajectoryCommandBroadcaster::request_final_initial_pose(
   const uint8_t target_arms)
 {
   uint8_t accepted_arms = 0;
@@ -588,7 +706,7 @@ void A2JointTrajectoryCommandBroadcaster::request_final_initial_pose(
   publish_control_command("none", arms_to_name(accepted_arms));
 }
 
-void A2JointTrajectoryCommandBroadcaster::update_initial_pose_trigger_state(
+void LeaderJointTrajectoryCommandBroadcaster::update_initial_pose_trigger_state(
   const rclcpp::Time & current_time)
 {
   uint8_t triggered_arms = 0;
@@ -626,13 +744,7 @@ void A2JointTrajectoryCommandBroadcaster::update_initial_pose_trigger_state(
   }
 }
 
-bool A2JointTrajectoryCommandBroadcaster::check_joints_synced() const
-{
-  double mean_error = calculate_mean_error();
-  return mean_error <= params_.sync_threshold;
-}
-
-void A2JointTrajectoryCommandBroadcaster::publish_control_command(
+void LeaderJointTrajectoryCommandBroadcaster::publish_control_command(
   const std::string & preset_target_arm,
   const std::string & initial_pose_target_arm)
 {
@@ -641,20 +753,23 @@ void A2JointTrajectoryCommandBroadcaster::publish_control_command(
   }
 
   robotis_interfaces::msg::ControlModeCommand command;
+  uint8_t requested_arms = 0;
   {
     std::lock_guard<std::mutex> lock(teleoperation_mutex_);
+    requested_arms = requested_arms_;
     command.transition_id = transition_id_;
     command.control_mode = requested_control_mode_;
-    command.enabled_arms = arms_to_name(requested_arms_);
+    command.enabled_arms = arms_to_name(requested_arms);
     command.preset_target_arm = preset_target_arm;
     command.initial_pose_target_arm = initial_pose_target_arm;
     command.left_preset_id = left_preset_id_;
     command.right_preset_id = right_preset_id_;
   }
+  requested_arms_rt_.store(requested_arms, std::memory_order_release);
   control_command_publisher_->publish(command);
 }
 
-void A2JointTrajectoryCommandBroadcaster::teleoperation_command_callback(
+void LeaderJointTrajectoryCommandBroadcaster::teleoperation_command_callback(
   const robotis_interfaces::msg::TeleoperationCommand::SharedPtr msg)
 {
   if (!msg || !params_.enable_teleoperation) {
@@ -716,7 +831,7 @@ void A2JointTrajectoryCommandBroadcaster::teleoperation_command_callback(
   publish_control_command();
 }
 
-void A2JointTrajectoryCommandBroadcaster::set_control_mode_callback(
+void LeaderJointTrajectoryCommandBroadcaster::set_control_mode_callback(
   const std::shared_ptr<robotis_interfaces::srv::SetControlMode::Request> request,
   std::shared_ptr<robotis_interfaces::srv::SetControlMode::Response> response)
 {
@@ -749,7 +864,7 @@ void A2JointTrajectoryCommandBroadcaster::set_control_mode_callback(
   publish_control_command();
 }
 
-void A2JointTrajectoryCommandBroadcaster::set_teleoperation_callback(
+void LeaderJointTrajectoryCommandBroadcaster::set_teleoperation_callback(
   const std::shared_ptr<robotis_interfaces::srv::SetTeleoperation::Request> request,
   std::shared_ptr<robotis_interfaces::srv::SetTeleoperation::Response> response)
 {
@@ -783,7 +898,7 @@ void A2JointTrajectoryCommandBroadcaster::set_teleoperation_callback(
   publish_control_command();
 }
 
-void A2JointTrajectoryCommandBroadcaster::set_preset_callback(
+void LeaderJointTrajectoryCommandBroadcaster::set_preset_callback(
   const std::shared_ptr<robotis_interfaces::srv::SetPreset::Request> request,
   std::shared_ptr<robotis_interfaces::srv::SetPreset::Response> response)
 {
@@ -831,7 +946,7 @@ void A2JointTrajectoryCommandBroadcaster::set_preset_callback(
   publish_control_command(request->target_arm);
 }
 
-void A2JointTrajectoryCommandBroadcaster::control_status_callback(
+void LeaderJointTrajectoryCommandBroadcaster::control_status_callback(
   const robotis_interfaces::msg::ControlModeStatus::SharedPtr msg)
 {
   if (!msg) {
@@ -876,7 +991,7 @@ void A2JointTrajectoryCommandBroadcaster::control_status_callback(
   }
 }
 
-controller_interface::return_type A2JointTrajectoryCommandBroadcaster::update(
+controller_interface::return_type LeaderJointTrajectoryCommandBroadcaster::update(
   const rclcpp::Time & time, const rclcpp::Duration & /*period*/)
 {
   // Update stored values
@@ -891,9 +1006,18 @@ controller_interface::return_type A2JointTrajectoryCommandBroadcaster::update(
     }
   }
 
+  // Use one immutable follower snapshot throughout this controller update.
+  const auto * follower_snapshot = follower_joint_snapshot_buffer_.readFromRT();
+
   double mean_error = 0.0;
+  uint8_t requested_arms = 0;
+  uint8_t newly_enabled_arms = 0;
   if (params_.enable_teleoperation) {
     update_initial_pose_trigger_state(time);
+    requested_arms = requested_arms_rt_.load(std::memory_order_acquire);
+    newly_enabled_arms = requested_arms &
+      static_cast<uint8_t>(~previous_requested_arms_rt_);
+    previous_requested_arms_rt_ = requested_arms;
   } else {
     // Keep the legacy gripper-trigger behavior for existing leader models.
     update_trigger_state(time);
@@ -901,8 +1025,8 @@ controller_interface::return_type A2JointTrajectoryCommandBroadcaster::update(
       return controller_interface::return_type::OK;
     }
 
-    mean_error = calculate_mean_error();
-    const bool current_synced = check_joints_synced();
+    mean_error = calculate_mean_error(*follower_snapshot, time);
+    const bool current_synced = mean_error <= params_.sync_threshold;
     if (first_publish_) {
       joints_synced_ = false;
       first_publish_ = false;
@@ -973,8 +1097,41 @@ controller_interface::return_type A2JointTrajectoryCommandBroadcaster::update(
         traj_msg.points[0].positions[i] = pos_value;
       }
 
-      // Set time_from_start based on sync status and mean error
-      if (params_.enable_teleoperation || joints_synced_) {
+      // Mode-aware teleoperation publishes an error-based duration candidate. Cyclo latches
+      // the first candidate after a group is enabled, performs the fixed-duration interpolation
+      // internally, and still publishes immediate follower commands.
+      if (params_.enable_teleoperation) {
+        const uint8_t group_arm = arms_from_name(group_name);
+        if (group_arm == 0 || (requested_arms & group_arm) == 0) {
+          traj_msg.points[0].time_from_start = rclcpp::Duration(0, 0);
+        } else {
+          double group_mean_error = 0.0;
+          double group_maximum_error = 0.0;
+          if (!calculate_group_mean_error(
+              group_name, *follower_snapshot, time, group_mean_error, &group_maximum_error))
+          {
+            RCLCPP_WARN_THROTTLE(
+              get_node()->get_logger(), *get_node()->get_clock(), 2000,
+              "%s raw leader command paused: follower feedback is incomplete or stale",
+              group_name.c_str());
+            continue;
+          }
+          const double error_ratio = std::clamp(
+            group_maximum_error / params_.slow_start_error_for_max_duration, 0.0, 1.0);
+          const double duration =
+            params_.slow_start_min_duration +
+            (params_.slow_start_max_duration - params_.slow_start_min_duration) * error_ratio;
+          traj_msg.points[0].time_from_start = rclcpp::Duration::from_seconds(duration);
+          if ((newly_enabled_arms & group_arm) != 0) {
+            RCLCPP_INFO(
+              get_node()->get_logger(),
+              "%s fixed-duration MoveJ slow start requested: maximum joint error %.4f rad, "
+              "mean error %.4f rad, "
+              "duration %.3f s",
+              group_name.c_str(), group_maximum_error, group_mean_error, duration);
+          }
+        }
+      } else if (joints_synced_) {
         traj_msg.points[0].time_from_start = rclcpp::Duration(0, 0);  // immediate when synced
       } else {
         // Adaptive timing based on mean error using parameters
@@ -1000,10 +1157,10 @@ controller_interface::return_type A2JointTrajectoryCommandBroadcaster::update(
   return controller_interface::return_type::OK;
 }
 
-}  // namespace a2_joint_trajectory_command_broadcaster
+}  // namespace leader_joint_trajectory_command_broadcaster
 
 #include "pluginlib/class_list_macros.hpp"
 
 PLUGINLIB_EXPORT_CLASS(
-  a2_joint_trajectory_command_broadcaster::A2JointTrajectoryCommandBroadcaster,
+  leader_joint_trajectory_command_broadcaster::LeaderJointTrajectoryCommandBroadcaster,
   controller_interface::ControllerInterface)

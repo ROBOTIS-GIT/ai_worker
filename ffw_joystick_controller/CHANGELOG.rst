@@ -2,7 +2,16 @@
 Changelog for package ffw_joystick_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2.3.0 (2026-08-06)
+2.3.0 (2026-09-21)
+------------------
+* Added leader-specific joystick controls for per-arm teleoperation and mode switching
+* Contributors: Yeonguk Kim
+
+2.2.7 (2026-09-14)
+------------------
+* None
+
+2.2.6 (2026-09-04)
 ------------------
 * None
 

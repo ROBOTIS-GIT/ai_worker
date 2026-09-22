@@ -2,10 +2,23 @@
 Changelog for package ffw
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2.3.0 (2026-08-06)
+2.3.0 (2026-09-21)
 ------------------
 * Added support for the A2 leader
+* Added extensible A2 teleoperation modes, presets, and pose transitions
+* Added automatic A2 leader serial-port mapping in the Docker environment
 * Contributors: Yeonguk Kim
+
+2.2.7 (2026-09-14)
+------------------
+* Updated Dynamixel SDK in Docker container environment
+* Changed serial buffer reading in the Dynamixel SDK from a busy loop using `read()` to a `poll()`-based approach with a maximum wait time of 1 ms.
+* Contributors: Hyungyu Kim
+
+2.2.6 (2026-09-04)
+------------------
+* Updated BH5 and SH5 urdf xacro
+* Contributors: Hyunwoo Nam
 
 2.2.5 (2026-08-19)
 ------------------

@@ -31,6 +31,12 @@
       joint_state_broadcaster:
         type: joint_state_broadcaster/JointStateBroadcaster
 
+      pressure_l_broadcaster:
+        type: robotis_hand_pressure_broadcaster/PressureBroadcaster
+
+      pressure_r_broadcaster:
+        type: robotis_hand_pressure_broadcaster/PressureBroadcaster
+
 /**:
   arm_l_controller:
     ros__parameters:
@@ -208,3 +214,45 @@
         - finger_r_joint18
         - finger_r_joint19
         - finger_r_joint20
+
+/**:
+  pressure_l_broadcaster:
+    ros__parameters:
+      topic_name: /left_hand/finger_pressures
+      sensor_names:
+        - finger_l_sensor1
+        - finger_l_sensor2
+        - finger_l_sensor3
+        - finger_l_sensor4
+        - finger_l_sensor5
+      interface_names:
+        - Present Pressure 1
+        - Present Pressure 2
+        - Present Pressure 3
+        - Present Pressure 4
+        - Present Pressure 5
+        - Present Pressure 6
+        - Present Pressure 7
+        - Present Pressure 8
+        - Present Pressure 9
+
+/**:
+  pressure_r_broadcaster:
+    ros__parameters:
+      topic_name: /right_hand/finger_pressures
+      sensor_names:
+        - finger_r_sensor1
+        - finger_r_sensor2
+        - finger_r_sensor3
+        - finger_r_sensor4
+        - finger_r_sensor5
+      interface_names:
+        - Present Pressure 1
+        - Present Pressure 2
+        - Present Pressure 3
+        - Present Pressure 4
+        - Present Pressure 5
+        - Present Pressure 6
+        - Present Pressure 7
+        - Present Pressure 8
+        - Present Pressure 9

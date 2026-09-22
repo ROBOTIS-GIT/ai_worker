@@ -1,4 +1,4 @@
-a2_joint_trajectory_command_broadcaster:
+leader_joint_trajectory_command_broadcaster:
   map_interface_to_joint_state:
     position: {
       type: string,
@@ -15,6 +15,26 @@ a2_joint_trajectory_command_broadcaster:
     type: string,
     default_value: "/joint_states",
     description: "Topic name for subscribing to follower's joint states to check synchronization."
+  }
+  follower_state_timeout: {
+    type: double,
+    default_value: 0.5,
+    description: "Maximum age in seconds of complete follower feedback used for synchronization."
+  }
+  slow_start_min_duration: {
+    type: double,
+    default_value: 1.0,
+    description: "Minimum fixed slow-start duration for mode-aware teleoperation."
+  }
+  slow_start_max_duration: {
+    type: double,
+    default_value: 6.0,
+    description: "Maximum fixed slow-start duration for mode-aware teleoperation."
+  }
+  slow_start_error_for_max_duration: {
+    type: double,
+    default_value: 1.5,
+    description: "Mean initial joint error that selects the maximum slow-start duration."
   }
   sync_threshold: {
     type: double,

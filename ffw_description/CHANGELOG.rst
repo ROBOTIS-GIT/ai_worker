@@ -2,10 +2,19 @@
 Changelog for package ffw_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2.3.0 (2026-08-06)
+2.3.0 (2026-09-21)
 ------------------
 * Added URDF and ros2_control descriptions for the A2 leader
 * Contributors: Yeonguk Kim
+
+2.2.7 (2026-09-14)
+------------------
+* None
+
+2.2.6 (2026-09-04)
+------------------
+* Updated BH5 and SH5 urdf xacro
+* Contributors: Hyunwoo Nam
 
 2.2.5 (2026-08-19)
 ------------------

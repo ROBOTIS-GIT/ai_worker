@@ -35,8 +35,8 @@ endforeach()
 generate_parameter_library(joint_trajectory_command_broadcaster_parameters
   src/joint_trajectory_command_broadcaster_parameters.yaml
 )
-generate_parameter_library(a2_joint_trajectory_command_broadcaster_parameters
-  src/a2_joint_trajectory_command_broadcaster_parameters.yaml
+generate_parameter_library(leader_joint_trajectory_command_broadcaster_parameters
+  src/leader_joint_trajectory_command_broadcaster_parameters.yaml
 )
 
 add_library(joint_trajectory_command_broadcaster SHARED
@@ -60,26 +60,26 @@ target_link_libraries(joint_trajectory_command_broadcaster PUBLIC
 # which is appropriate when building the dll but not consuming it.
 target_compile_definitions(joint_trajectory_command_broadcaster PRIVATE "JOINT_TRAJECTORY_COMMAND_BROADCASTER_BUILDING_DLL")
 
-add_library(a2_joint_trajectory_command_broadcaster SHARED
-  src/a2_joint_trajectory_command_broadcaster.cpp
+add_library(leader_joint_trajectory_command_broadcaster SHARED
+  src/leader_joint_trajectory_command_broadcaster.cpp
 )
-target_compile_features(a2_joint_trajectory_command_broadcaster PUBLIC cxx_std_17)
-target_include_directories(a2_joint_trajectory_command_broadcaster PUBLIC
+target_compile_features(leader_joint_trajectory_command_broadcaster PUBLIC cxx_std_17)
+target_include_directories(leader_joint_trajectory_command_broadcaster PUBLIC
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include/joint_trajectory_command_broadcaster>
 )
-target_link_libraries(a2_joint_trajectory_command_broadcaster PUBLIC
+target_link_libraries(leader_joint_trajectory_command_broadcaster PUBLIC
   ${builtin_interfaces_TARGETS}
   ${robotis_interfaces_TARGETS}
   ${trajectory_msgs_TARGETS}
-  a2_joint_trajectory_command_broadcaster_parameters
+  leader_joint_trajectory_command_broadcaster_parameters
   controller_interface::controller_interface
   pluginlib::pluginlib
   rclcpp_lifecycle::rclcpp_lifecycle
 )
 target_compile_definitions(
-  a2_joint_trajectory_command_broadcaster
-  PRIVATE "A2_JOINT_TRAJECTORY_COMMAND_BROADCASTER_BUILDING_DLL"
+  leader_joint_trajectory_command_broadcaster
+  PRIVATE "LEADER_JOINT_TRAJECTORY_COMMAND_BROADCASTER_BUILDING_DLL"
 )
 pluginlib_export_plugin_description_file(controller_interface joint_trajectory_command_plugin.xml)
 
@@ -94,9 +94,9 @@ install(
 install(
   TARGETS
     joint_trajectory_command_broadcaster
-    a2_joint_trajectory_command_broadcaster
+    leader_joint_trajectory_command_broadcaster
     joint_trajectory_command_broadcaster_parameters
-    a2_joint_trajectory_command_broadcaster_parameters
+    leader_joint_trajectory_command_broadcaster_parameters
   EXPORT export_joint_trajectory_command_broadcaster
   RUNTIME DESTINATION bin
   ARCHIVE DESTINATION lib
