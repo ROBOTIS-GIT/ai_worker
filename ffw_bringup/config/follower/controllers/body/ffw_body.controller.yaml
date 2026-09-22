@@ -20,6 +20,7 @@
   controller_manager:
     ros__parameters:
       update_rate: 100
+      enforce_command_limits: true
       arm_l_effort_controller:
         type: forward_command_controller/ForwardCommandController
       arm_r_effort_controller:
