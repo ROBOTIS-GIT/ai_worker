@@ -12,8 +12,8 @@ cyclo_action_controller:
 
     right_gripper_joint: gripper_r_joint1
     left_gripper_joint: gripper_l_joint1
-    follower_right_eef: arm_r_link7
-    follower_left_eef: arm_l_link7
+    follower_right_eef: end_effector_r_link
+    follower_left_eef: end_effector_l_link
     follower_right_eef_pose_topic: /model_control/right/eef_pose
     follower_left_eef_pose_topic: /model_control/left/eef_pose
 

@@ -191,6 +191,14 @@ def generate_launch_description():
             'ffw_sg2_follower_modified.srdf',
         ]
     )
+    leader_urdf_path = PathJoinSubstitution(
+        [
+            FindPackageShare('cyclo_motion_controller_models'),
+            'models',
+            'ai_worker',
+            'ffw_a2_leader.urdf',
+        ]
+    )
     teleoperation_node = Node(
         package='cyclo_teleoperation',
         executable='cyclo_teleoperation_node',
@@ -201,7 +209,7 @@ def generate_launch_description():
             {
                 'follower_urdf_path': follower_urdf_path,
                 'follower_srdf_path': follower_srdf_path,
-                'leader_urdf_xml': robot_description_content,
+                'leader_urdf_path': leader_urdf_path,
             },
         ],
         output='screen',

@@ -14,14 +14,14 @@ cyclo_teleoperation:
 
     right_gripper_joint: gripper_r_joint1
     left_gripper_joint: gripper_l_joint1
-    follower_right_eef: arm_r_link7
-    follower_left_eef: arm_l_link7
+    follower_right_eef: end_effector_r_link
+    follower_left_eef: end_effector_l_link
     follower_right_eef_pose_topic: /leader/teleoperation/right/eef_pose
     follower_left_eef_pose_topic: /leader/teleoperation/left/eef_pose
     follower_right_elbow: arm_r_link4
     follower_left_elbow: arm_l_link4
-    leader_right_eef: arm_r_link7
-    leader_left_eef: arm_l_link7
+    leader_right_eef: end_effector_r_link
+    leader_left_eef: end_effector_l_link
 
     available_control_modes: [1, 2]
     default_control_mode: 1
