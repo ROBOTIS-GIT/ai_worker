@@ -13,6 +13,9 @@ cyclo_teleoperation:
     pose_sequence:
       kp_joint: 30.0
       tracking_weight: 10.0
+      constraints:
+        position: false
+        self_collision: true
 
     control_modes:
       "1":

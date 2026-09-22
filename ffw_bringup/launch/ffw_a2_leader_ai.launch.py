@@ -188,7 +188,7 @@ def generate_launch_description():
             FindPackageShare('cyclo_motion_controller_models'),
             'models',
             'ai_worker',
-            'ffw_sg2_follower_default.srdf',
+            'ffw_sg2_follower_modified.srdf',
         ]
     )
     teleoperation_node = Node(

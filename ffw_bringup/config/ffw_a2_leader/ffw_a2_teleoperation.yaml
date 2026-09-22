@@ -16,6 +16,8 @@ cyclo_teleoperation:
     left_gripper_joint: gripper_l_joint1
     follower_right_eef: arm_r_link7
     follower_left_eef: arm_l_link7
+    follower_right_eef_pose_topic: /leader/teleoperation/right/eef_pose
+    follower_left_eef_pose_topic: /leader/teleoperation/left/eef_pose
     follower_right_elbow: arm_r_link4
     follower_left_elbow: arm_l_link4
     leader_right_eef: arm_r_link7
@@ -28,8 +30,9 @@ cyclo_teleoperation:
       "1":
         name: teleoperation
         plugin: cyclo_teleoperation/MoveJMode
-        slow_start:
-          enabled: true
+        constraints:
+          position: false
+          self_collision: true
         initial_pose:
           enabled: false
         exit_pose:
@@ -38,10 +41,11 @@ cyclo_teleoperation:
       "2":
         name: relative_pose
         plugin: cyclo_teleoperation/RelativePoseMode
-        slow_start:
-          enabled: false
+        constraints:
+          position: true
+          self_collision: true
         initial_pose:
-          enabled: true
+          enabled: false
           step_names: [step0, step1]
           steps:
             step0:

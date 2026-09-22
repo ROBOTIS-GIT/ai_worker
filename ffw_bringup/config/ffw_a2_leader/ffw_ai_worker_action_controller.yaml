@@ -1,0 +1,44 @@
+cyclo_action_controller:
+  ros__parameters:
+    robot:
+      plugin: cyclo_teleoperation/AIWorkerTeleoperation
+      parameter_prefix: ""
+
+    enable_leader_interface: false
+
+    follower_joint_states_topic: /joint_states
+    right_command_topic: /leader/joint_trajectory_command_broadcaster_right/joint_trajectory
+    left_command_topic: /leader/joint_trajectory_command_broadcaster_left/joint_trajectory
+
+    right_gripper_joint: gripper_r_joint1
+    left_gripper_joint: gripper_l_joint1
+    follower_right_eef: arm_r_link7
+    follower_left_eef: arm_l_link7
+    follower_right_eef_pose_topic: /model_control/right/eef_pose
+    follower_left_eef_pose_topic: /model_control/left/eef_pose
+
+    left_joint_action_topic: /model_action/left/raw_joint_trajectory
+    right_joint_action_topic: /model_action/right/raw_joint_trajectory
+    left_eef_action_topic: /model_action/left/eef_pose
+    right_eef_action_topic: /model_action/right/eef_pose
+    action_reference_frame: base_link
+
+    available_control_modes: [1, 2]
+    default_control_mode: 1
+
+    control_modes:
+      "1":
+        name: absolute_joint_position
+        plugin: cyclo_teleoperation/MoveJMode
+        reference_type: absolute_joint_position
+        constraints:
+          position: false
+          self_collision: false
+
+      "2":
+        name: absolute_eef_pose
+        plugin: cyclo_teleoperation/AbsolutePoseMode
+        reference_type: absolute_eef_pose
+        constraints:
+          position: true
+          self_collision: false
