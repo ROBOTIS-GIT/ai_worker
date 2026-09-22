@@ -26,7 +26,7 @@ def generate_launch_description():
         FindPackageShare('ffw_bringup'),
         'config',
         'common',
-        'ffw_action_controller.yaml',
+        'ffw_follower_action_controller.yaml',
     ])
     default_follower_urdf = PathJoinSubstitution([
         FindPackageShare('cyclo_motion_controller_models'),
