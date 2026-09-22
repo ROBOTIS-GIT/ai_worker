@@ -21,6 +21,8 @@
 /**:
   joint_trajectory_command_broadcaster:
     ros__parameters:
+      dynamixel_l_joint_trajectory_topic: "/leader/joint_trajectory_command_broadcaster_left/joint_trajectory"
+      dynamixel_r_joint_trajectory_topic: "/leader/joint_trajectory_command_broadcaster_right/joint_trajectory"
       left_joints:
         - arm_l_joint1
         - arm_l_joint2

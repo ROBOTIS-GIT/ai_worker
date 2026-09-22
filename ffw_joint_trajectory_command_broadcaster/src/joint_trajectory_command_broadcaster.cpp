@@ -125,9 +125,8 @@ controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_confi
       group_reverse_joints_[group_name] =
         group_name == "left" ? params_.left_reverse_joints : params_.right_reverse_joints;
 
-      // Create topic name with group-specific namespace
-      std::string topic_name;
-      topic_name = "joint_trajectory_command_broadcaster_" + group_name + "/joint_trajectory";
+      const auto & topic_name = group_name == "left" ?
+        params_.dynamixel_l_joint_trajectory_topic : params_.dynamixel_r_joint_trajectory_topic;
       group_topic_names_[group_name] = topic_name;
 
       // Create publisher for this group

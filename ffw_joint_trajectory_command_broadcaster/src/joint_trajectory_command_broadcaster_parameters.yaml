@@ -16,6 +16,18 @@ joint_trajectory_command_broadcaster:
     default_value: "/joint_states",
     description: "Topic name for subscribing to follower's joint states to check synchronization."
   }
+  dynamixel_l_joint_trajectory_topic: {
+    type: string,
+    default_value: "joint_trajectory_command_broadcaster_left/joint_trajectory",
+    description: "Topic to publish left joint trajectory commands",
+    read_only: true
+  }
+  dynamixel_r_joint_trajectory_topic: {
+    type: string,
+    default_value: "joint_trajectory_command_broadcaster_right/joint_trajectory",
+    description: "Topic to publish right joint trajectory commands",
+    read_only: true
+  }
   sync_threshold: {
     type: double,
     # default_value: 0.01,
