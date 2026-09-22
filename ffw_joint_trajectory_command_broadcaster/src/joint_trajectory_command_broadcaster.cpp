@@ -229,6 +229,21 @@ controller_interface::CallbackReturn JointTrajectoryCommandBroadcaster::on_confi
       group_last_target_[group_name] = positions;
       group_lower_limits_[group_name] = lowers;
       group_upper_limits_[group_name] = uppers;
+      for (auto & [pose_id, pose] : group_save_poses_[group_name]) {
+        if (pose.size() != joints.size()) {
+          throw std::runtime_error(
+            group_name + ": save pose size mismatch: " + std::to_string(pose_id));
+        }
+
+        for (size_t i = 0; i < pose.size(); ++i) {
+          if (!std::isfinite(pose[i])) {
+            throw std::runtime_error(
+              group_name + ": invalid save pose value: " + joints[i]);
+          }
+
+          pose[i] = std::clamp(pose[i], lowers[i], uppers[i]);
+        }
+      }
       RCLCPP_INFO(get_node()->get_logger(),
         "[%s] Loaded follower positions and joint limits",
         group_name.c_str());
