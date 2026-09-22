@@ -108,6 +108,69 @@
   <xacro:SimpleTransmission trans="hand_r_trans19" joint="finger_r_joint19" actuator="hand_r_actuator19"/>
   <xacro:SimpleTransmission trans="hand_r_trans20" joint="finger_r_joint20" actuator="hand_r_actuator20"/>
 
+  <!-- GZ lidar sensors for simulation (publish Gazebo LaserScan; bridge to ROS if needed) -->
+  <gazebo reference="lidar_l_link">
+    <sensor name="lidar_left" type="gpu_lidar">
+      <pose>0 0 0 0 0 0</pose>
+      <always_on>true</always_on>
+      <visualize>true</visualize>
+      <update_rate>10.0</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>720</samples>
+            <resolution>1</resolution>
+            <min_angle>-2.356194</min_angle>
+            <max_angle>2.356194</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.05</min>
+          <max>20.0</max>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.01</stddev>
+        </noise>
+      </ray>
+      <gz_frame_id>lidar_l_link</gz_frame_id>
+      <topic>scan_left</topic>
+    </sensor>
+  </gazebo>
+
+  <gazebo reference="lidar_r_link">
+    <sensor name="lidar_right" type="gpu_lidar">
+      <pose>0 0 0 0 0 0</pose>
+      <always_on>true</always_on>
+      <visualize>true</visualize>
+      <update_rate>10.0</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>720</samples>
+            <resolution>1</resolution>
+            <min_angle>-2.356194</min_angle>
+            <max_angle>2.356194</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.05</min>
+          <max>20.0</max>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.01</stddev>
+        </noise>
+      </ray>
+      <gz_frame_id>lidar_r_link</gz_frame_id>
+      <topic>scan_right</topic>
+    </sensor>
+  </gazebo>
+
   </xacro:macro>
 
 </robot>
