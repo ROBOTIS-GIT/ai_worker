@@ -11,9 +11,15 @@ leader_joystick_controller:
     description: "Topic for AI Worker teleoperation button commands",
     read_only: true
   }
+  command_source_state_topic: {
+    type: string,
+    default_value: "/control/leader_action_enabled",
+    description: "Latched standard Bool topic selecting leader or model command ownership",
+    read_only: true
+  }
   teleoperation_toggle_long_press_duration: {
     type: double,
     default_value: 1.0,
-    description: "Leader button hold duration for per-arm teleoperation toggling",
+    description: "Leader button hold duration for command-source and per-arm toggling",
     read_only: true
   }

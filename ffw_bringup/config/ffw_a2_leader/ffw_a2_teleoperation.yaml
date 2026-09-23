@@ -4,11 +4,12 @@ cyclo_teleoperation:
       plugin: cyclo_teleoperation/AIWorkerTeleoperation
       parameter_prefix: ""
 
+    command_source_state_topic: /control/leader_action_enabled
     follower_joint_states_topic: /joint_states
     right_leader_topic: /leader/joint_trajectory_command_broadcaster_right/raw_joint_trajectory
     left_leader_topic: /leader/joint_trajectory_command_broadcaster_left/raw_joint_trajectory
-    right_command_topic: /leader/joint_trajectory_command_broadcaster_right/joint_trajectory
-    left_command_topic: /leader/joint_trajectory_command_broadcaster_left/joint_trajectory
+    right_command_topic: /leader/teleoperation/right/joint_trajectory
+    left_command_topic: /leader/teleoperation/left/joint_trajectory
     control_command_topic: /leader/teleoperation/control_command
     control_status_topic: /leader/teleoperation/control_status
 
@@ -16,6 +17,8 @@ cyclo_teleoperation:
     left_gripper_joint: gripper_l_joint1
     follower_right_eef: end_effector_r_link
     follower_left_eef: end_effector_l_link
+    publish_follower_eef_state: false
+    publish_eef_pose_references: true
     follower_right_eef_pose_topic: /leader/teleoperation/right/eef_pose
     follower_left_eef_pose_topic: /leader/teleoperation/left/eef_pose
     follower_right_eef_reference_topic: /leader/teleoperation/right/reference_eef_pose

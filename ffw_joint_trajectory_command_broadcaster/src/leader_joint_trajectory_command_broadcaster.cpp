@@ -246,6 +246,7 @@ controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on
       initial_pose_busy_arms_ = 0;
       preset_busy_arms_ = 0;
       requested_arms_rt_.store(0, std::memory_order_relaxed);
+      leader_action_enabled_rt_.store(false, std::memory_order_relaxed);
       previous_requested_arms_rt_ = 0;
       left_initial_pose_trigger_ = TriggerHoldState{};
       right_initial_pose_trigger_ = TriggerHoldState{};
@@ -253,6 +254,12 @@ controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on
       control_command_publisher_ =
         get_node()->create_publisher<robotis_interfaces::msg::ControlModeCommand>(
         params_.control_command_topic, command_qos);
+      command_source_state_subscriber_ =
+        get_node()->create_subscription<std_msgs::msg::Bool>(
+        params_.command_source_state_topic, command_qos,
+        std::bind(
+          &LeaderJointTrajectoryCommandBroadcaster::command_source_state_callback,
+          this, std::placeholders::_1));
       teleoperation_command_subscriber_ =
         get_node()->create_subscription<robotis_interfaces::msg::TeleoperationCommand>(
         params_.joystick_command_topic, rclcpp::SystemDefaultsQoS(),
@@ -667,6 +674,9 @@ bool LeaderJointTrajectoryCommandBroadcaster::check_arm_trigger_active(const uin
 void LeaderJointTrajectoryCommandBroadcaster::request_final_initial_pose(
   const uint8_t target_arms)
 {
+  if (!leader_action_enabled_rt_.load(std::memory_order_acquire)) {
+    return;
+  }
   uint8_t accepted_arms = 0;
   uint8_t unavailable_arms = 0;
   uint8_t busy_arms = 0;
@@ -775,6 +785,12 @@ void LeaderJointTrajectoryCommandBroadcaster::teleoperation_command_callback(
   if (!msg || !params_.enable_teleoperation) {
     return;
   }
+  if (!leader_action_enabled_rt_.load(std::memory_order_acquire)) {
+    RCLCPP_WARN(
+      get_node()->get_logger(),
+      "Ignoring arm teleoperation command while model control is selected");
+    return;
+  }
   const uint8_t target_arms = arms_from_name(msg->target_arm);
   if (target_arms == 0) {
     RCLCPP_WARN(
@@ -831,6 +847,32 @@ void LeaderJointTrajectoryCommandBroadcaster::teleoperation_command_callback(
   publish_control_command();
 }
 
+void LeaderJointTrajectoryCommandBroadcaster::command_source_state_callback(
+  const std_msgs::msg::Bool::SharedPtr msg)
+{
+  if (!msg || !params_.enable_teleoperation) {
+    return;
+  }
+  const bool previous =
+    leader_action_enabled_rt_.exchange(msg->data, std::memory_order_acq_rel);
+  if (previous == msg->data) {
+    return;
+  }
+  {
+    std::lock_guard<std::mutex> lock(teleoperation_mutex_);
+    requested_arms_ = 0;
+    active_arms_ = 0;
+    initial_pose_busy_arms_ = 0;
+    preset_busy_arms_ = 0;
+    ++transition_id_;
+  }
+  requested_arms_rt_.store(0, std::memory_order_release);
+  publish_control_command();
+  RCLCPP_INFO(
+    get_node()->get_logger(), "Leader action source %s; both arms are stopped",
+    msg->data ? "enabled" : "disabled");
+}
+
 void LeaderJointTrajectoryCommandBroadcaster::set_control_mode_callback(
   const std::shared_ptr<robotis_interfaces::srv::SetControlMode::Request> request,
   std::shared_ptr<robotis_interfaces::srv::SetControlMode::Response> response)
@@ -869,11 +911,15 @@ void LeaderJointTrajectoryCommandBroadcaster::set_teleoperation_callback(
   std::shared_ptr<robotis_interfaces::srv::SetTeleoperation::Response> response)
 {
   const uint8_t target_arms = arms_from_name(request->target_arm);
-  if (!params_.enable_teleoperation || target_arms == 0) {
+  if (
+    !params_.enable_teleoperation ||
+    !leader_action_enabled_rt_.load(std::memory_order_acquire) || target_arms == 0)
+  {
     std::lock_guard<std::mutex> lock(teleoperation_mutex_);
     response->accepted = false;
     response->transition_id = transition_id_;
-    response->message = "Teleoperation is disabled or target_arm is invalid";
+    response->message =
+      "Leader action output is disabled, teleoperation is unavailable, or target_arm is invalid";
     return;
   }
   {
@@ -903,11 +949,15 @@ void LeaderJointTrajectoryCommandBroadcaster::set_preset_callback(
   std::shared_ptr<robotis_interfaces::srv::SetPreset::Response> response)
 {
   const uint8_t target_arms = arms_from_name(request->target_arm);
-  if (!params_.enable_teleoperation || target_arms == 0) {
+  if (
+    !params_.enable_teleoperation ||
+    !leader_action_enabled_rt_.load(std::memory_order_acquire) || target_arms == 0)
+  {
     std::lock_guard<std::mutex> lock(teleoperation_mutex_);
     response->accepted = false;
     response->transition_id = transition_id_;
-    response->message = "Teleoperation is disabled or target_arm is invalid";
+    response->message =
+      "Leader action output is disabled, teleoperation is unavailable, or target_arm is invalid";
     return;
   }
   if (
@@ -1013,7 +1063,12 @@ controller_interface::return_type LeaderJointTrajectoryCommandBroadcaster::updat
   uint8_t requested_arms = 0;
   uint8_t newly_enabled_arms = 0;
   if (params_.enable_teleoperation) {
-    update_initial_pose_trigger_state(time);
+    if (leader_action_enabled_rt_.load(std::memory_order_acquire)) {
+      update_initial_pose_trigger_state(time);
+    } else {
+      left_initial_pose_trigger_ = TriggerHoldState{};
+      right_initial_pose_trigger_ = TriggerHoldState{};
+    }
     requested_arms = requested_arms_rt_.load(std::memory_order_acquire);
     newly_enabled_arms = requested_arms &
       static_cast<uint8_t>(~previous_requested_arms_rt_);

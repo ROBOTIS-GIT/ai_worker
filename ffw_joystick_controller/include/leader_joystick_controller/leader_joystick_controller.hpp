@@ -24,6 +24,7 @@
   <ffw_joystick_controller/leader_joystick_controller_parameters.hpp>
 #include "joystick_controller/joystick_controller.hpp"
 #include "robotis_interfaces/msg/teleoperation_command.hpp"
+#include "std_msgs/msg/bool.hpp"
 
 namespace leader_joystick_controller
 {
@@ -48,11 +49,14 @@ protected:
 
 private:
   void publish_teleoperation_toggle(const std::string & target_arm);
+  void toggle_leader_action_output();
 
   rclcpp::Time both_tact_press_start_time_;
   bool both_tact_long_press_triggered_ = false;
   rclcpp::Publisher<robotis_interfaces::msg::TeleoperationCommand>::SharedPtr
     teleoperation_command_pub_;
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr leader_action_enabled_pub_;
+  bool leader_action_enabled_ = false;
   uint64_t teleoperation_request_id_ = 0;
   std::shared_ptr<ParamListener> leader_param_listener_;
   Params leader_params_;

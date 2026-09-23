@@ -19,6 +19,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   rcutils
   robotis_interfaces
   realtime_tools
+  std_msgs
   urdf
   trajectory_msgs
 )
@@ -71,6 +72,7 @@ target_include_directories(leader_joint_trajectory_command_broadcaster PUBLIC
 target_link_libraries(leader_joint_trajectory_command_broadcaster PUBLIC
   ${builtin_interfaces_TARGETS}
   ${robotis_interfaces_TARGETS}
+  ${std_msgs_TARGETS}
   ${trajectory_msgs_TARGETS}
   leader_joint_trajectory_command_broadcaster_parameters
   controller_interface::controller_interface

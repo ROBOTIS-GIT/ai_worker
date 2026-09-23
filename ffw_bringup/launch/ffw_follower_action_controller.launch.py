@@ -63,4 +63,11 @@ def generate_launch_description():
         ],
         output='screen',
     )
-    return LaunchDescription(declared_arguments + [action_controller])
+    command_source_mux = Node(
+        package='cyclo_teleoperation',
+        executable='joint_trajectory_source_mux',
+        name='joint_trajectory_source_mux',
+        parameters=[config],
+        output='screen',
+    )
+    return LaunchDescription(declared_arguments + [command_source_mux, action_controller])

@@ -135,6 +135,11 @@ leader_joint_trajectory_command_broadcaster:
     type: string,
     default_value: "/leader/teleoperation/joystick_command"
   }
+  command_source_state_topic: {
+    type: string,
+    default_value: "/control/leader_action_enabled",
+    description: "Latched standard Bool topic selecting leader or model command ownership"
+  }
   control_command_topic: {
     type: string,
     default_value: "/leader/teleoperation/control_command"

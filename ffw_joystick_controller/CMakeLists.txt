@@ -71,6 +71,7 @@ target_include_directories(leader_joystick_controller PUBLIC
 )
 target_link_libraries(leader_joystick_controller PUBLIC
   ${robotis_interfaces_TARGETS}
+  ${std_msgs_TARGETS}
   leader_joystick_controller_parameters
   controller_interface::controller_interface
   joystick_controller

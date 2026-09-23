@@ -62,6 +62,14 @@ controller_interface::CallbackReturn LeaderJoystickController::on_configure(
     teleoperation_command_pub_ =
       get_node()->create_publisher<robotis_interfaces::msg::TeleoperationCommand>(
       leader_params_.teleoperation_command_topic, 10);
+    const auto source_state_qos =
+      rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local();
+    leader_action_enabled_pub_ = get_node()->create_publisher<std_msgs::msg::Bool>(
+      leader_params_.command_source_state_topic, source_state_qos);
+    leader_action_enabled_ = false;
+    std_msgs::msg::Bool source_state;
+    source_state.data = leader_action_enabled_;
+    leader_action_enabled_pub_->publish(source_state);
   }
   both_tact_press_start_time_ = rclcpp::Time(0);
   both_tact_long_press_triggered_ = false;
@@ -76,7 +84,7 @@ controller_interface::CallbackReturn LeaderJoystickController::on_configure(
 
 void LeaderJoystickController::publish_teleoperation_toggle(const std::string & target_arm)
 {
-  if (!teleoperation_command_pub_) {
+  if (!teleoperation_command_pub_ || !leader_action_enabled_) {
     return;
   }
 
@@ -85,6 +93,19 @@ void LeaderJoystickController::publish_teleoperation_toggle(const std::string & 
   command.target_arm = target_arm;
   command.command = robotis_interfaces::msg::TeleoperationCommand::COMMAND_TOGGLE;
   teleoperation_command_pub_->publish(command);
+}
+
+void LeaderJoystickController::toggle_leader_action_output()
+{
+  if (!leader_action_enabled_pub_) {
+    return;
+  }
+  leader_action_enabled_ = !leader_action_enabled_;
+  std_msgs::msg::Bool source_state;
+  source_state.data = leader_action_enabled_;
+  leader_action_enabled_pub_->publish(source_state);
+  // TODO(teleoperation): Notify the external model runtime to stop or resume here once
+  // its standard ROS topic/service interface is selected.
 }
 
 void LeaderJoystickController::handle_tact_switches(
@@ -113,9 +134,10 @@ void LeaderJoystickController::handle_tact_switches(
         leader_params_.teleoperation_toggle_long_press_duration)
       {
         both_tact_long_press_triggered_ = true;
-        publish_teleoperation_toggle(
-          robotis_interfaces::msg::TeleoperationCommand::TARGET_BOTH);
-        RCLCPP_INFO(get_node()->get_logger(), "Both-arm teleoperation toggled");
+        toggle_leader_action_output();
+        RCLCPP_INFO(
+          get_node()->get_logger(), "Leader action output %s; both arms remain stopped",
+          leader_action_enabled_ ? "enabled" : "disabled");
       }
     }
   }
@@ -141,7 +163,13 @@ void LeaderJoystickController::handle_tact_switches(
     {
       publish_teleoperation_toggle(
         robotis_interfaces::msg::TeleoperationCommand::TARGET_LEFT);
-      RCLCPP_INFO(get_node()->get_logger(), "Left-arm teleoperation toggled");
+      if (leader_action_enabled_) {
+        RCLCPP_INFO(get_node()->get_logger(), "Left-arm teleoperation toggled");
+      } else {
+        RCLCPP_INFO(
+          get_node()->get_logger(),
+          "Left-arm teleoperation ignored while model control is selected");
+      }
       left_tact_long_press_triggered_ = true;
     }
   }
@@ -152,7 +180,13 @@ void LeaderJoystickController::handle_tact_switches(
     {
       publish_teleoperation_toggle(
         robotis_interfaces::msg::TeleoperationCommand::TARGET_RIGHT);
-      RCLCPP_INFO(get_node()->get_logger(), "Right-arm teleoperation toggled");
+      if (leader_action_enabled_) {
+        RCLCPP_INFO(get_node()->get_logger(), "Right-arm teleoperation toggled");
+      } else {
+        RCLCPP_INFO(
+          get_node()->get_logger(),
+          "Right-arm teleoperation ignored while model control is selected");
+      }
       right_tact_long_press_triggered_ = true;
     }
   }

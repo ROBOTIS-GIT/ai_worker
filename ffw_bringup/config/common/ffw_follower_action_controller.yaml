@@ -5,10 +5,13 @@ cyclo_action_controller:
       parameter_prefix: ""
 
     enable_leader_interface: false
+    publish_follower_eef_state: true
+    publish_eef_pose_references: false
+    command_source_state_topic: /control/leader_action_enabled
 
     follower_joint_states_topic: /joint_states
-    right_command_topic: /leader/joint_trajectory_command_broadcaster_right/joint_trajectory
-    left_command_topic: /leader/joint_trajectory_command_broadcaster_left/joint_trajectory
+    right_command_topic: /model_control/right/joint_trajectory
+    left_command_topic: /model_control/left/joint_trajectory
 
     right_gripper_joint: gripper_r_joint1
     left_gripper_joint: gripper_l_joint1
@@ -42,3 +45,17 @@ cyclo_action_controller:
         constraints:
           position: true
           self_collision: false
+
+joint_trajectory_source_mux:
+  ros__parameters:
+    command_source_state_topic: /control/leader_action_enabled
+    group_names: [left, right]
+    teleoperation_input_topics:
+      - /leader/teleoperation/left/joint_trajectory
+      - /leader/teleoperation/right/joint_trajectory
+    model_input_topics:
+      - /model_control/left/joint_trajectory
+      - /model_control/right/joint_trajectory
+    output_topics:
+      - /leader/joint_trajectory_command_broadcaster_left/joint_trajectory
+      - /leader/joint_trajectory_command_broadcaster_right/joint_trajectory
