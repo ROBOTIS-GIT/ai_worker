@@ -18,6 +18,8 @@ cyclo_teleoperation:
     follower_left_eef: end_effector_l_link
     follower_right_eef_pose_topic: /leader/teleoperation/right/eef_pose
     follower_left_eef_pose_topic: /leader/teleoperation/left/eef_pose
+    follower_right_eef_reference_topic: /leader/teleoperation/right/reference_eef_pose
+    follower_left_eef_reference_topic: /leader/teleoperation/left/reference_eef_pose
     follower_right_elbow: arm_r_link4
     follower_left_elbow: arm_l_link4
     leader_right_eef: end_effector_r_link
