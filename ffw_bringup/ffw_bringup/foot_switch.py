@@ -15,6 +15,8 @@ from std_msgs.msg import Bool, UInt8
 DEVICE = "/dev/input/by-id/usb-PCsensor_FootSwitch-event-kbd"
 
 EVIOCGRAB = 0x40044590
+# EVIOCGKEY(0) from linux/input.h; the buffer size is encoded at bit 16.
+EVIOCGKEY = 0x80004518
 
 EV_KEY = 0x01
 INPUT_EVENT_FORMAT = "llHHi"
@@ -24,8 +26,8 @@ KEY_LEFT = 30
 KEY_MIDDLE = 48
 KEY_RIGHT = 46
 
-DEBOUNCE_SEC = 0.5
-DEBOUNCE_ENABLED = True
+DEBOUNCE_SEC = 0.0
+DEBOUNCE_ENABLED = False
 
 SAVE_POSE_ID = 4
 
@@ -38,7 +40,7 @@ class FootSwitchReader(Node):
 
         self.last_event_time = {}
 
-        self.already_middle_pub = False
+        self.already_middle_pub = None
 
         # Parameter client for joystick_controller deadzone
         self.deadzone_param_client = self.create_client(
@@ -76,6 +78,38 @@ class FootSwitchReader(Node):
             os.close(self.fd)
             self.fd = None
             print("Device closed")
+
+    def initialize_pedal_state(self):
+        if self.fd is None:
+            raise RuntimeError("Device is not opened")
+
+        timeout_sec = 3.0
+        deadline = time.monotonic() + timeout_sec
+        logger = self.get_logger()
+        logger.info(
+            f"Waiting up to {timeout_sec:.1f}s for /leader/joystick_controller "
+            "parameter service and middle pedal subscriber")
+
+        while not (self.deadzone_param_client.service_is_ready() and
+                   self.middle_pedal_pub.get_subscription_count() > 0):
+            if not rclpy.ok():
+                raise RuntimeError("ROS stopped before foot switch initialization")
+            remaining = deadline - time.monotonic()
+            if remaining <= 0.0:
+                message = (
+                    f"Foot switch initialization timed out after {timeout_sec:.1f}s: "
+                    "/leader/joystick_controller parameter service or "
+                    "middle pedal subscriber is not ready")
+                logger.error(message)
+                raise TimeoutError(message)
+            time.sleep(min(0.1, remaining))
+
+        logger.info("Joystick controller is ready; reading initial pedal state")
+        key_state = bytearray(KEY_MIDDLE // 8 + 1)
+        request = EVIOCGKEY | (len(key_state) << 16)
+        fcntl.ioctl(self.fd, request, key_state, True)
+        pressed = bool(key_state[KEY_MIDDLE // 8] & (1 << (KEY_MIDDLE % 8)))
+        self.handle_middle(int(pressed))
 
     def get_key_name(self, event_code: int) -> str:
         if event_code == KEY_LEFT:
@@ -129,7 +163,7 @@ class FootSwitchReader(Node):
                 self.middle_pedal_pub.publish(msg)
                 print("middle pedal: pressed")
         elif event_value == 0:
-            if self.already_middle_pub:
+            if self.already_middle_pub is not False:
                 self._set_deadzone(1.0)
                 self.already_middle_pub = False
                 msg = Bool()
@@ -194,6 +228,7 @@ def main(args=None):
 
     try:
         reader.open_device()
+        reader.initialize_pedal_state()
         reader.run()
     except KeyboardInterrupt:
         print("\nStopped by user")

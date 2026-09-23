@@ -103,7 +103,7 @@ def detect_leader_port(use_mock_hardware=False):
     return str(path)
 
 
-def read_follower_urdf(node, timeout_sec=5.0):
+def read_follower_urdf(node, timeout_sec=2.0):
     """Read names, types, and limits for ros2_control joints"""
     from rclpy.qos import DurabilityPolicy
     from rclpy.wait_for_message import wait_for_message
@@ -174,7 +174,7 @@ def read_follower_urdf(node, timeout_sec=5.0):
     }
 
 
-def read_follower_controller(node, timeout_sec=5.0):
+def read_follower_controller(node, timeout_sec=2.0):
     """Read follower controllers and return left/right end tools"""
     from controller_manager_msgs.srv import ListControllers
 
@@ -217,7 +217,7 @@ def read_follower_controller(node, timeout_sec=5.0):
     return follower_end_tool
 
 
-def read_follower_joint_states(node, follower_joint_names, timeout_sec=5.0, velocity_threshold=0.1):
+def read_follower_joint_states(node, follower_joint_names, timeout_sec=2.0, velocity_threshold=0.1):
     """Read positions when all required joints are present and reported velocities are low"""
     from sensor_msgs.msg import JointState
 
@@ -314,7 +314,7 @@ def initialize_leader(use_mock_hardware=False, detect_port=True):
         lock_file.close()
         raise
 
-    # Keep the file in place; deleting it could let another launch take a new lock.
-    # ponytail: launch lifetime only; hardware must own the lock to cover orphan nodes.
+    # Keep the lock file; using a different one allows duplicate launches.
+    # Lock ends with launch, even if child nodes remain.
     atexit.register(lock_file.close)
     return init_info

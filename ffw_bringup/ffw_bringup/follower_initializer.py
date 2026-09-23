@@ -38,8 +38,9 @@ def gate_follower(leader_files, controller_files, remaps, timeout_sec=2.0):
         lock_file.close()
         raise
 
-    # Keep the file in place; deleting it could let another launch take a new lock.
-    # ponytail: launch lifetime only; hardware must own the lock to cover orphan nodes.
+    # Keep the lock file; using a different one allows duplicate launches.
+    # Lock ends with launch, even if child nodes remain.
+    # TODO: Consider lock handling to address these issues.
     atexit.register(lock_file.close)
 
 
@@ -127,7 +128,7 @@ def check_command_topics(leader_files, controller_files, remaps, timeout_sec=2.0
         for topic, msg_type in topics.items():
             node.create_subscription(msg_type, topic, partial(reject_command, topic), qos)
 
-        node.get_logger().info(f'Checking {len(topics)} command topics for {timeout_sec:g}s')
+        node.get_logger().info(f'Checking command topics for {timeout_sec:g}s')
         with SingleThreadedExecutor(context=context) as executor:
             executor.add_node(node)
             deadline = monotonic() + timeout_sec
