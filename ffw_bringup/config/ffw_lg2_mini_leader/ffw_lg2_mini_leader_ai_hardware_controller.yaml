@@ -19,7 +19,6 @@
       joystick_controller:
         type: joystick_controller/JoystickController
 
-/**:
   joint_trajectory_command_broadcaster:
     ros__parameters:
       dynamixel_l_joint_trajectory_topic: "/leader/joint_trajectory_command_broadcaster_left/joint_trajectory"
@@ -69,14 +68,12 @@
       right_save_pose_4: [0.4310126487211491, -0.3037162117764516, -0.15187608222558382, -2.4574492064177025, 0.26688868864229087, 0.6856534595101655, 0.9479904508402741, 1.0]
 
 
-/**:
   trigger_position_controller:
     ros__parameters:
       joints:
         - gripper_r_joint1
         - gripper_l_joint1
 
-# /**:
 #   leader_position_controller:
 #     ros__parameters:
 #       # NOTE: keep this list in sync with leader_position_command_joints above
@@ -96,7 +93,6 @@
 #         - arm_l_joint6
 #         - arm_l_joint7
 
-/**:
   joystick_controller:
     ros__parameters:
       joystick_sensors:

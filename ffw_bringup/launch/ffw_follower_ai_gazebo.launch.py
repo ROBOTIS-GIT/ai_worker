@@ -20,6 +20,7 @@ import os
 from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
+from ffw_bringup.follower_initializer import gate_follower
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.actions import IncludeLaunchDescription
@@ -92,6 +93,13 @@ def launch_setup(context):
         controllers.extend(spawn_config.get('controllers', []))
         if 'active_controller' in spawn_config:
             controllers.append(spawn_config['active_controller'])
+
+    gate_follower(
+        # TODO: Consider updating config paths after leader integration.
+        sorted(Path(bringup_share, 'config').glob('*/*_ai_hardware_controller.yaml')),
+        controller_files,
+        CONTROLLER_REMAPS,
+    )
 
     controllers = [
         controller for controller in controllers

@@ -18,7 +18,6 @@
       joystick_controller:
         type: joystick_controller/JoystickController
 
-/**:
   joint_trajectory_command_broadcaster:
     ros__parameters:
       dynamixel_l_joint_trajectory_topic: "/leader/joint_trajectory_command_broadcaster_left/joint_trajectory"
@@ -68,7 +67,6 @@
       left_save_pose_4: [0.4310126487211491, 0.3037162117764516, 0.15187608222558382, -2.4574492064177025, -0.26688868864229087, 0.6856534595101655, -0.9479904508402741, 1.0]
       right_save_pose_4: [0.4310126487211491, -0.3037162117764516, -0.15187608222558382, -2.4574492064177025, 0.26688868864229087, 0.6856534595101655, 0.9479904508402741, 1.0]
 
-/**:
   spring_actuator_controller_left:
     ros__parameters:
       joints:
@@ -79,7 +77,6 @@
         - position
         - velocity
 
-/**:
   spring_actuator_controller_right:
     ros__parameters:
       joints:
@@ -90,7 +87,6 @@
         - position
         - velocity
 
-/**:
   joystick_controller:
     ros__parameters:
       joystick_sensors:

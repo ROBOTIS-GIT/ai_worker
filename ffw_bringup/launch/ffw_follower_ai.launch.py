@@ -20,6 +20,7 @@ import os
 from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
+from ffw_bringup.follower_initializer import gate_follower
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.actions import ExecuteProcess
@@ -115,6 +116,13 @@ def launch_setup(context):
 
     if calibration:
         controllers.extend(['arm_l_effort_controller', 'arm_r_effort_controller'])
+
+    gate_follower(
+        # TODO: Consider updating config paths after leader integration.
+        sorted(Path(bringup_share, 'config').glob('*/*_ai_hardware_controller.yaml')),
+        controller_files,
+        CONTROLLER_REMAPS,
+    )
 
     use_sim = LaunchConfiguration('use_sim')
     use_mock_hardware = LaunchConfiguration('use_mock_hardware')

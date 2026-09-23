@@ -16,6 +16,9 @@
 #
 # Authors: Sungho Woo, Woojin Wie, Wonho Yun
 
+import atexit
+import errno
+import fcntl
 import importlib
 from math import isfinite
 from pathlib import Path
@@ -277,24 +280,41 @@ def read_follower_joint_states(node, follower_joint_names, timeout_sec=5.0, velo
 
 
 def initialize_leader(use_mock_hardware=False, detect_port=True):
-    """Collect leader startup information"""
-    init_info = {}
-    if detect_port:
-        init_info['port_name'] = detect_leader_port(use_mock_hardware)
-
-    # Share one ROS context and node
-    context = Context()
-    node = None
+    """Prevent duplicate launches and collect leader startup information."""
+    lock_file = open('/tmp/ffw_leader.lock', 'a')
     try:
-        rclpy.init(args=[], context=context, signal_handler_options=SignalHandlerOptions.NO)
-        node = rclpy.create_node(
-            'leader_initializer', context=context, use_global_arguments=False)
-        init_info.update(read_follower_urdf(node))
-        init_info['follower_end_tool'] = read_follower_controller(node)
-        init_info['follower_current_position'] = read_follower_joint_states(
-            node, init_info['follower_joint_names'])
-        return init_info
-    finally:
-        if node is not None:
-            node.destroy_node()
-        context.try_shutdown()
+        fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError as error:
+        lock_file.close()
+        if error.errno in (errno.EACCES, errno.EAGAIN):
+            raise RuntimeError('[leader_initializer] Leader is already running') from error
+        raise
+
+    try:
+        init_info = {}
+        if detect_port:
+            init_info['port_name'] = detect_leader_port(use_mock_hardware)
+
+        # Share one ROS context and node
+        context = Context()
+        node = None
+        try:
+            rclpy.init(args=[], context=context, signal_handler_options=SignalHandlerOptions.NO)
+            node = rclpy.create_node(
+                'leader_initializer', context=context, use_global_arguments=False)
+            init_info.update(read_follower_urdf(node))
+            init_info['follower_end_tool'] = read_follower_controller(node)
+            init_info['follower_current_position'] = read_follower_joint_states(
+                node, init_info['follower_joint_names'])
+        finally:
+            if node is not None:
+                node.destroy_node()
+            context.try_shutdown()
+    except BaseException:
+        lock_file.close()
+        raise
+
+    # Keep the file in place; deleting it could let another launch take a new lock.
+    # ponytail: launch lifetime only; hardware must own the lock to cover orphan nodes.
+    atexit.register(lock_file.close)
+    return init_info
