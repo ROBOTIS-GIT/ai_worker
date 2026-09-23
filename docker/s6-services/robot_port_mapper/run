@@ -1,0 +1,9 @@
+#!/command/with-contenv bash
+
+set -e
+
+source /opt/ros/${ROS_DISTRO}/setup.bash
+source /root/ros2_ws/install/setup.bash
+
+mkdir -p /dev/serial/by-role
+exec /usr/bin/python3 /usr/local/bin/robot_port_mapper.py

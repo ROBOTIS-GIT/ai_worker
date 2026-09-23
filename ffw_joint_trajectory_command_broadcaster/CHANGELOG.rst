@@ -2,6 +2,12 @@
 Changelog for package ffw_joint_trajectory_command_broadcaster
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.0 (2026-09-21)
+------------------
+* Added a leader-specific trajectory broadcaster for configurable A2 teleoperation modes
+* Added per-arm teleoperation, preset, pose-transition, and slow-start handling
+* Contributors: Yeonguk Kim
+
 2.2.7 (2026-09-14)
 ------------------
 * None

@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>ffw_joystick_controller</name>
-  <version>2.2.7</version>
+  <version>2.3.0</version>
   <description>
     ROS 2 controller for reading joystick values
   </description>
@@ -17,6 +17,7 @@
   <depend>pluginlib</depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_lifecycle</depend>
+  <depend>robotis_interfaces</depend>
   <depend>std_msgs</depend>
   <export>
     <build_type>ament_cmake</build_type>

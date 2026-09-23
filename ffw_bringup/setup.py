@@ -14,13 +14,15 @@ author_emails = ', '.join(email for _, email in authors_info)
 
 setup(
     name=package_name,
-    version='2.2.7',
+    version='2.3.0',
     packages=find_packages(exclude=['test']),
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch', glob('launch/*.launch.py')),
+        (os.path.join('share', package_name, 'config/ffw_a2_leader'),
+         glob('config/ffw_a2_leader/*')),
         (os.path.join('share', package_name, 'config/ffw_bg2_rev2_follower'),
          glob('config/ffw_bg2_rev2_follower/*')),
         (os.path.join('share', package_name, 'config/ffw_bg2_rev3_follower'),

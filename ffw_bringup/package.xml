@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>ffw_bringup</name>
-  <version>2.2.7</version>
+  <version>2.3.0</version>
   <description>
     ROS 2 launch scripts for starting the FFW
   </description>
@@ -15,16 +15,30 @@
   <author email="wwj@robotis.com">Woojin Wie</author>
   <author email="ywh@robotis.com">Wonho Yun</author>
   <depend>rclpy</depend>
+  <depend>geometry_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>trajectory_msgs</depend>
   <depend>dynamixel_hardware_interface</depend>
   <depend>ros_gz_bridge</depend>
   <depend>ros_gz_sim</depend>
   <depend>ros_gz_image</depend>
   <exec_depend>ffw_description</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>controller_manager</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>cyclo_motion_controller_models</exec_depend>
+  <exec_depend>cyclo_teleoperation</exec_depend>
+  <exec_depend>ffw_joint_trajectory_command_broadcaster</exec_depend>
+  <exec_depend>ffw_joystick_controller</exec_depend>
   <exec_depend>gz_ros2_control</exec_depend>
   <exec_depend>image_transport_plugins</exec_depend>
+  <exec_depend>joint_state_broadcaster</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>ros2_control</exec_depend>
   <exec_depend>ros2_controllers</exec_depend>
+  <exec_depend>position_controllers</exec_depend>
+  <exec_depend>ros2topic</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
   <exec_depend>rviz2</exec_depend>
   <exec_depend>xacro</exec_depend>
   <export>
