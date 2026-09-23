@@ -2,7 +2,7 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
    <xacro:macro name="ffw_mini_leader_body" params="prefix parent *origin">
-      <xacro:property name="meshes_file_direction" value="package://ffw_description/meshes/common/leader" />
+      <xacro:property name="meshes_file_direction" value="package://ffw_description/meshes/common/leader/a2" />
 
       <joint name="${prefix}joint" type="fixed">
          <parent link="${parent}"/>
@@ -29,15 +29,15 @@
             </geometry>
          </collision>
          <inertial>
-            <origin xyz="0.0073855606 0.000013925213 -0.00031328687" rpy="0 0 0" />
-            <mass value="0.33009790" />
+            <origin xyz="1.0347495e-02  5.9413880e-05 -7.6051910e-04" rpy="0 0 0" />
+            <mass value="3.7813639e-01" />
             <inertia
-               ixx="0.0021452770"
-               ixy="-0.000000016680053"
-               ixz="-0.00000088143244"
-               iyy="0.00014049217"
-               iyz="0.00000012031854"
-               izz="0.0021934172" />
+               ixx="2.2075825e-03"
+               ixy="2.7587134e-07"
+               ixz="4.0606472e-06"
+               iyy="1.8920594e-04"
+               iyz="6.3038012e-08"
+               izz="2.2758983e-03" />
          </inertial>
       </link>
 
@@ -364,15 +364,15 @@
             </geometry>
          </collision>
          <inertial>
-            <origin xyz="0.00031402977 -0.032879331 -0.000027429864" rpy="0 0 0" />
-            <mass value="0.026192376" />
+            <origin xyz="3.1402977e-04 -3.2879331e-02 -2.7429864e-05" rpy="0 0 0" />
+            <mass value="2.6192376e-02" />
             <inertia
-               ixx="0.0000039979965"
-               ixy="0.000000010639622"
-               ixz="0.000000000022505889"
-               iyy="0.0000021593469"
-               iyz="0.0000000039430261"
-               izz="0.0000044607896" />
+               ixx="3.9979965e-06"
+               ixy="1.0639622e-08"
+               ixz="2.2505889e-11"
+               iyy="2.1593469e-06"
+               iyz="3.9430261e-09"
+               izz="4.4607896e-06" />
          </inertial>
       </link>
       <joint name="${prefix}arm_r_joint2" type="revolute">
@@ -400,15 +400,15 @@
             </geometry>
          </collision>
          <inertial>
-            <origin xyz="0.00047440645 0.00050549060 -0.053005948" rpy="0 0 0" />
-            <mass value="0.049263777" />
+            <origin xyz="5.2815896e-04  8.4254963e-04 -5.3432730e-02" rpy="0 0 0" />
+            <mass value="4.8908171e-02" />
             <inertia
-               ixx="0.000045012579"
-               ixy="0.000000010933721"
-               ixz="0.00000031844474"
-               iyy="0.000048394473"
-               iyz="0.0000014801494"
-               izz="0.0000076982778" />
+               ixx="4.5540567e-05"
+               ixy="1.9786829e-08"
+               ixz="3.3082854e-07"
+               iyy="4.8853649e-05"
+               iyz="1.2884556e-06"
+               izz="7.7762219e-06" />
          </inertial>
       </link>
       <joint name="${prefix}arm_r_joint3" type="revolute">
@@ -436,15 +436,15 @@
             </geometry>
          </collision>
          <inertial>
-            <origin xyz="0.0044577228 -0.0039566353 -0.018293795" rpy="0 0 0" />
-            <mass value="0.055181999" />
+            <origin xyz="4.4279540e-03 -3.9794114e-03 -1.8251483e-02" rpy="0 0 0" />
+            <mass value="5.5538993e-02" />
             <inertia
-               ixx="0.000023484710"
-               ixy="-0.0000010244284"
-               ixz="0.0000055436948"
-               iyy="0.000023065957"
-               iyz="0.0000029244542"
-               izz="0.0000094498947" />
+               ixx="2.3569109e-05"
+               ixy="-1.0302491e-06"
+               ixz="5.5589832e-06"
+               iyy="2.3107503e-05"
+               iyz="2.9327276e-06"
+               izz="9.5533558e-06" />
          </inertial>
       </link>
       <joint name="${prefix}arm_r_joint4" type="revolute">
@@ -472,15 +472,15 @@
             </geometry>
          </collision>
          <inertial>
-            <origin xyz="-0.014359796 0.0012830993 -0.034672139" rpy="0 0 0" />
-            <mass value="0.040899967" />
+            <origin xyz="-1.4327210e-02  1.2848970e-03 -3.4625542e-02" rpy="0 0 0" />
+            <mass value="4.0932690e-02" />
             <inertia
-               ixx="0.000022527545"
-               ixy="0.00000011623193"
-               ixz="-0.0000027613358"
-               iyy="0.000020374424"
-               iyz="0.0000011035415"
-               izz="0.0000081410810" />
+               ixx="2.2633568e-05"
+               ixy="1.1551007e-07"
+               ixz="-2.8098147e-06"
+               iyy="2.0477488e-05"
+               iyz="1.1027614e-06"
+               izz="8.1858151e-06" />
          </inertial>
       </link>
       <joint name="${prefix}arm_r_joint5" type="revolute">
