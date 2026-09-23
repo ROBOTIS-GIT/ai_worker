@@ -8,18 +8,20 @@
         type: joint_state_broadcaster/JointStateBroadcaster
 
       joint_trajectory_command_broadcaster:
-        type: joint_trajectory_command_broadcaster/A2JointTrajectoryCommandBroadcaster
+        type: leader_joint_trajectory_command_broadcaster/LeaderJointTrajectoryCommandBroadcaster
 
-      spring_actuator_controller:
-        type: spring_actuator_controller/SpringActuatorController
+      trigger_position_controller:
+        type: position_controllers/JointGroupPositionController
 
       joystick_controller:
-        type: joystick_controller/A2JoystickController
+        type: joystick_controller/LeaderJoystickController
 
-/**:
   joint_trajectory_command_broadcaster:
     ros__parameters:
       enable_teleoperation: true
+      slow_start_min_duration: 1.0
+      slow_start_max_duration: 6.0
+      slow_start_error_for_max_duration: 1.5
       output_topic_suffix: raw_joint_trajectory
       default_control_mode: 1
       default_left_preset_id: 1
@@ -41,7 +43,7 @@
         - 0.0
         - 0.0
         - 0.0
-        - 0.3
+        - 0.4
       right_joints:
         - arm_r_joint1
         - arm_r_joint2
@@ -59,33 +61,22 @@
         - 0.0
         - 0.0
         - 0.0
-        - 0.3
+        - 0.4
       trigger_threshold: -0.5
 
-/**:
-  spring_actuator_controller:
+  trigger_position_controller:
     ros__parameters:
+      left_neutral_position: -0.4
+      right_neutral_position: -0.4
       joints:
         - gripper_l_joint1
         - gripper_r_joint1
-      command_interfaces:
-        - effort
-      state_interfaces:
-        - position
-        - velocity
-      trigger_spring_stiffness: [0.06, 0.06]
-      trigger_neutral_position: [0.0, 0.0]
-      trigger_damping: [0.004, 0.004]
-      static_friction_scalars: [0.1, 0.1]
-      static_friction_velocity_thresholds: [0.3, 0.3]
-      torque_scaling_factors: [1.0, 1.0]
 
-/**:
   joystick_controller:
     ros__parameters:
       teleoperation_toggle_enabled: true
       teleoperation_command_topic: "/leader/teleoperation/joystick_command"
-      a2_mode_switch_long_press_duration: 1.0
+      teleoperation_toggle_long_press_duration: 0.5
       joystick_sensors:
         - sensorxel_l_joy
         - sensorxel_r_joy
@@ -109,4 +100,4 @@
       sensorxel_r_joy_joint_trajectory_topic: "/leader/joystick_controller_right/joint_trajectory"
       sensorxel_l_joy_jog_scale: 0.06
       sensorxel_r_joy_jog_scale: 0.01
-      deadzone: 0.05
+      deadzone: 0.5

@@ -1,6 +1,8 @@
 cyclo_teleoperation:
   ros__parameters:
-    robot_type: ai_worker
+    robot:
+      plugin: cyclo_teleoperation/AIWorkerTeleoperation
+      parameter_prefix: ""
 
     follower_joint_states_topic: /joint_states
     right_leader_topic: /leader/joint_trajectory_command_broadcaster_right/raw_joint_trajectory
@@ -12,8 +14,10 @@ cyclo_teleoperation:
 
     right_gripper_joint: gripper_r_joint1
     left_gripper_joint: gripper_l_joint1
-    follower_right_eef: arm_r_link7
-    follower_left_eef: arm_l_link7
+    follower_right_eef: end_effector_r_link
+    follower_left_eef: end_effector_l_link
+    follower_right_eef_pose_topic: /leader/teleoperation/right/eef_pose
+    follower_left_eef_pose_topic: /leader/teleoperation/left/eef_pose
     follower_right_elbow: arm_r_link4
     follower_left_elbow: arm_l_link4
     leader_right_eef: arm_r_link7
@@ -25,69 +29,44 @@ cyclo_teleoperation:
     control_modes:
       "1":
         name: teleoperation
-        plugin: cyclo_teleoperation/AiWorkerMoveJMode
+        plugin: cyclo_teleoperation/MoveJMode
+        constraints:
+          position: false
+          self_collision: true
         initial_pose:
-          enabled: true
+          enabled: false
+        exit_pose:
+          enabled: false
+
+      "2":
+        name: relative_pose
+        plugin: cyclo_teleoperation/RelativePoseMode
+        constraints:
+          position: true
+          self_collision: true
+        initial_pose:
+          enabled: false
           step_names: [step0, step1]
           steps:
             step0:
               left:
                 positions: [1.57, 0.0, 0.0, -2.5, 0.0, 0.0, 0.0]
+                gripper_position: 0.0
               right:
                 positions: [1.57, 0.0, -0.0, -2.5, 0.0, 0.0, 0.0]
+                gripper_position: 0.0
             step1:
               left:
                 positions: [0.0, 0.0, 0.0, -1.57, 0.0, 0.0, 0.0]
+                gripper_position: 0.0
               right:
                 positions: [0.0, 0.0, 0.0, -1.57, 0.0, 0.0, 0.0]
+                gripper_position: 0.0
           duration: 3.0
           completion_tolerance: 0.1
           timeout: 30.0
         exit_pose:
           enabled: false
-
-      "2":
-        name: elbow_up_leader
-        plugin: cyclo_teleoperation/AiWorkerElbowUpLeaderMode
-        initial_pose:
-          enabled: true
-          step_names: [step0, step1, step2]
-          steps:
-            step0:
-              left:
-                positions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-              right:
-                positions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-            step1:
-              left:
-                positions: [0.0, 0.0, -3.14, 0.0, 1.57, 0.0, 0.0]
-              right:
-                positions: [0.0, 0.0, 3.14, 0.0, -1.57, 0.0, 0.0]
-            step2:
-              left:
-                positions: [-1.57, 0.0, -3.14, -1.57, 1.57, 0.0, 0.0]
-              right:
-                positions: [-1.57, 0.0, 3.14, -1.57, -1.57, 0.0, 0.0]
-          duration: 3.0
-          completion_tolerance: 0.1
-          timeout: 30.0
-        exit_pose:
-          enabled: true
-          step_names: [step0, step1]
-          steps:
-            step0:
-              left:
-                positions: [0.0, 0.0, -3.14, 0.0, 1.57, 0.0, 0.0]
-              right:
-                positions: [0.0, 0.0, 3.14, 0.0, -1.57, 0.0, 0.0]
-            step1:
-              left:
-                positions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-              right:
-                positions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-          duration: 3.0
-          completion_tolerance: 0.1
-          timeout: 30.0
 
     available_presets: [1, 2]
 
@@ -99,8 +78,10 @@ cyclo_teleoperation:
           step0:
             left:
               positions: [0.431, 0.304, 0.152, -2.457, -0.267, 0.686, -0.948]
+              gripper_position: 0.0
             right:
               positions: [0.431, -0.304, -0.152, -2.457, 0.267, 0.686, 0.948]
+              gripper_position: 0.0
         duration: 3.0
         completion_tolerance: 0.1
         timeout: 30.0
@@ -112,8 +93,10 @@ cyclo_teleoperation:
           step0:
             left:
               positions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+              gripper_position: 0.0
             right:
               positions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+              gripper_position: 0.0
         duration: 4.0
         completion_tolerance: 0.1
         timeout: 30.0
