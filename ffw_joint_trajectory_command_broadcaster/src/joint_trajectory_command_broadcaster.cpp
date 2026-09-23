@@ -15,6 +15,7 @@
 #include "joint_trajectory_command_broadcaster/joint_trajectory_command_broadcaster.hpp"
 
 #include <cstddef>
+#include <cstdlib>
 #include <limits>
 #include <map>
 #include <memory>
@@ -473,6 +474,14 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
               blend_alpha * leader_val;
           }
 
+          if (!std::isfinite(leader_val)) {
+            RCLCPP_FATAL(
+              get_node()->get_logger(),
+              "[%s] Non-finite leader target for joint '%s': %g; exiting leader node",
+              group_name.c_str(), group_joints[i].c_str(), leader_val);
+            std::exit(EXIT_FAILURE);
+          }
+
           // Clamp to follower joint limits
           if (clamp_enabled) {
             leader_val = std::clamp(leader_val, lowers[i], uppers[i]);
@@ -505,9 +514,18 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
       }
     }
 
-    // last_target is valid only after first enable/interp
-    bool valid = !last_target.empty() && last_target.size() == num_joints &&
-                 !std::isnan(last_target[0]);
+    const bool valid = !last_target.empty() && last_target.size() == num_joints;
+    if (valid) {
+      for (size_t i = 0; i < num_joints; ++i) {
+        if (!std::isfinite(last_target[i])) {
+          RCLCPP_FATAL(
+            get_node()->get_logger(),
+            "[%s] Non-finite target for joint '%s': %g; exiting leader node",
+            group_name.c_str(), group_joints[i].c_str(), last_target[i]);
+          std::exit(EXIT_FAILURE);
+        }
+      }
+    }
 
     // Publish trajectory (always when last_target valid)
     auto & realtime_publisher = realtime_joint_trajectory_publishers_[group_name];
