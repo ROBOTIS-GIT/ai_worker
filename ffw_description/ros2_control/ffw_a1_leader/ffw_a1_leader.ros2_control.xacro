@@ -119,6 +119,7 @@
         <param name="Current Limit">100</param>
         <param name="Homing Offset">200</param>
       </gpio>
+      <!-- DXL_ENC Homing Offset shifts Present Position with the same sign in both Drive Modes. -->
       <gpio name="dxl32">
         <param name="type">dxl</param>
         <param name="ID">32</param>
@@ -151,7 +152,7 @@
         <param name="ID">34</param>
         <state_interface name="Present Position"/>
         <param name="Return Delay Time">0</param>
-        <param name="Drive Mode">0</param>
+        <param name="Drive Mode">1</param>
         <param name="Homing Offset">-4551</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -160,8 +161,8 @@
         <param name="ID">35</param>
         <state_interface name="Present Position"/>
         <param name="Return Delay Time">0</param>
-        <param name="Drive Mode">1</param>
-        <param name="Homing Offset">0</param>
+        <param name="Drive Mode">0</param>
+        <param name="Homing Offset">4096</param>
         <param name="Torque Enable">0</param>
       </gpio>
       <gpio name="dxl36">
@@ -169,7 +170,7 @@
         <param name="ID">36</param>
         <state_interface name="Present Position"/>
         <param name="Return Delay Time">0</param>
-        <param name="Drive Mode">0</param>
+        <param name="Drive Mode">1</param>
         <param name="Homing Offset">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -178,7 +179,7 @@
         <param name="ID">37</param>
         <state_interface name="Present Position"/>
         <param name="Drive Mode">1</param>
-        <param name="Homing Offset">-4096</param>
+        <param name="Homing Offset">0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -236,7 +237,7 @@
         <param name="ID">4</param>
         <state_interface name="Present Position"/>
         <param name="Drive Mode">0</param>
-        <param name="Homing Offset">-4551</param>
+        <param name="Homing Offset">-455</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -254,7 +255,7 @@
         <param name="ID">6</param>
         <state_interface name="Present Position"/>
         <param name="Drive Mode">0</param>
-        <param name="Homing Offset">8192</param>
+        <param name="Homing Offset">4096</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
