@@ -9,6 +9,12 @@ Changelog for package ffw
 * Added automatic A2 leader serial-port mapping in the Docker environment
 * Contributors: Yeonguk Kim
 
+2.2.8 (2026-09-18)
+------------------
+* Added BG2, SG2, and SH5 MuJoCo models to ffw_description.
+* Aligned local HX5-D20 hand descriptions with rev2.
+* Contributors: Kiwoong Park
+
 2.2.7 (2026-09-14)
 ------------------
 * Updated Dynamixel SDK in Docker container environment

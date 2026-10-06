@@ -7,6 +7,10 @@ Changelog for package ffw_bringup
 * Added hardware bringup and teleoperation configuration for the A2 leader
 * Contributors: Yeonguk Kim
 
+2.2.8 (2026-09-18)
+------------------
+* None
+
 2.2.7 (2026-09-14)
 ------------------
 * None

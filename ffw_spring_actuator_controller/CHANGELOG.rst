@@ -6,6 +6,10 @@ Changelog for package ffw_spring_actuator_controller
 ------------------
 * None
 
+2.2.8 (2026-09-18)
+------------------
+* None
+
 2.2.7 (2026-09-14)
 ------------------
 * None
