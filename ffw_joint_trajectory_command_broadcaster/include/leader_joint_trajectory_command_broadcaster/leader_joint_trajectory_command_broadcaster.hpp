@@ -18,6 +18,7 @@
 // *INDENT-ON*
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <mutex>
@@ -41,7 +42,7 @@
 #include "robotis_interfaces/srv/set_preset.hpp"
 #include "robotis_interfaces/srv/set_teleoperation.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
-#include "std_msgs/msg/bool.hpp"
+#include "std_msgs/msg/string.hpp"
 #include "urdf/model.h"
 #include "trajectory_msgs/msg/joint_trajectory.hpp"
 #include "rclcpp/subscription.hpp"
@@ -129,7 +130,7 @@ protected:
   void request_final_initial_pose(uint8_t target_arms);
   void teleoperation_command_callback(
     const robotis_interfaces::msg::TeleoperationCommand::SharedPtr msg);
-  void command_source_state_callback(const std_msgs::msg::Bool::SharedPtr msg);
+  void command_source_state_callback(const std_msgs::msg::String::SharedPtr msg);
   void control_status_callback(
     const robotis_interfaces::msg::ControlModeStatus::SharedPtr msg);
   void publish_control_command(
@@ -208,7 +209,9 @@ protected:
     teleoperation_command_subscriber_;
   rclcpp::Subscription<robotis_interfaces::msg::ControlModeStatus>::SharedPtr
     control_status_subscriber_;
-  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr command_source_state_subscriber_;
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr command_source_state_subscriber_;
+  rclcpp::TimerBase::SharedPtr source_watchdog_;
+  std::chrono::steady_clock::time_point source_last_seen_{};
   rclcpp::Publisher<robotis_interfaces::msg::ControlModeCommand>::SharedPtr
     control_command_publisher_;
   rclcpp::Service<robotis_interfaces::srv::SetControlMode>::SharedPtr

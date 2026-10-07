@@ -17,8 +17,10 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   pluginlib
   rclcpp
   rclcpp_lifecycle
+  realtime_tools
   robotis_interfaces
   std_msgs
+  std_srvs
 )
 
 ################################################################################
@@ -55,6 +57,7 @@ target_link_libraries(joystick_controller PUBLIC
   pluginlib::pluginlib
   rclcpp::rclcpp
   rclcpp_lifecycle::rclcpp_lifecycle
+  realtime_tools::realtime_tools
 )
 
 # Causes the visibility macros to use dllexport rather than dllimport,
@@ -70,6 +73,7 @@ target_include_directories(leader_joystick_controller PUBLIC
   $<INSTALL_INTERFACE:include/joystick_controller>
 )
 target_link_libraries(leader_joystick_controller PUBLIC
+  ${std_srvs_TARGETS}
   ${robotis_interfaces_TARGETS}
   ${std_msgs_TARGETS}
   leader_joystick_controller_parameters

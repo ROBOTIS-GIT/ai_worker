@@ -1,0 +1,30 @@
+cyclo_teleoperation:
+  ros__parameters:
+    commands:
+      left:
+        joint_topic: /command/left/joint
+        pose_topic: /command/left/pose
+      right:
+        joint_topic: /command/right/joint
+        pose_topic: /command/right/pose
+    action_reference_frame: base_link
+
+    available_action_modes: [1, 2]
+    default_action_mode: 1
+
+    action_modes:
+      "1":
+        name: absolute_joint_position
+        plugin: cyclo_teleoperation/MoveJMode
+        reference_type: absolute_joint_position
+        constraints:
+          position: false
+          self_collision: false
+
+      "2":
+        name: absolute_eef_pose
+        plugin: cyclo_teleoperation/AbsolutePoseMode
+        reference_type: absolute_eef_pose
+        constraints:
+          position: true
+          self_collision: false

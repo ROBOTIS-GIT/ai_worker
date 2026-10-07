@@ -137,8 +137,8 @@ leader_joint_trajectory_command_broadcaster:
   }
   command_source_state_topic: {
     type: string,
-    default_value: "/control/leader_action_enabled",
-    description: "Latched standard Bool topic selecting leader or model command ownership"
+    default_value: "/source",
+    description: "Latched standard String state of the selected command source"
   }
   control_command_topic: {
     type: string,

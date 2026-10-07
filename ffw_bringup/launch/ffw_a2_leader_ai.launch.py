@@ -24,7 +24,6 @@ from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument, ExecuteProcess, GroupAction, LogInfo, RegisterEventHandler,
 )
-from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node, PushRosNamespace
@@ -57,9 +56,9 @@ def generate_launch_description():
             description='Use mock hardware mirroring command.',
         ),
         DeclareLaunchArgument(
-            'start_teleoperation_controller',
-            default_value='true',
-            description='Start the Cyclo A2 teleoperation controller.',
+            'mock_sensor_commands',
+            default_value='false',
+            description='Expose mock joystick sensor command interfaces for testing.',
         ),
         DeclareLaunchArgument(
             'trigger_left_neutral_position',
@@ -80,7 +79,6 @@ def generate_launch_description():
     description_file = LaunchConfiguration('description_file')
     use_mock_hardware = LaunchConfiguration('use_mock_hardware')
 
-    start_teleoperation_controller = LaunchConfiguration('start_teleoperation_controller')
     robot_controllers = str(controller_config_path)
 
     # ros2_control Node
@@ -100,6 +98,7 @@ def generate_launch_description():
             ),
             ' ',
             'use_mock_hardware:=', use_mock_hardware,
+            ' ', 'mock_sensor_commands:=', LaunchConfiguration('mock_sensor_commands'),
         ]
     )
     robot_description = {'robot_description': robot_description_content}
@@ -108,6 +107,16 @@ def generate_launch_description():
         package='controller_manager',
         executable='spawner',
         arguments=[
+            '--controller-ros-args',
+            '-r /reference/joint_trajectory_command_broadcaster_left/raw_joint_trajectory:='
+            '/reference/left/joint',
+            '--controller-ros-args',
+            '-r /reference/joint_trajectory_command_broadcaster_right/raw_joint_trajectory:='
+            '/reference/right/joint',
+            '--controller-ros-args',
+            '-r /leader/joystick_controller_right/joystick_mode:=/reference/joystick/mode',
+            '--controller-ros-args',
+            '-r /leader/joystick_controller/tact_trigger:=/reference/joystick/tact',
             'joint_trajectory_command_broadcaster',
             'trigger_position_controller',
             'joystick_controller',
@@ -121,7 +130,7 @@ def generate_launch_description():
         name='trigger_position_command',
         cmd=[
             'ros2', 'topic', 'pub', '--once', '-w', '1',
-            '/leader/trigger_position_controller/commands',
+            '/reference/trigger_position_controller/commands',
             'std_msgs/msg/Float64MultiArray',
             ['{data: [', LaunchConfiguration('trigger_left_neutral_position'), ', ',
              LaunchConfiguration('trigger_right_neutral_position'), ']}'],
@@ -148,10 +157,10 @@ def generate_launch_description():
         parameters=[robot_description, {'frame_prefix': 'leader_'}],
     )
 
-    # Wrap everything in a namespace 'leader'
+    # Hardware state and raw references stay separate from public action/state outputs.
     leader_with_namespace = GroupAction(
         actions=[
-            PushRosNamespace('leader'),
+            PushRosNamespace('reference'),
             trigger_target_handler,
             control_node,
             robot_controller_spawner,
@@ -159,61 +168,4 @@ def generate_launch_description():
         ]
     )
 
-    teleoperation_config = PathJoinSubstitution(
-        [
-            FindPackageShare('ffw_bringup'),
-            'config',
-            'ffw_a2_leader',
-            'ffw_a2_teleoperation.yaml',
-        ]
-    )
-    teleoperation_controller_parameters = PathJoinSubstitution(
-        [
-            FindPackageShare('ffw_bringup'),
-            'config',
-            'ffw_a2_leader',
-            'ffw_a2_teleoperation_controller_parameters.yaml',
-        ]
-    )
-    follower_urdf_path = PathJoinSubstitution(
-        [
-            FindPackageShare('cyclo_motion_controller_models'),
-            'models',
-            'ai_worker',
-            'ffw_sg2_follower.urdf',
-        ]
-    )
-    follower_srdf_path = PathJoinSubstitution(
-        [
-            FindPackageShare('cyclo_motion_controller_models'),
-            'models',
-            'ai_worker',
-            'ffw_sg2_follower_modified.srdf',
-        ]
-    )
-    leader_urdf_path = PathJoinSubstitution(
-        [
-            FindPackageShare('cyclo_motion_controller_models'),
-            'models',
-            'ai_worker',
-            'ffw_a2_leader.urdf',
-        ]
-    )
-    teleoperation_node = Node(
-        package='cyclo_teleoperation',
-        executable='cyclo_teleoperation_node',
-        name='cyclo_teleoperation',
-        parameters=[
-            teleoperation_config,
-            teleoperation_controller_parameters,
-            {
-                'follower_urdf_path': follower_urdf_path,
-                'follower_srdf_path': follower_srdf_path,
-                'leader_urdf_path': leader_urdf_path,
-            },
-        ],
-        output='screen',
-        condition=IfCondition(start_teleoperation_controller),
-    )
-    # Return combined LaunchDescription
-    return LaunchDescription(declared_arguments + [leader_with_namespace, teleoperation_node])
+    return LaunchDescription(declared_arguments + [leader_with_namespace])

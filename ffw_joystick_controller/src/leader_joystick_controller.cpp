@@ -15,6 +15,7 @@
 #include "leader_joystick_controller/leader_joystick_controller.hpp"
 
 #include <string>
+#include <chrono>
 
 #include "std_msgs/msg/string.hpp"
 
@@ -64,12 +65,45 @@ controller_interface::CallbackReturn LeaderJoystickController::on_configure(
       leader_params_.teleoperation_command_topic, 10);
     const auto source_state_qos =
       rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local();
-    leader_action_enabled_pub_ = get_node()->create_publisher<std_msgs::msg::Bool>(
-      leader_params_.command_source_state_topic, source_state_qos);
     leader_action_enabled_ = false;
-    std_msgs::msg::Bool source_state;
-    source_state.data = leader_action_enabled_;
-    leader_action_enabled_pub_->publish(source_state);
+    previous_motion_enabled_ = false;
+    source_subscription_ = get_node()->create_subscription<std_msgs::msg::String>(
+      leader_params_.command_source_state_topic, source_state_qos,
+      [this](const std_msgs::msg::String::SharedPtr msg) {
+        source_last_seen_ = std::chrono::steady_clock::now();
+        leader_action_enabled_.store(msg->data == "teleop");
+      });
+    source_client_ = get_node()->create_client<std_srvs::srv::Trigger>(
+      leader_params_.toggle_source_service);
+    source_request_pending_ = false;
+    source_request_timer_ = get_node()->create_wall_timer(
+      std::chrono::milliseconds(20), [this]() {
+        if (std::chrono::steady_clock::now() - source_last_seen_ >
+        std::chrono::milliseconds(500))
+        {
+          leader_action_enabled_.store(false);
+          if (source_request_in_flight_) {
+            source_client_->remove_pending_request(source_request_id_);
+            source_request_in_flight_ = false;
+          }
+        }
+        if (!source_request_pending_.exchange(false) || source_request_in_flight_) {return;}
+        if (!source_client_->service_is_ready()) {
+          RCLCPP_WARN(get_node()->get_logger(), "Control runtime is not available");
+          return;
+        }
+        source_request_in_flight_ = true;
+        const auto pending = source_client_->async_send_request(
+          std::make_shared<std_srvs::srv::Trigger::Request>(),
+          [this](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future) {
+            source_request_in_flight_ = false;
+            const auto response = future.get();
+            if (!response->success) {
+              RCLCPP_WARN(get_node()->get_logger(), "%s", response->message.c_str());
+            }
+          });
+        source_request_id_ = pending.request_id;
+      });
   }
   both_tact_press_start_time_ = rclcpp::Time(0);
   both_tact_long_press_triggered_ = false;
@@ -97,13 +131,7 @@ void LeaderJoystickController::publish_teleoperation_toggle(const std::string & 
 
 void LeaderJoystickController::toggle_leader_action_output()
 {
-  if (!leader_action_enabled_pub_) {
-    return;
-  }
-  leader_action_enabled_ = !leader_action_enabled_;
-  std_msgs::msg::Bool source_state;
-  source_state.data = leader_action_enabled_;
-  leader_action_enabled_pub_->publish(source_state);
+  source_request_pending_.store(true);
   // TODO(teleoperation): Notify the external model runtime to stop or resume here once
   // its standard ROS topic/service interface is selected.
 }
@@ -136,8 +164,7 @@ void LeaderJoystickController::handle_tact_switches(
         both_tact_long_press_triggered_ = true;
         toggle_leader_action_output();
         RCLCPP_INFO(
-          get_node()->get_logger(), "Leader action output %s; both arms remain stopped",
-          leader_action_enabled_ ? "enabled" : "disabled");
+          get_node()->get_logger(), "Command source toggle requested");
       }
     }
   }

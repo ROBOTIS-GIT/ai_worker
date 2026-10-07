@@ -255,7 +255,7 @@ controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on
         get_node()->create_publisher<robotis_interfaces::msg::ControlModeCommand>(
         params_.control_command_topic, command_qos);
       command_source_state_subscriber_ =
-        get_node()->create_subscription<std_msgs::msg::Bool>(
+        get_node()->create_subscription<std_msgs::msg::String>(
         params_.command_source_state_topic, command_qos,
         std::bind(
           &LeaderJointTrajectoryCommandBroadcaster::command_source_state_callback,
@@ -266,6 +266,15 @@ controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on
         std::bind(
           &LeaderJointTrajectoryCommandBroadcaster::teleoperation_command_callback,
           this, std::placeholders::_1));
+      source_watchdog_ = get_node()->create_wall_timer(std::chrono::milliseconds(100), [this]() {
+            if (leader_action_enabled_rt_.load(std::memory_order_acquire) &&
+            std::chrono::steady_clock::now() - source_last_seen_ > std::chrono::milliseconds(500))
+            {
+              auto lost = std::make_shared<std_msgs::msg::String>();
+              lost->data = "none";
+              command_source_state_callback(lost);
+            }
+      });
       control_status_subscriber_ =
         get_node()->create_subscription<robotis_interfaces::msg::ControlModeStatus>(
         params_.control_status_topic, command_qos,
@@ -848,14 +857,16 @@ void LeaderJointTrajectoryCommandBroadcaster::teleoperation_command_callback(
 }
 
 void LeaderJointTrajectoryCommandBroadcaster::command_source_state_callback(
-  const std_msgs::msg::Bool::SharedPtr msg)
+  const std_msgs::msg::String::SharedPtr msg)
 {
   if (!msg || !params_.enable_teleoperation) {
     return;
   }
+  const bool enabled = msg->data == "teleop";
+  source_last_seen_ = std::chrono::steady_clock::now();
   const bool previous =
-    leader_action_enabled_rt_.exchange(msg->data, std::memory_order_acq_rel);
-  if (previous == msg->data) {
+    leader_action_enabled_rt_.exchange(enabled, std::memory_order_acq_rel);
+  if (previous == enabled) {
     return;
   }
   {
@@ -870,7 +881,7 @@ void LeaderJointTrajectoryCommandBroadcaster::command_source_state_callback(
   publish_control_command();
   RCLCPP_INFO(
     get_node()->get_logger(), "Leader action source %s; both arms are stopped",
-    msg->data ? "enabled" : "disabled");
+    enabled ? "enabled" : "disabled");
 }
 
 void LeaderJointTrajectoryCommandBroadcaster::set_control_mode_callback(
@@ -999,15 +1010,19 @@ void LeaderJointTrajectoryCommandBroadcaster::set_preset_callback(
 void LeaderJointTrajectoryCommandBroadcaster::control_status_callback(
   const robotis_interfaces::msg::ControlModeStatus::SharedPtr msg)
 {
-  if (!msg) {
+  if (!msg || !leader_action_enabled_rt_.load(std::memory_order_acquire)) {
     return;
   }
   {
     std::lock_guard<std::mutex> lock(teleoperation_mutex_);
-    if (msg->transition_id != transition_id_) {
+    if (msg->transition_id < transition_id_) {
       return;
     }
+    // Runtime service requests and broadcaster requests share the same acknowledgement ID.
+    transition_id_ = msg->transition_id;
+    requested_control_mode_ = msg->requested_control_mode;
     requested_arms_ = arms_from_name(msg->requested_arms);
+    requested_arms_rt_.store(requested_arms_, std::memory_order_release);
     active_arms_ = arms_from_name(msg->active_arms);
     initial_pose_available_arms_ = arms_from_name(msg->initial_pose_available_arms);
     initial_pose_busy_arms_ = 0;
@@ -1057,6 +1072,14 @@ controller_interface::return_type LeaderJointTrajectoryCommandBroadcaster::updat
   }
 
   // Use one immutable follower snapshot throughout this controller update.
+  if (params_.enable_teleoperation &&
+    !leader_action_enabled_rt_.load(std::memory_order_acquire))
+  {
+    previous_requested_arms_rt_ = 0;
+    left_initial_pose_trigger_ = TriggerHoldState{};
+    right_initial_pose_trigger_ = TriggerHoldState{};
+    return controller_interface::return_type::OK;
+  }
   const auto * follower_snapshot = follower_joint_snapshot_buffer_.readFromRT();
 
   double mean_error = 0.0;

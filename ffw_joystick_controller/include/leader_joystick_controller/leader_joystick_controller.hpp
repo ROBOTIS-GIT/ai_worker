@@ -16,6 +16,8 @@
 #define LEADER_JOYSTICK_CONTROLLER__LEADER_JOYSTICK_CONTROLLER_HPP_
 
 #include <cstdint>
+#include <atomic>
+#include <chrono>
 #include <memory>
 #include <string>
 
@@ -24,7 +26,8 @@
   <ffw_joystick_controller/leader_joystick_controller_parameters.hpp>
 #include "joystick_controller/joystick_controller.hpp"
 #include "robotis_interfaces/msg/teleoperation_command.hpp"
-#include "std_msgs/msg/bool.hpp"
+#include "std_msgs/msg/string.hpp"
+#include "std_srvs/srv/trigger.hpp"
 
 namespace leader_joystick_controller
 {
@@ -43,6 +46,10 @@ public:
     const rclcpp_lifecycle::State & previous_state) override;
 
 protected:
+  bool motion_commands_enabled() const override
+  {
+    return !leader_params_.teleoperation_toggle_enabled || leader_action_enabled_.load();
+  }
   void handle_tact_switches(
     bool left_tact_pressed, bool right_tact_pressed,
     const rclcpp::Time & current_time) override;
@@ -55,8 +62,14 @@ private:
   bool both_tact_long_press_triggered_ = false;
   rclcpp::Publisher<robotis_interfaces::msg::TeleoperationCommand>::SharedPtr
     teleoperation_command_pub_;
-  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr leader_action_enabled_pub_;
-  bool leader_action_enabled_ = false;
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr source_subscription_;
+  rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr source_client_;
+  rclcpp::TimerBase::SharedPtr source_request_timer_;
+  std::atomic_bool leader_action_enabled_{false};
+  std::atomic_bool source_request_pending_{false};
+  bool source_request_in_flight_ = false;
+  int64_t source_request_id_ = 0;
+  std::chrono::steady_clock::time_point source_last_seen_{};
   uint64_t teleoperation_request_id_ = 0;
   std::shared_ptr<ParamListener> leader_param_listener_;
   Params leader_params_;
