@@ -1,25 +1,26 @@
 cyclo_teleoperation:
   ros__parameters:
+    # EEF mode inputs. The joint channels carry gripper-only trajectories.
+    # Pose actions are published by Cyclo during teleop, and by the model otherwise.
+    # Absolute joint mode publishes directly on the legacy follower topics below.
     commands:
       left:
         joint_topic: /command/left/joint
-        pose_topic: /command/left/pose
+        pose_topic: /action/left/pose
       right:
         joint_topic: /command/right/joint
-        pose_topic: /command/right/pose
-    action_reference_frame: base_link
+        pose_topic: /action/right/pose
+    model_action_reference_frame: base_link
 
-    available_action_modes: [1, 2]
-    default_action_mode: 1
+    available_model_action_modes: [1, 2]
+    default_model_action_mode: 1
 
-    action_modes:
+    model_action_modes:
       "1":
         name: absolute_joint_position
-        plugin: cyclo_teleoperation/MoveJMode
         reference_type: absolute_joint_position
-        constraints:
-          position: false
-          self_collision: false
+        # Always direct: the model publishes arm + gripper on the follower's
+        # existing /leader/.../joint_trajectory topics. No Cyclo plugin or QP.
 
       "2":
         name: absolute_eef_pose

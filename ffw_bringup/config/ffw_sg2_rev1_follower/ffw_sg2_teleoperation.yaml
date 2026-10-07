@@ -7,11 +7,11 @@ cyclo_teleoperation:
     # Resolved by the follower bringup, not tied to a workspace path.
     follower_urdf_path: "$(find-pkg-share cyclo_motion_controller_models)/models/ai_worker/ffw_sg2_follower.urdf"
     follower_srdf_path: "$(find-pkg-share cyclo_motion_controller_models)/models/ai_worker/ffw_sg2_follower_modified.srdf"
-    action_follower_srdf_path: "$(find-pkg-share cyclo_motion_controller_models)/models/ai_worker/ffw_sg2_follower_default.srdf"
+    model_action_follower_srdf_path: "$(find-pkg-share cyclo_motion_controller_models)/models/ai_worker/ffw_sg2_follower_default.srdf"
 
     follower_joint_states_topic: /joint_states
-    right_command_topic: /action/right/joint
-    left_command_topic: /action/left/joint
+    right_command_topic: /leader/joint_trajectory_command_broadcaster_right/joint_trajectory
+    left_command_topic: /leader/joint_trajectory_command_broadcaster_left/joint_trajectory
     control_command_topic: /control/command
     control_status_topic: /control/status
 

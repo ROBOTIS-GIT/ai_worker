@@ -15,14 +15,11 @@
 """Small helpers for follower command routing and successful startup sequencing."""
 
 from launch.actions import LogInfo
-from launch.substitutions import LaunchConfiguration, PythonExpression
 
 
 def command_topic(group, legacy_topic):
-    return PythonExpression([
-        "'", legacy_topic, "' if '", LaunchConfiguration('enable_control'),
-        "' == 'false' else '/action/", group, "/joint'",
-    ])
+    """Keep follower input topics compatible with existing publishers and datasets."""
+    return legacy_topic
 
 
 def controller_remaps():

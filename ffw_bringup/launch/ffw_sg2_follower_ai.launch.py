@@ -64,8 +64,8 @@ def generate_launch_description():
                               description='Robot model name.'),
         DeclareLaunchArgument('enable_control', default_value='false', choices=['true', 'false'],
                               description='Run the shared teleoperation/model-action node.'),
-        DeclareLaunchArgument('initial_source', default_value='action',
-                              choices=['teleop', 'action']),
+        DeclareLaunchArgument('initial_source', default_value='model_action',
+                              choices=['teleop', 'model_action']),
         DeclareLaunchArgument('use_head_eef_tracker', default_value='false',
                               description='Whether to launch the head EEF tracker node.'),
         DeclareLaunchArgument(
