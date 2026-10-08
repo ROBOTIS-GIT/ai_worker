@@ -13,7 +13,6 @@ cyclo_teleoperation:
     model_action_reference_frame: base_link
 
     available_model_action_modes: [1, 2]
-    default_model_action_mode: 1
 
     model_action_modes:
       "1":

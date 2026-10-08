@@ -54,10 +54,6 @@ def generate_launch_description():
                               description='Whether to launch the init_position node.'),
         DeclareLaunchArgument('model', default_value='ffw_bg2_rev4_follower',
                               description='Robot model name.'),
-        DeclareLaunchArgument('enable_control', default_value='true', choices=['true', 'false'],
-                              description='Run the shared teleoperation/model-action node.'),
-        DeclareLaunchArgument('initial_source', default_value='model_action',
-                              choices=['teleop', 'model_action']),
         DeclareLaunchArgument('use_head_eef_tracker', default_value='false',
                               description='Whether to launch the head EEF tracker node.'),
         DeclareLaunchArgument(
@@ -268,10 +264,8 @@ def generate_launch_description():
         executable='cyclo_teleoperation_node',
         name='cyclo_teleoperation',
         parameters=[ParameterFile(path, allow_substs=True) for path in teleoperation_configs] + [{
-            'initial_source': LaunchConfiguration('initial_source'),
             'use_sim_time': ParameterValue(use_sim, value_type=bool),
         }],
-        condition=IfCondition(LaunchConfiguration('enable_control')),
         output='screen',
     )
 

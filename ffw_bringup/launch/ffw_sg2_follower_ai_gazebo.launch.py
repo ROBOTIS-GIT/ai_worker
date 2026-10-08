@@ -39,10 +39,6 @@ def generate_launch_description():
     declared_arguments = [
         DeclareLaunchArgument('model', default_value='ffw_sg2_rev1_follower',
                               description='Robot model name.'),
-        DeclareLaunchArgument('enable_control', default_value='false', choices=['true', 'false'],
-                              description='Run the shared teleoperation/model-action node.'),
-        DeclareLaunchArgument('initial_source', default_value='model_action',
-                              choices=['teleop', 'model_action']),
         DeclareLaunchArgument('world', default_value='default',
                               description='Gz sim World'),
         DeclareLaunchArgument('gui', default_value='true', choices=['true', 'false'],
@@ -212,10 +208,8 @@ def generate_launch_description():
         executable='cyclo_teleoperation_node',
         name='cyclo_teleoperation',
         parameters=[ParameterFile(path, allow_substs=True) for path in teleoperation_configs] + [{
-            'initial_source': LaunchConfiguration('initial_source'),
             'use_sim_time': True,
         }],
-        condition=IfCondition(LaunchConfiguration('enable_control')),
         output='screen',
     )
 
