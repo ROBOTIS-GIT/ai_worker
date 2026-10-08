@@ -20,7 +20,9 @@
   controller_manager:
     ros__parameters:
       update_rate: 100
-      enforce_command_limits: true
+      # When enabled, joints outside URDF limits at startup cause controllers to stop.
+      # TODO: Fix out-of-limit startup handling, then enable.
+      enforce_command_limits: false
       arm_l_effort_controller:
         type: forward_command_controller/ForwardCommandController
       arm_r_effort_controller:
