@@ -1,0 +1,8 @@
+cyclo_teleoperation:
+  ros__parameters:
+    # Calculation model; independent of the hardware robot_description.
+    leader_urdf_path: "$(find-pkg-share cyclo_motion_controller_models)/models/ai_worker/ffw_a2_leader.urdf"
+    right_leader_topic: /reference/right/joint
+    left_leader_topic: /reference/left/joint
+    leader_right_eef: end_effector_r_link
+    leader_left_eef: end_effector_l_link

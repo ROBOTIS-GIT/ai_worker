@@ -69,7 +69,7 @@
         <param name="Velocity I Gain">2300000</param>
         <param name="Velocity P Gain">100000</param>
         <param name="Velocity FF Gain">50000</param>
-        <param name="Profile Acceleration">100</param>
+        <param name="Profile Acceleration">200</param>
       </gpio>
       <gpio name="dxl104">
         <param name="type">virtual_dxl</param>
@@ -91,7 +91,7 @@
         <param name="Velocity I Gain">2300000</param>
         <param name="Velocity P Gain">100000</param>
         <param name="Velocity FF Gain">50000</param>
-        <param name="Profile Acceleration">100</param>
+        <param name="Profile Acceleration">200</param>
       </gpio>
       <gpio name="dxl106">
         <param name="type">virtual_dxl</param>
@@ -113,7 +113,7 @@
         <param name="Velocity I Gain">2300000</param>
         <param name="Velocity P Gain">100000</param>
         <param name="Velocity FF Gain">50000</param>
-        <param name="Profile Acceleration">100</param>
+        <param name="Profile Acceleration">200</param>
       </gpio>
       <gpio name="ffw_g10_rcu">
         <param name="type">controller</param>

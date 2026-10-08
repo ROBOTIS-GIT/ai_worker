@@ -1,12 +1,27 @@
 #!/command/with-contenv bash
-# Avatar Bringup - LG2 Leader AI service
+# Avatar Bringup - LG2 / A2 Leader AI service
 # Uses reusable ROS2 service template
 
 set -e
 
 SERVICE_NAME="avatar_bringup"
-ROS2_COMMAND="ros2 launch ffw_bringup ffw_lg2_leader_ai.launch.py"
 COMMON_SCRIPT="/usr/local/lib/s6-services/ros2_service_run.sh"
+LEADER_TYPE_FILE="/run/leader_type"
+
+# Preserve LG2 startup for installations without an explicit leader selection.
+LEADER_TYPE="lg2"
+if [ -f "${LEADER_TYPE_FILE}" ]; then
+    LEADER_TYPE=$(cat "${LEADER_TYPE_FILE}" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
+fi
+
+case "${LEADER_TYPE}" in
+    lg2) ROS2_COMMAND="ros2 launch ffw_bringup ffw_lg2_leader_ai.launch.py" ;;
+    a2) ROS2_COMMAND="ros2 launch ffw_bringup ffw_a2_leader_ai.launch.py" ;;
+    *)
+        echo "[${SERVICE_NAME}] Error: ${LEADER_TYPE_FILE} must be 'lg2' or 'a2', got: ${LEADER_TYPE}" >&2
+        exit 1
+        ;;
+esac
 
 if [ -f "${COMMON_SCRIPT}" ]; then
     export SERVICE_NAME="${SERVICE_NAME}"
