@@ -196,7 +196,7 @@
         <param name="ID">8</param>
         <command_interface name="Goal Position"/>
         <state_interface name="Present Position"/>
-        <param name="Drive Mode">0</param>
+        <param name="Drive Mode">1</param>
         <param name="Operating Mode">5</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">1</param>
