@@ -85,6 +85,19 @@ bool initial_pose_state_busy(const uint8_t state)
          state == robotis_interfaces::msg::ControlModeStatus::INITIAL_POSE_MOVING;
 }
 
+const char * control_state_name(const uint8_t state)
+{
+  using Status = robotis_interfaces::msg::ControlModeStatus;
+  switch (state) {
+    case Status::STATE_HOLDING: return "holding";
+    case Status::STATE_LOADING: return "loading";
+    case Status::STATE_ACTIVATING: return "activating";
+    case Status::STATE_ACTIVE: return "active";
+    case Status::STATE_ERROR: return "error";
+    default: return "unknown";
+  }
+}
+
 bool preset_state_busy(const uint8_t state)
 {
   return state == robotis_interfaces::msg::ControlModeStatus::PRESET_WAITING ||
@@ -215,7 +228,8 @@ controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on
       RCLCPP_INFO(
         get_node()->get_logger(),
         "Created joint trajectory publisher for group '%s' on topic: %s with %zu joints",
-        group_name.c_str(), topic_name.c_str(), group_joints.size());
+        group_name.c_str(), joint_trajectory_publishers_[group_name]->get_topic_name(),
+        group_joints.size());
     }
 
     // Store the groups for later use
@@ -233,7 +247,7 @@ controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on
     RCLCPP_INFO(
       get_node()->get_logger(),
       "Subscribed to follower joint states topic: %s",
-      params_.follower_joint_states_topic.c_str());
+      joint_states_subscriber_->get_topic_name());
 
     if (params_.enable_teleoperation) {
       requested_control_mode_ =
@@ -270,6 +284,8 @@ controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on
             if (leader_action_enabled_rt_.load(std::memory_order_acquire) &&
             std::chrono::steady_clock::now() - source_last_seen_ > std::chrono::milliseconds(500))
             {
+              RCLCPP_WARN(get_node()->get_logger(),
+                "Control source heartbeat lost; leader action output disabled");
               auto lost = std::make_shared<std_msgs::msg::String>();
               lost->data = "none";
               command_source_state_callback(lost);
@@ -705,7 +721,7 @@ void LeaderJointTrajectoryCommandBroadcaster::request_final_initial_pose(
   if (unavailable_arms != 0) {
     RCLCPP_INFO(
       get_node()->get_logger(),
-      "Ignoring %s trigger: current control mode has no enabled initial pose for that arm",
+      "Ignoring %s trigger: no initial pose configured for that arm in the current mode",
       arms_to_name(unavailable_arms).c_str());
   }
   if (busy_arms != 0) {
@@ -720,7 +736,7 @@ void LeaderJointTrajectoryCommandBroadcaster::request_final_initial_pose(
 
   RCLCPP_INFO(
     get_node()->get_logger(),
-    "%s trigger held; moving the selected arm to the current mode's final initial pose",
+    "%s trigger held; final initial pose requested",
     arms_to_name(accepted_arms).c_str());
   publish_control_command("none", arms_to_name(accepted_arms));
 }
@@ -797,7 +813,7 @@ void LeaderJointTrajectoryCommandBroadcaster::teleoperation_command_callback(
   if (!leader_action_enabled_rt_.load(std::memory_order_acquire)) {
     RCLCPP_WARN(
       get_node()->get_logger(),
-      "Ignoring arm teleoperation command while model control is selected");
+      "Arm teleoperation request ignored: teleop source is not active");
     return;
   }
   const uint8_t target_arms = arms_from_name(msg->target_arm);
@@ -880,8 +896,8 @@ void LeaderJointTrajectoryCommandBroadcaster::command_source_state_callback(
   requested_arms_rt_.store(0, std::memory_order_release);
   publish_control_command();
   RCLCPP_INFO(
-    get_node()->get_logger(), "Leader action source %s; both arms are stopped",
-    enabled ? "enabled" : "disabled");
+    get_node()->get_logger(), "Leader action output %s (source=%s); teleoperation requests cleared",
+    enabled ? "enabled" : "disabled", msg->data.c_str());
 }
 
 void LeaderJointTrajectoryCommandBroadcaster::set_control_mode_callback(
@@ -892,7 +908,9 @@ void LeaderJointTrajectoryCommandBroadcaster::set_control_mode_callback(
     std::lock_guard<std::mutex> lock(teleoperation_mutex_);
     response->accepted = false;
     response->transition_id = transition_id_;
-    response->message = "Teleoperation is disabled or control mode zero was requested";
+    response->message = !params_.enable_teleoperation ?
+      "Mode change rejected: teleoperation is disabled in configuration" :
+      "Mode change rejected: control mode zero is invalid";
     return;
   }
   {
@@ -903,9 +921,9 @@ void LeaderJointTrajectoryCommandBroadcaster::set_control_mode_callback(
     {
       response->accepted = false;
       response->transition_id = transition_id_;
-      response->message =
-        "Control mode can only be changed while both arms are stopped and no initial pose "
-        "movement is in progress";
+      response->message = (requested_arms_ != 0 || active_arms_ != 0) ?
+        "Mode change rejected: stop teleoperation on both arms first" :
+        "Mode change rejected: initial pose or preset movement is in progress";
       return;
     }
     requested_control_mode_ = request->control_mode;
@@ -929,8 +947,11 @@ void LeaderJointTrajectoryCommandBroadcaster::set_teleoperation_callback(
     std::lock_guard<std::mutex> lock(teleoperation_mutex_);
     response->accepted = false;
     response->transition_id = transition_id_;
-    response->message =
-      "Leader action output is disabled, teleoperation is unavailable, or target_arm is invalid";
+    response->message = !params_.enable_teleoperation ?
+      "Teleoperation request rejected: teleoperation is disabled in configuration" :
+      !leader_action_enabled_rt_.load(std::memory_order_acquire) ?
+      "Teleoperation request rejected: teleop source is not active" :
+      "Teleoperation request rejected: target_arm must be left, right, or both";
     return;
   }
   {
@@ -967,8 +988,11 @@ void LeaderJointTrajectoryCommandBroadcaster::set_preset_callback(
     std::lock_guard<std::mutex> lock(teleoperation_mutex_);
     response->accepted = false;
     response->transition_id = transition_id_;
-    response->message =
-      "Leader action output is disabled, teleoperation is unavailable, or target_arm is invalid";
+    response->message = !params_.enable_teleoperation ?
+      "Preset request rejected: teleoperation is disabled in configuration" :
+      !leader_action_enabled_rt_.load(std::memory_order_acquire) ?
+      "Preset request rejected: teleop source is not active" :
+      "Preset request rejected: target_arm must be left, right, or both";
     return;
   }
   if (
@@ -1002,7 +1026,7 @@ void LeaderJointTrajectoryCommandBroadcaster::set_preset_callback(
     }
     response->accepted = true;
     response->transition_id = ++transition_id_;
-    response->message = "Preset motion accepted; selected arms teleoperation disabled";
+    response->message = "Preset request accepted; selected arm teleoperation requests cleared";
   }
   publish_control_command(request->target_arm);
 }
@@ -1042,13 +1066,13 @@ void LeaderJointTrajectoryCommandBroadcaster::control_status_callback(
   }
   if (msg->state == robotis_interfaces::msg::ControlModeStatus::STATE_ERROR) {
     RCLCPP_ERROR(
-      get_node()->get_logger(), "Cyclo teleoperation transition failed: %s",
+      get_node()->get_logger(), "Cyclo control error: %s",
       msg->message.c_str());
   } else {
     RCLCPP_INFO(
       get_node()->get_logger(),
-      "Cyclo teleoperation state=%u mode=%u arms=%s presets=(%u,%u): %s",
-      static_cast<unsigned int>(msg->state),
+      "Cyclo state=%s mode=%u arms=%s presets=(%u,%u): %s",
+      control_state_name(msg->state),
       static_cast<unsigned int>(msg->active_control_mode),
       msg->active_arms.c_str(),
       static_cast<unsigned int>(msg->left_preset_id),
@@ -1201,9 +1225,9 @@ controller_interface::return_type LeaderJointTrajectoryCommandBroadcaster::updat
             (params_.slow_start_max_duration - params_.slow_start_min_duration) * error_ratio;
           traj_msg.points[0].time_from_start = rclcpp::Duration::from_seconds(duration);
           if ((newly_enabled_arms & group_arm) != 0) {
-            RCLCPP_INFO(
+            RCLCPP_DEBUG(
               get_node()->get_logger(),
-              "%s fixed-duration MoveJ slow start requested: maximum joint error %.4f rad, "
+              "%s slow-start duration candidate: maximum joint error %.4f rad, "
               "mean error %.4f rad, "
               "duration %.3f s",
               group_name.c_str(), group_maximum_error, group_mean_error, duration);

@@ -66,6 +66,7 @@ private:
   rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr source_client_;
   rclcpp::TimerBase::SharedPtr source_request_timer_;
   std::atomic_bool leader_action_enabled_{false};
+  std::string last_source_for_log_;
   std::atomic_bool source_request_pending_{false};
   bool source_request_in_flight_ = false;
   int64_t source_request_id_ = 0;

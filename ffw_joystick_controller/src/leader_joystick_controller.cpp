@@ -66,12 +66,21 @@ controller_interface::CallbackReturn LeaderJoystickController::on_configure(
     const auto source_state_qos =
       rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local();
     leader_action_enabled_ = false;
+    last_source_for_log_.clear();
     previous_motion_enabled_ = false;
     source_subscription_ = get_node()->create_subscription<std_msgs::msg::String>(
       leader_params_.command_source_state_topic, source_state_qos,
       [this](const std_msgs::msg::String::SharedPtr msg) {
         source_last_seen_ = std::chrono::steady_clock::now();
+        const bool previously_enabled = leader_action_enabled_.load();
         leader_action_enabled_.store(msg->data == "teleop");
+        if (msg->data != last_source_for_log_ ||
+        (msg->data == "teleop" && !previously_enabled))
+        {
+          RCLCPP_INFO(get_node()->get_logger(), "Control source: %s; leader motion %s",
+            msg->data.c_str(), msg->data == "teleop" ? "enabled" : "disabled");
+          last_source_for_log_ = msg->data;
+        }
       });
     source_client_ = get_node()->create_client<std_srvs::srv::Trigger>(
       leader_params_.toggle_source_service);
@@ -81,6 +90,10 @@ controller_interface::CallbackReturn LeaderJoystickController::on_configure(
         if (std::chrono::steady_clock::now() - source_last_seen_ >
         std::chrono::milliseconds(500))
         {
+          if (leader_action_enabled_.load()) {
+            RCLCPP_WARN(get_node()->get_logger(),
+              "Control source heartbeat lost; leader motion disabled");
+          }
           leader_action_enabled_.store(false);
           if (source_request_in_flight_) {
             source_client_->remove_pending_request(source_request_id_);
@@ -89,7 +102,9 @@ controller_interface::CallbackReturn LeaderJoystickController::on_configure(
         }
         if (!source_request_pending_.exchange(false) || source_request_in_flight_) {return;}
         if (!source_client_->service_is_ready()) {
-          RCLCPP_WARN(get_node()->get_logger(), "Control runtime is not available");
+          RCLCPP_WARN(get_node()->get_logger(),
+            "Source change not sent: service '%s' is unavailable",
+            source_client_->get_service_name());
           return;
         }
         source_request_in_flight_ = true;
@@ -100,6 +115,8 @@ controller_interface::CallbackReturn LeaderJoystickController::on_configure(
             const auto response = future.get();
             if (!response->success) {
               RCLCPP_WARN(get_node()->get_logger(), "%s", response->message.c_str());
+            } else {
+              RCLCPP_INFO(get_node()->get_logger(), "%s", response->message.c_str());
             }
           });
         source_request_id_ = pending.request_id;
@@ -132,8 +149,7 @@ void LeaderJoystickController::publish_teleoperation_toggle(const std::string & 
 void LeaderJoystickController::toggle_leader_action_output()
 {
   source_request_pending_.store(true);
-  // TODO(teleoperation): Notify the external model runtime to stop or resume here once
-  // its standard ROS topic/service interface is selected.
+  // Cyclo negotiates model start/stop before completing this source request.
 }
 
 void LeaderJoystickController::handle_tact_switches(
@@ -191,11 +207,11 @@ void LeaderJoystickController::handle_tact_switches(
       publish_teleoperation_toggle(
         robotis_interfaces::msg::TeleoperationCommand::TARGET_LEFT);
       if (leader_action_enabled_) {
-        RCLCPP_INFO(get_node()->get_logger(), "Left-arm teleoperation toggled");
+        RCLCPP_INFO(get_node()->get_logger(), "Left-arm teleoperation toggle requested");
       } else {
         RCLCPP_INFO(
           get_node()->get_logger(),
-          "Left-arm teleoperation ignored while model control is selected");
+          "Left-arm teleoperation request ignored: teleop source is not active");
       }
       left_tact_long_press_triggered_ = true;
     }
@@ -208,11 +224,11 @@ void LeaderJoystickController::handle_tact_switches(
       publish_teleoperation_toggle(
         robotis_interfaces::msg::TeleoperationCommand::TARGET_RIGHT);
       if (leader_action_enabled_) {
-        RCLCPP_INFO(get_node()->get_logger(), "Right-arm teleoperation toggled");
+        RCLCPP_INFO(get_node()->get_logger(), "Right-arm teleoperation toggle requested");
       } else {
         RCLCPP_INFO(
           get_node()->get_logger(),
-          "Right-arm teleoperation ignored while model control is selected");
+          "Right-arm teleoperation request ignored: teleop source is not active");
       }
       right_tact_long_press_triggered_ = true;
     }
@@ -230,18 +246,18 @@ void LeaderJoystickController::handle_tact_switches(
         mode_msg.data = current_mode_;
         mode_pub_->publish(mode_msg);
         RCLCPP_INFO(
-          get_node()->get_logger(), "Mode switched to: %s", current_mode_.c_str());
+          get_node()->get_logger(), "Joystick mode: %s", current_mode_.c_str());
       }
     } else if (prev_state == 1 && !right_tact_long_press_triggered_) {
       std_msgs::msg::String trigger_msg;
       trigger_msg.data = "right";
       tact_trigger_pub_->publish(trigger_msg);
-      RCLCPP_INFO(get_node()->get_logger(), "Right tact switch triggered!");
+      RCLCPP_INFO(get_node()->get_logger(), "Right joystick short-press event published");
     } else if (prev_state == 2 && !left_tact_long_press_triggered_) {
       std_msgs::msg::String trigger_msg;
       trigger_msg.data = "left";
       tact_trigger_pub_->publish(trigger_msg);
-      RCLCPP_INFO(get_node()->get_logger(), "Left tact switch triggered!");
+      RCLCPP_INFO(get_node()->get_logger(), "Left joystick short-press event published");
     }
 
     both_pressed_flag_ = false;
