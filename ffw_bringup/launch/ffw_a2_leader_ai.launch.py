@@ -115,8 +115,6 @@ def generate_launch_description():
             '/reference/right/joint',
             '--controller-ros-args',
             '-r /leader/joystick_controller_right/joystick_mode:=/reference/joystick/mode',
-            '--controller-ros-args',
-            '-r /leader/joystick_controller/tact_trigger:=/reference/joystick/tact',
             'joint_trajectory_command_broadcaster',
             'trigger_position_controller',
             'joystick_controller',
