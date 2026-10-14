@@ -13,4 +13,11 @@
       </description>
     </class>
   </library>
+  <library path="a2_joint_trajectory_command_broadcaster">
+    <class name="a2_joint_trajectory_command_broadcaster/A2JointTrajectoryCommandBroadcaster" type="a2_joint_trajectory_command_broadcaster::A2JointTrajectoryCommandBroadcaster" base_class_type="controller_interface::ControllerInterface">
+      <description>
+        A2 leader trajectory broadcaster using the common leader teleoperation implementation.
+      </description>
+    </class>
+  </library>
 </class_libraries>

@@ -8,7 +8,7 @@
         type: joint_state_broadcaster/JointStateBroadcaster
 
       joint_trajectory_command_broadcaster:
-        type: leader_joint_trajectory_command_broadcaster/LeaderJointTrajectoryCommandBroadcaster
+        type: a2_joint_trajectory_command_broadcaster/A2JointTrajectoryCommandBroadcaster
 
       trigger_position_controller:
         type: position_controllers/JointGroupPositionController
