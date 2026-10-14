@@ -26,6 +26,13 @@
       default_control_mode: 1
       default_left_preset_id: 1
       default_right_preset_id: 1
+      command_source_state_topic: "/source"
+      joystick_command_topic: "/control/teleoperation"
+      control_command_topic: "/control/command"
+      control_status_topic: "/control/status"
+      set_mode_service: "/set_control_mode"
+      set_teleoperation_service: "/set_enabled"
+      set_preset_service: "/set_preset"
       left_joints:
         - arm_l_joint1
         - arm_l_joint2
@@ -75,7 +82,8 @@
   joystick_controller:
     ros__parameters:
       teleoperation_toggle_enabled: true
-      teleoperation_command_topic: "/leader/teleoperation/joystick_command"
+      teleoperation_command_topic: "/control/teleoperation"
+      command_source_state_topic: "/source"
       teleoperation_toggle_long_press_duration: 0.5
       joystick_sensors:
         - sensorxel_l_joy
