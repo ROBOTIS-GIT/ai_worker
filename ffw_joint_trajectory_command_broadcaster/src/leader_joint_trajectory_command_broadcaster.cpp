@@ -1221,7 +1221,10 @@ controller_interface::return_type LeaderJointTrajectoryCommandBroadcaster::updat
       // internally, and still publishes immediate follower commands.
       if (params_.enable_teleoperation) {
         const uint8_t group_arm = arms_from_name(group_name);
-        if (group_arm == 0 || (requested_arms & group_arm) == 0) {
+        // The enable command and raw trajectories travel on different topics. A paused
+        // sample can arrive after enable, so it must carry the same valid duration
+        // candidate as an enabled sample. Cyclo alone decides when to start/latch it.
+        if (group_arm == 0) {
           traj_msg.points[0].time_from_start = rclcpp::Duration(0, 0);
         } else {
           double group_mean_error = 0.0;

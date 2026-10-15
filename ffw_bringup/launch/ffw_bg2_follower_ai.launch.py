@@ -251,7 +251,7 @@ def generate_launch_description():
         condition=IfCondition(use_head_eef_tracker),
     )
 
-    # BG2 uses the same calculation models and control paths as SG2.
+    # BG2 uses its own calculation URDF and the shared control runtime.
     config_dir = PathJoinSubstitution([FindPackageShare('ffw_bringup'), 'config'])
     teleoperation_configs = [
         PathJoinSubstitution([config_dir, 'ffw_a2_leader', 'ffw_a2_leader_reference.yaml']),
