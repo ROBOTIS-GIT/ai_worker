@@ -51,6 +51,22 @@ constexpr uint8_t kLeftArm = 1;
 constexpr uint8_t kRightArm = 2;
 constexpr uint8_t kBothArms = kLeftArm | kRightArm;
 
+// Preserve incoming status text; rename control sources only in displayed logs.
+std::string control_log_message(std::string message)
+{
+  for (const auto & label : {
+        std::make_pair("Direct model joint", "Direct external joint"),
+        std::make_pair("Model pose", "External pose"),
+        std::make_pair("Model action", "External control")})
+  {
+    const auto offset = message.find(label.first);
+    if (offset != std::string::npos) {
+      message.replace(offset, std::char_traits<char>::length(label.first), label.second);
+    }
+  }
+  return message;
+}
+
 uint8_t arms_from_name(const std::string & name)
 {
   if (name == "left") {
@@ -897,7 +913,8 @@ void LeaderJointTrajectoryCommandBroadcaster::command_source_state_callback(
   publish_control_command();
   RCLCPP_INFO(
     get_node()->get_logger(), "Leader action output %s (source=%s); teleoperation requests cleared",
-    enabled ? "enabled" : "disabled", msg->data.c_str());
+    enabled ? "enabled" : "disabled",
+    msg->data == "model_action" ? "external" : msg->data.c_str());
 }
 
 void LeaderJointTrajectoryCommandBroadcaster::set_control_mode_callback(
@@ -1067,7 +1084,7 @@ void LeaderJointTrajectoryCommandBroadcaster::control_status_callback(
   if (msg->state == robotis_interfaces::msg::ControlModeStatus::STATE_ERROR) {
     RCLCPP_ERROR(
       get_node()->get_logger(), "Cyclo control error: %s",
-      msg->message.c_str());
+      control_log_message(msg->message).c_str());
   } else {
     RCLCPP_INFO(
       get_node()->get_logger(),
@@ -1076,7 +1093,7 @@ void LeaderJointTrajectoryCommandBroadcaster::control_status_callback(
       static_cast<unsigned int>(msg->active_control_mode),
       msg->active_arms.c_str(),
       static_cast<unsigned int>(msg->left_preset_id),
-      static_cast<unsigned int>(msg->right_preset_id), msg->message.c_str());
+      static_cast<unsigned int>(msg->right_preset_id), control_log_message(msg->message).c_str());
   }
 }
 

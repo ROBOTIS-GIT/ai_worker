@@ -78,7 +78,8 @@ controller_interface::CallbackReturn LeaderJoystickController::on_configure(
         (msg->data == "teleop" && !previously_enabled))
         {
           RCLCPP_INFO(get_node()->get_logger(), "Control source: %s; leader motion %s",
-            msg->data.c_str(), msg->data == "teleop" ? "enabled" : "disabled");
+            msg->data == "model_action" ? "external" : msg->data.c_str(),
+            msg->data == "teleop" ? "enabled" : "disabled");
           last_source_for_log_ = msg->data;
         }
       });
@@ -103,7 +104,7 @@ controller_interface::CallbackReturn LeaderJoystickController::on_configure(
         if (!source_request_pending_.exchange(false) || source_request_in_flight_) {return;}
         if (!source_client_->service_is_ready()) {
           RCLCPP_WARN(get_node()->get_logger(),
-            "Source change not sent: service '%s' is unavailable",
+            "Control source change not sent: service '%s' is unavailable",
             source_client_->get_service_name());
           return;
         }
@@ -149,7 +150,7 @@ void LeaderJoystickController::publish_teleoperation_toggle(const std::string & 
 void LeaderJoystickController::toggle_leader_action_output()
 {
   source_request_pending_.store(true);
-  // Cyclo negotiates model start/stop before completing this source request.
+  // Cyclo performs the source handoff; this controller waits for its /source heartbeat.
 }
 
 void LeaderJoystickController::handle_tact_switches(
@@ -180,7 +181,7 @@ void LeaderJoystickController::handle_tact_switches(
         both_tact_long_press_triggered_ = true;
         toggle_leader_action_output();
         RCLCPP_INFO(
-          get_node()->get_logger(), "Command source toggle requested");
+          get_node()->get_logger(), "Control source toggle requested");
       }
     }
   }
