@@ -16,6 +16,8 @@
 #
 # Authors: Sungho Woo, Woojin Wie, Wonho Yun
 
+from typing import List
+
 from ffw_bringup.leader_initializer import initialize_leader
 
 from launch import LaunchDescription
@@ -27,6 +29,7 @@ from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node, PushRosNamespace
+from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -46,6 +49,11 @@ def generate_launch_description():
             'use_foot_switch',
             default_value='true',
             description='Whether to launch the foot switch node.',
+        ),
+        DeclareLaunchArgument(
+            'hand_preset',
+            default_value='[fist, fist]',
+            description='Hand presets as a YAML list [left, right].',
         ),
     ]
 
@@ -136,7 +144,17 @@ def launch_setup(context):
         package='ffw_joint_trajectory_command_broadcaster',
         executable='gripper_to_hand',
         name='gripper_to_hand',
-        parameters=[{'follower_end_tool': init_info['follower_end_tool']}],
+        parameters=[
+            PathJoinSubstitution([
+                FindPackageShare('ffw_bringup'), 'config', 'common',
+                'gripper_to_hand_presets.yaml',
+            ]),
+            {
+                'follower_end_tool': init_info['follower_end_tool'],
+                'hand_preset': ParameterValue(
+                    LaunchConfiguration('hand_preset'), value_type=List[str]),
+            },
+        ],
         output='screen',
         condition=IfCondition(str('hand' in init_info['follower_end_tool'].values())),
     )

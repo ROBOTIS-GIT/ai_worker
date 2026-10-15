@@ -3,6 +3,7 @@
 #include <cmath>
 #include <functional>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -18,6 +19,12 @@ constexpr double kGripperOpen = 0.0;
 constexpr double kGripperClosed = 1.1;
 constexpr int kJointCount = 20;
 using Trajectory = trajectory_msgs::msg::JointTrajectory;
+
+struct HandPose
+{
+  std::vector<double> open;
+  std::vector<double> close;
+};
 }
 
 class GripperToHand : public rclcpp::Node
@@ -26,6 +33,11 @@ public:
   GripperToHand()
   : Node("gripper_to_hand")
   {
+    const auto presets = declare_parameter<std::vector<std::string>>(
+      "hand_preset", std::vector<std::string>{"fist", "fist"});
+    if (presets.size() != 2 || presets[0].empty() || presets[1].empty()) {
+      throw std::invalid_argument("hand_preset must contain two preset names: [left, right]");
+    }
     for (const std::string side : {"left", "right"}) {
       const auto end_tool = declare_parameter<std::string>(
         "follower_end_tool." + side, "");
@@ -33,6 +45,23 @@ public:
         continue;
       }
       const size_t hand = side == "left" ? 0 : 1;
+      preset_names_[hand] = presets[hand];
+      const std::string prefix = "presets." + preset_names_[hand] + "." + side;
+      auto & configured_pose = configured_poses_[hand];
+      configured_pose.open = declare_parameter<std::vector<double>>(
+        prefix + ".open", std::vector<double>{});
+      configured_pose.close = declare_parameter<std::vector<double>>(
+        prefix + ".close", std::vector<double>{});
+      const auto valid = [](const std::vector<double> & values) {
+          return values.size() == kJointCount &&
+                 std::all_of(values.begin(), values.end(),
+                   [](double value) {return std::isfinite(value);});
+        };
+      if (!valid(configured_pose.open) || !valid(configured_pose.close)) {
+        throw std::invalid_argument(
+                "Unknown or invalid hand preset '" + preset_names_[hand] + "' for " + side +
+                ": " + prefix + ".open and .close must each contain 20 finite positions");
+      }
       const std::string suffix = side == "left" ? "l" : "r";
       const std::string gripper_joint = "gripper_" + suffix + "_joint1";
       auto publisher = create_publisher<Trajectory>(
@@ -47,7 +76,7 @@ public:
       std::function<void(Trajectory::ConstSharedPtr)> callback =
         [this, hand, gripper_joint, publisher, output]
         (Trajectory::ConstSharedPtr input) mutable {
-          if (close_positions_[hand].empty()) {
+          if (poses_[hand].close.empty()) {
             return;
           }
           // This adapter consumes live single-point gripper commands.
@@ -70,9 +99,11 @@ public:
             (gripper_limits_[hand].second - gripper_limits_[hand].first), 0.0, 1.0);
           output.header = input->header;
           output.points[0].time_from_start = input->points[0].time_from_start;
-          output.points[0].positions = close_positions_[hand];
-          for (auto & position : output.points[0].positions) {
-            position *= ratio;
+          const auto & pose = poses_[hand];
+          auto & positions = output.points[0].positions;
+          positions.resize(kJointCount);
+          for (size_t i = 0; i < positions.size(); ++i) {
+            positions[i] = pose.open[i] + ratio * (pose.close[i] - pose.open[i]);
           }
           publisher->publish(output);
         };
@@ -83,13 +114,13 @@ public:
     hand_description_sub_ = create_subscription<std_msgs::msg::String>(
       "/robot_description", rclcpp::QoS(1).transient_local().reliable(),
       [this](std_msgs::msg::String::ConstSharedPtr message) {
-        close_positions_ = {};
+        poses_ = {};
         urdf::Model model;
         if (!model.initString(message->data)) {
           RCLCPP_ERROR(get_logger(), "Invalid follower URDF; hand commands disabled");
           return;
         }
-        std::array<std::vector<double>, 2> positions;
+        std::array<HandPose, 2> poses;
         std::array<std::pair<double, double>, 2> gripper_limits;
         for (size_t hand = 0; hand < hand_joint_names_.size(); ++hand) {
           if (hand_joint_names_[hand].empty()) {
@@ -116,34 +147,38 @@ public:
             const auto joint = model.getJoint(name);
             if (!joint || !joint->limits || joint->type != urdf::Joint::REVOLUTE ||
               !std::isfinite(joint->limits->lower) || !std::isfinite(joint->limits->upper) ||
-              joint->limits->lower > 0.0 || joint->limits->upper < 0.0 ||
               joint->limits->lower >= joint->limits->upper)
             {
               RCLCPP_ERROR(get_logger(), "Missing or invalid hand limits: %s", name.c_str());
               return;
             }
-            // Joints 5, 9, 13, 17 stay at zero; thumb signs are mirrored.
-            const bool fixed = i >= 4 && (i - 4) % 4 == 0;
-            const bool negative = hand == 0 ? (i == 0 || i == 2 || i == 3) : i == 1;
-            const double close = fixed ? 0.0 :
-              negative ? joint->limits->lower : joint->limits->upper;
-            if (!fixed && (negative ? close >= 0.0 : close <= 0.0)) {
-              RCLCPP_ERROR(get_logger(), "Hand limit has wrong direction: %s", name.c_str());
+            const double open = configured_poses_[hand].open[i];
+            const double close = configured_poses_[hand].close[i];
+            if (open < joint->limits->lower || open > joint->limits->upper ||
+              close < joint->limits->lower || close > joint->limits->upper)
+            {
+              RCLCPP_ERROR(get_logger(), "Hand preset '%s' exceeds limits for %s",
+                preset_names_[hand].c_str(), name.c_str());
               return;
             }
-            positions[hand].push_back(close);
+            poses[hand].open.push_back(open);
+            poses[hand].close.push_back(close);
           }
+          RCLCPP_INFO(get_logger(), "%s hand preset: %s",
+            hand == 0 ? "left" : "right", preset_names_[hand].c_str());
         }
         gripper_limits_ = gripper_limits;
-        close_positions_ = std::move(positions);
-        RCLCPP_INFO(get_logger(), "Loaded hand mapping limits from follower URDF");
+        poses_ = std::move(poses);
+        RCLCPP_INFO(get_logger(), "Validated hand mapping against follower URDF");
       });
   }
 
 private:
   std::array<std::vector<std::string>, 2> hand_joint_names_;
   std::array<std::pair<double, double>, 2> gripper_limits_;
-  std::array<std::vector<double>, 2> close_positions_;
+  std::array<std::string, 2> preset_names_;
+  std::array<HandPose, 2> configured_poses_;
+  std::array<HandPose, 2> poses_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr hand_description_sub_;
   std::vector<rclcpp::Subscription<Trajectory>::SharedPtr> subscriptions_;
 };
