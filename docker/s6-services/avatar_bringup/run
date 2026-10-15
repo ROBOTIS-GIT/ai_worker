@@ -3,8 +3,11 @@
 # Uses reusable ROS2 service template
 
 set -e
+exec 2>&1
 
 SERVICE_NAME="avatar_bringup"
+# Discard a process-group ID left by an interrupted previous run.
+rm -f "/run/${SERVICE_NAME}.pgid"
 ROS2_COMMAND="ros2 launch ffw_bringup ffw_lg2_leader_ai.launch.py"
 COMMON_SCRIPT="/usr/local/lib/s6-services/ros2_service_run.sh"
 
