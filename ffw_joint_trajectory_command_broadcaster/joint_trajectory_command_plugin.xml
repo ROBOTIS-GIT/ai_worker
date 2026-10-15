@@ -20,4 +20,11 @@
       </description>
     </class>
   </library>
+  <library path="a1_joint_trajectory_command_broadcaster">
+    <class name="a1_joint_trajectory_command_broadcaster/A1JointTrajectoryCommandBroadcaster" type="a1_joint_trajectory_command_broadcaster::A1JointTrajectoryCommandBroadcaster" base_class_type="controller_interface::ControllerInterface">
+      <description>
+        A1 leader trajectory broadcaster with unilateral MoveJ joint scaling.
+      </description>
+    </class>
+  </library>
 </class_libraries>

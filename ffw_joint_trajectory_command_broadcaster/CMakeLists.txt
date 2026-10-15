@@ -39,6 +39,9 @@ generate_parameter_library(joint_trajectory_command_broadcaster_parameters
 generate_parameter_library(leader_joint_trajectory_command_broadcaster_parameters
   src/leader_joint_trajectory_command_broadcaster_parameters.yaml
 )
+generate_parameter_library(a1_joint_trajectory_command_broadcaster_parameters
+  src/a1_joint_trajectory_command_broadcaster_parameters.yaml
+)
 
 add_library(joint_trajectory_command_broadcaster SHARED
   src/joint_trajectory_command_broadcaster.cpp
@@ -95,6 +98,17 @@ target_compile_definitions(a2_joint_trajectory_command_broadcaster PRIVATE
 )
 pluginlib_export_plugin_description_file(controller_interface joint_trajectory_command_plugin.xml)
 
+add_library(a1_joint_trajectory_command_broadcaster SHARED
+  src/a1_joint_trajectory_command_broadcaster.cpp
+)
+target_link_libraries(a1_joint_trajectory_command_broadcaster PUBLIC
+  leader_joint_trajectory_command_broadcaster
+  a1_joint_trajectory_command_broadcaster_parameters
+)
+target_compile_definitions(a1_joint_trajectory_command_broadcaster PRIVATE
+  "A1_JOINT_TRAJECTORY_COMMAND_BROADCASTER_BUILDING_DLL"
+)
+
 ################################################################################
 # Install
 ################################################################################
@@ -108,8 +122,10 @@ install(
     joint_trajectory_command_broadcaster
     leader_joint_trajectory_command_broadcaster
     a2_joint_trajectory_command_broadcaster
+    a1_joint_trajectory_command_broadcaster
     joint_trajectory_command_broadcaster_parameters
     leader_joint_trajectory_command_broadcaster_parameters
+    a1_joint_trajectory_command_broadcaster_parameters
   EXPORT export_joint_trajectory_command_broadcaster
   RUNTIME DESTINATION bin
   ARCHIVE DESTINATION lib

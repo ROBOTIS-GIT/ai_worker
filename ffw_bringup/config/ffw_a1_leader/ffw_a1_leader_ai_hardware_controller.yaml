@@ -8,7 +8,7 @@
         type: joint_state_broadcaster/JointStateBroadcaster
 
       joint_trajectory_command_broadcaster:
-        type: leader_joint_trajectory_command_broadcaster/LeaderJointTrajectoryCommandBroadcaster
+        type: a1_joint_trajectory_command_broadcaster/A1JointTrajectoryCommandBroadcaster
 
       trigger_position_controller:
         type: position_controllers/JointGroupPositionController
@@ -33,6 +33,12 @@
       set_mode_service: "/set_control_mode"
       set_teleoperation_service: "/set_enabled"
       set_preset_service: "/set_preset"
+      # Joint6 scales upward (negative) on both arms; downward stays 1:1 within limits.
+      joint6_scaling:
+        gain: 3.0
+      # Joint7 scales outward (left positive / right negative); inward stays 1:1 within limits.
+      joint7_scaling:
+        gain: 2.0
       left_joints:
         - arm_l_joint1
         - arm_l_joint2
