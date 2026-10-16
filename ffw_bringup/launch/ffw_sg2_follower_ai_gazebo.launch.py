@@ -20,13 +20,18 @@ import os
 from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
+from ffw_bringup.launch_utils import controller_remaps, start_after_success
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, LogInfo
 from launch.actions import RegisterEventHandler, SetEnvironmentVariable
+from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import (
+    Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution, PythonExpression,
+)
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterFile
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -36,6 +41,10 @@ def generate_launch_description():
                               description='Robot model name.'),
         DeclareLaunchArgument('world', default_value='default',
                               description='Gz sim World'),
+        DeclareLaunchArgument('gui', default_value='true', choices=['true', 'false'],
+                              description='Start Gazebo GUI; false runs the server headlessly.'),
+        DeclareLaunchArgument('rviz', default_value='true', choices=['true', 'false'],
+                              description='Start RViz.'),
     ]
 
     model = LaunchConfiguration('model')
@@ -64,7 +73,11 @@ def generate_launch_description():
                         world,
                         '.sdf',
                         ' -v 1',
-                        ' -r'
+                        ' -r',
+                        PythonExpression([
+                            "'' if '", LaunchConfiguration('gui'),
+                            "' == 'true' else ' -s --headless-rendering'",
+                        ]),
                     ])
                 ]
              )
@@ -119,19 +132,7 @@ def generate_launch_description():
     robot_controller_spawner = Node(
         package='controller_manager',
         executable='spawner',
-        arguments=[
-            '--controller-ros-args',
-            '-r /arm_l_controller/joint_trajectory:='
-            '/leader/joint_trajectory_command_broadcaster_left/joint_trajectory',
-            '--controller-ros-args',
-            '-r /arm_r_controller/joint_trajectory:='
-            '/leader/joint_trajectory_command_broadcaster_right/joint_trajectory',
-            '--controller-ros-args',
-            '-r /head_controller/joint_trajectory:='
-            '/leader/joystick_controller_left/joint_trajectory',
-            '--controller-ros-args',
-            '-r /lift_controller/joint_trajectory:='
-            '/leader/joystick_controller_right/joint_trajectory',
+        arguments=controller_remaps() + [
             'arm_l_controller',
             'arm_r_controller',
             'head_controller',
@@ -191,20 +192,52 @@ def generate_launch_description():
         output='log',
         arguments=['-d', rviz_config_file],
         parameters=[{'use_sim_time': True}],
+        condition=IfCondition(LaunchConfiguration('rviz')),
     )
+
+    # Same profiles as the hardware bringup; only the clock uses Gazebo time.
+    config_dir = PathJoinSubstitution([FindPackageShare('ffw_bringup'), 'config'])
+    teleoperation_configs = [
+        PathJoinSubstitution([config_dir, 'ffw_a2_leader', 'ffw_a2_leader_reference.yaml']),
+        PathJoinSubstitution([config_dir, model, 'ffw_sg2_teleoperation.yaml']),
+        PathJoinSubstitution([config_dir, model, 'ffw_sg2_controller_parameters.yaml']),
+        PathJoinSubstitution([config_dir, model, 'ffw_sg2_model_action.yaml']),
+    ]
+    teleoperation_node = Node(
+        package='cyclo_teleoperation',
+        executable='cyclo_teleoperation_node',
+        name='cyclo_teleoperation',
+        parameters=[ParameterFile(path, allow_substs=True) for path in teleoperation_configs] + [{
+            'use_sim_time': True,
+        }],
+        output='screen',
+    )
+
+    def after_spawn(event, _context):
+        if event.returncode != 0:
+            return [LogInfo(msg='Gazebo spawn failed; controllers will not be started.')]
+        return [joint_state_broadcaster_spawner]
+
+    def after_joint_state_broadcaster(event, _context):
+        if event.returncode != 0:
+            return [LogInfo(msg='Joint state broadcaster failed; control will not be started.')]
+        return [robot_controller_spawner]
 
     return LaunchDescription([
         *declared_arguments,
+        RegisterEventHandler(OnProcessExit(
+            target_action=robot_controller_spawner,
+            on_exit=start_after_success([robot_controller_spawner], teleoperation_node))),
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=gz_spawn_entity,
-                on_exit=[joint_state_broadcaster_spawner],
+                on_exit=after_spawn,
             )
         ),
         RegisterEventHandler(
             event_handler=OnProcessExit(
                target_action=joint_state_broadcaster_spawner,
-               on_exit=[robot_controller_spawner],
+               on_exit=after_joint_state_broadcaster,
             )
         ),
         bridge,

@@ -11,3 +11,7 @@ repositories:
     type: git
     url: https://github.com/ROBOTIS-GIT/robotis_interfaces.git
     version: main
+  cyclo_control:
+    type: git
+    url: https://github.com/ROBOTIS-GIT/cyclo_control.git
+    version: main
