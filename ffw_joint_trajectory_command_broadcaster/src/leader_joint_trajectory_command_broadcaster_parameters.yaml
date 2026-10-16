@@ -111,6 +111,13 @@ leader_joint_trajectory_command_broadcaster:
     default_value: false,
     description: "Enable mode-aware Cyclo teleoperation command handling."
   }
+  exclude_gripper_joints: {
+    type: bool,
+    default_value: false,
+    description: "Omit joints whose name contains 'gripper' from the published trajectories.
+    They are still read for the initial-pose and auto-mode triggers. Use when the follower has no
+    gripper joints."
+  }
   output_topic_suffix: {
     type: string,
     default_value: "joint_trajectory",

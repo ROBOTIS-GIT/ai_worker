@@ -71,6 +71,12 @@ joint_trajectory_command_broadcaster:
     default_value: [],
     description: "Reverse joints for right arm group."
   }
+  exclude_gripper_joints: {
+    type: bool,
+    default_value: false,
+    description: "Omit joints whose name contains 'gripper' from the published trajectories.
+    They are still read for the auto-mode trigger. Use when the follower has no gripper joints."
+  }
   trigger_threshold: {
     type: double,
     default_value: -0.5,

@@ -19,6 +19,7 @@
   <exec_depend>ffw_joint_trajectory_command_broadcaster</exec_depend>
   <exec_depend>ffw_joystick_controller</exec_depend>
   <exec_depend>ffw_moveit_config</exec_depend>
+  <exec_depend>ffw_preset_controller</exec_depend>
   <exec_depend>ffw_robot_manager</exec_depend>
   <exec_depend>ffw_spring_actuator_controller</exec_depend>
   <exec_depend>ffw_swerve_drive_controller</exec_depend>

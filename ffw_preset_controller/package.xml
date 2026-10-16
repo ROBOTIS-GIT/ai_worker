@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>ffw_preset_controller</name>
+  <version>2.3.0</version>
+  <description>
+    Drives the 20 DOF hands of the FFW SH5/BH5 followers from the leader gripper
+    by interpolating between YAML-defined release and grasp presets.
+  </description>
+  <maintainer email="pyo@robotis.com">Pyo</maintainer>
+  <license>Apache 2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>rosidl_default_runtime</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
+  <exec_depend>trajectory_msgs</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <member_of_group>rosidl_interface_packages</member_of_group>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

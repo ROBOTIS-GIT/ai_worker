@@ -1,0 +1,20 @@
+/**:
+  hand_preset_controller:
+    ros__parameters:
+      leader_joint_states_topic: /leader/joint_states
+      robot_description_topic: /robot_description
+      publish_rate: 50.0
+      time_from_start: 0.0
+      preset_switch_duration: 1.0
+      leader_state_timeout: 0.5
+      # Raw leader gripper positions (rad) mapped to release (0.0) and grasp (1.0).
+      # Release matches the -0.4 rad trigger neutral position; grasp spans the
+      # 0.0-1.1 rad follower gripper range with the 0.4 rad gripper offset.
+      left:
+        gripper_joint: gripper_l_joint1
+        gripper_release_position: -0.4
+        gripper_grasp_position: 0.7
+      right:
+        gripper_joint: gripper_r_joint1
+        gripper_release_position: -0.4
+        gripper_grasp_position: 0.7

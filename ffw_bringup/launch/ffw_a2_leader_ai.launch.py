@@ -22,10 +22,12 @@ from pathlib import Path
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
-    DeclareLaunchArgument, ExecuteProcess, GroupAction, LogInfo, RegisterEventHandler,
+    DeclareLaunchArgument, ExecuteProcess, GroupAction, IncludeLaunchDescription, LogInfo,
+    RegisterEventHandler,
 )
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node, PushRosNamespace
 from launch_ros.substitutions import FindPackageShare
@@ -75,6 +77,21 @@ def generate_launch_description():
                 'Right trigger return position in radians, in the current joint coordinates.'
             ),
         ),
+        DeclareLaunchArgument(
+            'use_hand_preset',
+            default_value='false',
+            description='Drive the SH5/BH5 follower hands from the leader gripper with presets.',
+        ),
+        DeclareLaunchArgument(
+            'hand_presets_file',
+            default_value='',
+            description='Hand preset YAML. Empty uses the ffw_preset_controller default.',
+        ),
+        DeclareLaunchArgument(
+            'hand_initial_preset',
+            default_value='',
+            description='Initial hand preset. Empty uses `default_preset` from the YAML.',
+        ),
     ]
 
     description_file = LaunchConfiguration('description_file')
@@ -108,6 +125,11 @@ def generate_launch_description():
         package='controller_manager',
         executable='spawner',
         arguments=[
+            # The '=' form keeps the spawner from parsing '-p' as its own --param-file option.
+            [
+                '--controller-ros-args=-p exclude_gripper_joints:=',
+                LaunchConfiguration('use_hand_preset'),
+            ],
             'joint_trajectory_command_broadcaster',
             'trigger_position_controller',
             'joystick_controller',
@@ -215,5 +237,25 @@ def generate_launch_description():
         output='screen',
         condition=IfCondition(start_teleoperation_controller),
     )
+    hand_preset_controller = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [FindPackageShare('ffw_preset_controller'), 'launch',
+                 'hand_preset_controller.launch.py']
+            )
+        ),
+        launch_arguments={
+            'params_file': PathJoinSubstitution(
+                [FindPackageShare('ffw_bringup'), 'config', 'ffw_a2_leader',
+                 'ffw_a2_hand_preset_controller.yaml']
+            ),
+            'presets_file': LaunchConfiguration('hand_presets_file'),
+            'initial_preset': LaunchConfiguration('hand_initial_preset'),
+        }.items(),
+        condition=IfCondition(LaunchConfiguration('use_hand_preset')),
+    )
+
     # Return combined LaunchDescription
-    return LaunchDescription(declared_arguments + [leader_with_namespace, teleoperation_node])
+    return LaunchDescription(
+        declared_arguments + [leader_with_namespace, teleoperation_node, hand_preset_controller]
+    )

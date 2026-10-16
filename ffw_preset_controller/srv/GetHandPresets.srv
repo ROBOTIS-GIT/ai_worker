@@ -1,0 +1,4 @@
+---
+string[] preset_names
+string left_preset
+string right_preset

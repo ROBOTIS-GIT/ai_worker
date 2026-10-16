@@ -344,6 +344,10 @@ double JointTrajectoryCommandBroadcaster::calculate_mean_error() const
 
     for (size_t i = 0; i < group_joints.size(); ++i) {
       const auto & joint_name = group_joints[i];
+      // Gripper errors must not delay arm synchronization.
+      if (joint_name.find("gripper") != std::string::npos) {
+        continue;
+      }
       auto follower_it = follower_joint_positions_.find(joint_name);
       if (follower_it == follower_joint_positions_.end()) {
         continue;  // Skip joints not available in follower
@@ -506,14 +510,21 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
     if (realtime_publisher) {
       trajectory_msgs::msg::JointTrajectory traj_msg;
       traj_msg.header.stamp = rclcpp::Time(0, 0);
-      traj_msg.joint_names = group_joints;
 
       const size_t num_joints = group_joints.size();
+      traj_msg.joint_names.reserve(num_joints);
       traj_msg.points.clear();
       traj_msg.points.resize(1);
-      traj_msg.points[0].positions.resize(num_joints, kUninitializedValue);
+      traj_msg.points[0].positions.reserve(num_joints);
 
       for (size_t i = 0; i < num_joints; ++i) {
+        if (
+          params_.exclude_gripper_joints &&
+          group_joints[i].find("gripper") != std::string::npos)
+        {
+          continue;
+        }
+
         double pos_value =
           get_value(name_if_value_mapping_, group_joints[i], HW_IF_POSITION);
 
@@ -532,7 +543,8 @@ controller_interface::return_type JointTrajectoryCommandBroadcaster::update(
           pos_value += group_offsets[i];
         }
 
-        traj_msg.points[0].positions[i] = pos_value;
+        traj_msg.joint_names.push_back(group_joints[i]);
+        traj_msg.points[0].positions.push_back(pos_value);
       }
 
       // Set time_from_start based on sync status and mean error

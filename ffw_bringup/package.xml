@@ -30,6 +30,7 @@
   <exec_depend>cyclo_teleoperation</exec_depend>
   <exec_depend>ffw_joint_trajectory_command_broadcaster</exec_depend>
   <exec_depend>ffw_joystick_controller</exec_depend>
+  <exec_depend>ffw_preset_controller</exec_depend>
   <exec_depend>gz_ros2_control</exec_depend>
   <exec_depend>image_transport_plugins</exec_depend>
   <exec_depend>joint_state_broadcaster</exec_depend>

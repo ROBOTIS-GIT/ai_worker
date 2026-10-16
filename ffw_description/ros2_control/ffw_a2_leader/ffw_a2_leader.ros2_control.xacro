@@ -21,7 +21,8 @@
           </xacro:if>
           <xacro:unless value="${use_mock_hardware}">
             <plugin>dynamixel_hardware_interface/DynamixelHardware</plugin>
-            <param name="port_name">/dev/serial/by-role/leader_a2</param>
+            <!-- <param name="port_name">/dev/serial/by-role/leader_a2</param> -->
+            <param name="port_name">/dev/ttyACM0</param>
             <param name="baud_rate">4000000</param>
             <param name="dynamixel_model_folder">/param/dxl_model</param>
             <param name="number_of_joints">16</param>

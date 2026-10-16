@@ -1,0 +1,62 @@
+# Hand presets for the FFW SH5/BH5 20 DOF hands.
+#
+# Each preset has a release pose (leader gripper open, ratio 0.0) and a grasp pose
+# (leader gripper closed, ratio 1.0). The hand command is linearly interpolated between them.
+#
+# Poses are joint positions in radians, written in RIGHT-hand convention and grouped per finger:
+#   thumb:  joint1  - joint4
+#   index:  joint5  - joint8
+#   middle: joint9  - joint12
+#   ring:   joint13 - joint16
+#   little: joint17 - joint20
+# The left hand uses the same values with the joints in `mirrored_joints` negated.
+#
+# A preset may give `left_release` / `left_grasp` to override the mirrored left-hand poses.
+# Edit this file and call the `~/reload_presets` service to apply changes without restarting.
+
+default_preset: envelope
+
+mirrored_joints: [1, 2, 3, 4, 5, 9, 13, 17]
+
+presets:
+  envelope:
+    release:
+      thumb:  [1.047, -1.571, -0.436, 0.0]
+      index:  [0.0, 0.0, 0.0, 0.0]
+      middle: [0.0, 0.0, 0.0, 0.0]
+      ring:   [0.0, 0.0, 0.0, 0.0]
+      little: [0.0, 0.0, 0.0, 0.0]
+    grasp:
+      thumb:  [1.489, -1.483, 1.311, 1.047]
+      index:  [0.0, 1.745, 1.396, 1.134]
+      middle: [0.0, 1.745, 1.483, 1.134]
+      ring:   [0.0, 1.571, 1.396, 1.309]
+      little: [0.0, 1.426, 1.571, 1.571]
+
+  pinch:
+    release:
+      thumb:  [0.0, -1.571, 0.175, 0.262]
+      index:  [0.0, 0.0, 0.0, 0.0]
+      middle: [0.0, 1.197, 1.501, 1.197]
+      ring:   [0.0, 1.197, 1.501, 1.197]
+      little: [0.0, 1.197, 1.501, 1.197]
+    grasp:
+      thumb:  [0.0, -1.571, 0.628, 0.501]
+      index:  [0.0, 0.85, 0.799, 0.6]
+      middle: [0.0, 1.197, 1.501, 1.197]
+      ring:   [0.0, 1.197, 1.501, 1.197]
+      little: [0.0, 1.197, 1.501, 1.197]
+
+  3finger:
+    release:
+      thumb:  [0.199, -1.571, 0.0, 0.0]
+      index:  [-0.147, 0.0, 0.0, 0.0]
+      middle: [0.148, 0.0, 0.0, 0.0]
+      ring:   [0.148, 1.197, 1.501, 1.197]
+      little: [0.148, 1.197, 1.501, 1.197]
+    grasp:
+      thumb:  [0.199, -1.571, 0.602, 0.475]
+      index:  [-0.147, 0.901, 0.89, 0.45]
+      middle: [0.148, 1.047, 0.799, 0.45]
+      ring:   [0.148, 1.197, 1.501, 1.197]
+      little: [0.148, 1.197, 1.501, 1.197]

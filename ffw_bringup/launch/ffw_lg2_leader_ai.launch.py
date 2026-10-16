@@ -17,7 +17,9 @@
 # Authors: Sungho Woo, Woojin Wie, Wonho Yun
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, GroupAction
+from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription
+from launch.conditions import IfCondition
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node, PushRosNamespace
 from launch_ros.substitutions import FindPackageShare
@@ -29,6 +31,21 @@ def generate_launch_description():
             'description_file',
             default_value='ffw_lg2_leader.urdf.xacro',
             description='URDF/XACRO file for the robot model.',
+        ),
+        DeclareLaunchArgument(
+            'use_hand_preset',
+            default_value='false',
+            description='Drive the SH5/BH5 follower hands from the leader gripper with presets.',
+        ),
+        DeclareLaunchArgument(
+            'hand_presets_file',
+            default_value='',
+            description='Hand preset YAML. Empty uses the ffw_preset_controller default.',
+        ),
+        DeclareLaunchArgument(
+            'hand_initial_preset',
+            default_value='',
+            description='Initial hand preset. Empty uses `default_preset` from the YAML.',
         ),
     ]
 
@@ -67,6 +84,11 @@ def generate_launch_description():
         package='controller_manager',
         executable='spawner',
         arguments=[
+            # The '=' form keeps the spawner from parsing '-p' as its own --param-file option.
+            [
+                '--controller-ros-args=-p exclude_gripper_joints:=',
+                LaunchConfiguration('use_hand_preset'),
+            ],
             'joint_trajectory_command_broadcaster',
             'spring_actuator_controller_left',
             'spring_actuator_controller_right',
@@ -93,5 +115,25 @@ def generate_launch_description():
         ]
     )
 
+    hand_preset_controller = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [FindPackageShare('ffw_preset_controller'), 'launch',
+                 'hand_preset_controller.launch.py']
+            )
+        ),
+        launch_arguments={
+            'params_file': PathJoinSubstitution(
+                [FindPackageShare('ffw_bringup'), 'config', 'ffw_lg2_leader',
+                 'ffw_lg2_hand_preset_controller.yaml']
+            ),
+            'presets_file': LaunchConfiguration('hand_presets_file'),
+            'initial_preset': LaunchConfiguration('hand_initial_preset'),
+        }.items(),
+        condition=IfCondition(LaunchConfiguration('use_hand_preset')),
+    )
+
     # Return combined LaunchDescription
-    return LaunchDescription(declared_arguments + [leader_with_namespace])
+    return LaunchDescription(
+        declared_arguments + [leader_with_namespace, hand_preset_controller]
+    )
