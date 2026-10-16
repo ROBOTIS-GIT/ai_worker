@@ -16,6 +16,7 @@
 #
 # Authors: Sungho Woo, Woojin Wie, Wonho Yun
 
+from ffw_bringup.launch_utils import start_after_success
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, RegisterEventHandler
 from launch.actions import IncludeLaunchDescription, TimerAction
@@ -24,6 +25,7 @@ from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterFile, ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -320,8 +322,45 @@ def generate_launch_description():
         condition=IfCondition(use_head_eef_tracker),
     )
 
+    # The follower owns the shared teleoperation and external-control runtime.
+    config_dir = PathJoinSubstitution([FindPackageShare('ffw_bringup'), 'config'])
+    teleoperation_configs = [
+        PathJoinSubstitution([config_dir, 'ffw_a2_leader', 'ffw_a2_leader_reference.yaml']),
+        PathJoinSubstitution([config_dir, model, 'ffw_bh5_teleoperation.yaml']),
+        PathJoinSubstitution([config_dir, model, 'ffw_bh5_controller_parameters.yaml']),
+        PathJoinSubstitution([config_dir, model, 'ffw_bh5_model_action.yaml']),
+    ]
+    teleoperation_node = Node(
+        package='cyclo_teleoperation',
+        executable='cyclo_teleoperation_node',
+        name='cyclo_teleoperation',
+        parameters=[ParameterFile(path, allow_substs=True) for path in teleoperation_configs] + [{
+            'use_sim_time': ParameterValue(use_sim, value_type=bool),
+        }],
+        output='screen',
+    )
+
+    # Start after every initial motion; without initial motion, wait for controllers.
+    initialization_processes = [
+        joint_trajectory_executor_left, joint_trajectory_executor_right,
+        joint_trajectory_executor_head, joint_trajectory_executor_lift,
+        joint_trajectory_executor_left_hand, joint_trajectory_executor_right_hand,
+    ]
+    after_initialization = start_after_success(initialization_processes, teleoperation_node)
+    teleoperation_start_handlers = [
+        RegisterEventHandler(
+            OnProcessExit(target_action=process, on_exit=after_initialization),
+            condition=IfCondition(init_position),
+        ) for process in initialization_processes
+    ]
+    teleoperation_start_handlers.append(RegisterEventHandler(OnProcessExit(
+        target_action=robot_controller_spawner,
+        on_exit=start_after_success([robot_controller_spawner], teleoperation_node)),
+        condition=UnlessCondition(init_position)))
+
     return LaunchDescription(
         declared_arguments + [
+            *teleoperation_start_handlers,
             control_node,
             robot_state_pub_node,
             joint_state_broadcaster_spawner,
