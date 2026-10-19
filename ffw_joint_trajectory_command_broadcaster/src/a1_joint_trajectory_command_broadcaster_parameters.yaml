@@ -1,0 +1,13 @@
+a1_joint_trajectory_command_broadcaster:
+  joint6_scaling:
+    gain:
+      type: double
+      default_value: 1.0
+      read_only: true
+      description: "MoveJ upward gain for both A1 joint6 axes. 1.0 disables scaling."
+  joint7_scaling:
+    gain:
+      type: double
+      default_value: 1.0
+      read_only: true
+      description: "MoveJ outward gain for both A1 joint7 axes. 1.0 disables scaling."

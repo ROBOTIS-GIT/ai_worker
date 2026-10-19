@@ -1,0 +1,18 @@
+# Shared Leader JTCB reference generation. Hardware robot_description stays independent.
+/leader/joint_trajectory_command_broadcaster:
+  ros__parameters:
+    leader_pose_reference_enabled: true
+    leader_urdf_path: "$(find-pkg-share cyclo_motion_controller_models)/models/ai_worker/leader/ffw_a1_leader.urdf"
+    # Preserve the follower-sized A1 reference geometry on F1/F2.
+    # Set false when supplying a different leader calculation URDF.
+    leader_use_follower_reference_model: true
+    # Empty selects the calculation URDF root, independent of its frame name.
+    leader_base_frame: ""
+    # Empty EEF overrides use the follower's configured target-link convention.
+    # For a different leader model, set its own EEF names and joint mappings here.
+    leader_left_eef: ""
+    leader_right_eef: ""
+    # Optional mapping example (one entry per raw arm joint, in raw order):
+    # leader_left_model_joints: [left_j1, left_j2, left_j3, left_j4, left_j5, left_j6, left_j7]
+    # leader_right_model_joints: [right_j1, right_j2, right_j3, right_j4, right_j5, right_j6, right_j7]
+    follower_control_node: /cyclo_teleoperation
