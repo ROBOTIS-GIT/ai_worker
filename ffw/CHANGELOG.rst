@@ -2,7 +2,7 @@
 Changelog for package ffw
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2.2.9 (2026-10-15)
+2.2.9 (2026-10-19)
 ------------------
 * Store AI Worker bringup, navigation, and leader service logs in dated directories on logger startup, retaining the latest 30 directories.
 * Preserve the existing current-log path through a symbolic link and provide dated log files for Cyclo Manager history browsing.
