@@ -27,6 +27,7 @@ from launch.actions import (
 from launch.event_handlers import OnProcessExit
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node, PushRosNamespace
+from launch_ros.descriptions import ParameterFile
 from launch_ros.substitutions import FindPackageShare
 import yaml
 
@@ -49,6 +50,13 @@ def generate_launch_description():
             'description_file',
             default_value='ffw_a2_leader.urdf.xacro',
             description='URDF/XACRO file for the robot model.',
+        ),
+        DeclareLaunchArgument(
+            'leader_input_file',
+            default_value=PathJoinSubstitution([
+                FindPackageShare('ffw_bringup'), 'config', 'ffw_a2_leader',
+                'ffw_a2_leader_input.yaml']),
+            description='Common leader reference model and input mapping settings.',
         ),
         DeclareLaunchArgument(
             'use_mock_hardware',
@@ -80,12 +88,13 @@ def generate_launch_description():
     use_mock_hardware = LaunchConfiguration('use_mock_hardware')
 
     robot_controllers = str(controller_config_path)
+    leader_input = ParameterFile(LaunchConfiguration('leader_input_file'), allow_substs=True)
 
     # ros2_control Node
     control_node = Node(
         package='controller_manager',
         executable='ros2_control_node',
-        parameters=[robot_controllers],
+        parameters=[robot_controllers, leader_input],
         output='both',
     )
 
@@ -108,12 +117,6 @@ def generate_launch_description():
         executable='spawner',
         arguments=[
             '--controller-ros-args',
-            '-r /reference/joint_trajectory_command_broadcaster_left/raw_joint_trajectory:='
-            '/reference/left/joint',
-            '--controller-ros-args',
-            '-r /reference/joint_trajectory_command_broadcaster_right/raw_joint_trajectory:='
-            '/reference/right/joint',
-            '--controller-ros-args',
             '-r /leader/joystick_controller_right/joystick_mode:=/reference/joystick/mode',
             'joint_trajectory_command_broadcaster',
             'trigger_position_controller',
@@ -128,7 +131,7 @@ def generate_launch_description():
         name='trigger_position_command',
         cmd=[
             'ros2', 'topic', 'pub', '--once', '-w', '1',
-            '/reference/trigger_position_controller/commands',
+            '/leader/trigger_position_controller/commands',
             'std_msgs/msg/Float64MultiArray',
             ['{data: [', LaunchConfiguration('trigger_left_neutral_position'), ', ',
              LaunchConfiguration('trigger_right_neutral_position'), ']}'],
@@ -158,7 +161,7 @@ def generate_launch_description():
     # Hardware state and raw references stay separate from public action/state outputs.
     leader_with_namespace = GroupAction(
         actions=[
-            PushRosNamespace('reference'),
+            PushRosNamespace('leader'),
             trigger_target_handler,
             control_node,
             robot_controller_spawner,

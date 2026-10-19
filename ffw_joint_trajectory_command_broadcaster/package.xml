@@ -16,6 +16,10 @@
   <depend>builtin_interfaces</depend>
   <depend>control_msgs</depend>
   <depend>controller_interface</depend>
+  <depend>cyclo_teleoperation</depend>
+  <depend>ament_index_cpp</depend>
+  <depend>geometry_msgs</depend>
+  <depend>tf2_ros</depend>
   <depend>generate_parameter_library</depend>
   <depend>pluginlib</depend>
   <depend>rclcpp_lifecycle</depend>

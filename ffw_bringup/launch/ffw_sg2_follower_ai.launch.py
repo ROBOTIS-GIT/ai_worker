@@ -357,11 +357,9 @@ def generate_launch_description():
 
     # Shared teleoperation/model-action node: settings belong to the follower model.
     config_dir = PathJoinSubstitution([FindPackageShare('ffw_bringup'), 'config'])
+    # Follower-only configuration; leader inputs use the common topic contract.
     teleoperation_configs = [
-        PathJoinSubstitution([config_dir, 'ffw_a2_leader', 'ffw_a2_leader_reference.yaml']),
         PathJoinSubstitution([config_dir, model, 'ffw_sg2_teleoperation.yaml']),
-        PathJoinSubstitution([config_dir, model, 'ffw_sg2_controller_parameters.yaml']),
-        PathJoinSubstitution([config_dir, model, 'ffw_sg2_model_action.yaml']),
     ]
     teleoperation_node = Node(
         package='cyclo_teleoperation',

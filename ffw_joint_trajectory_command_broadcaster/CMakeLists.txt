@@ -29,6 +29,10 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
 ################################################################################
 find_package(ament_cmake REQUIRED)
 find_package(backward_ros REQUIRED)
+find_package(cyclo_teleoperation REQUIRED)
+find_package(ament_index_cpp REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
 foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
   find_package(${Dependency} REQUIRED)
 endforeach()
@@ -63,6 +67,7 @@ target_compile_definitions(joint_trajectory_command_broadcaster PRIVATE "JOINT_T
 
 add_library(leader_joint_trajectory_command_broadcaster SHARED
   src/leader_joint_trajectory_command_broadcaster.cpp
+  src/leader_pose_reference.cpp
 )
 target_compile_features(leader_joint_trajectory_command_broadcaster PUBLIC cxx_std_17)
 target_include_directories(leader_joint_trajectory_command_broadcaster PUBLIC
@@ -78,6 +83,11 @@ target_link_libraries(leader_joint_trajectory_command_broadcaster PUBLIC
   controller_interface::controller_interface
   pluginlib::pluginlib
   rclcpp_lifecycle::rclcpp_lifecycle
+  PRIVATE
+  cyclo_teleoperation::cyclo_teleoperation_leader_reference
+  ament_index_cpp::ament_index_cpp
+  ${geometry_msgs_TARGETS}
+  tf2_ros::tf2_ros
 )
 target_compile_definitions(
   leader_joint_trajectory_command_broadcaster

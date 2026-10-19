@@ -49,6 +49,7 @@
 
 namespace leader_joint_trajectory_command_broadcaster
 {
+class LeaderPoseReferenceBridge;
 /**
  * \brief Leader Joint Trajectory Command Broadcaster for leader-follower control in a ros2_control system.
  *
@@ -78,6 +79,8 @@ class LeaderJointTrajectoryCommandBroadcaster : public controller_interface::Con
 public:
   LEADER_JOINT_TRAJECTORY_COMMAND_BROADCASTER_PUBLIC
   LeaderJointTrajectoryCommandBroadcaster();
+  LEADER_JOINT_TRAJECTORY_COMMAND_BROADCASTER_PUBLIC
+  ~LeaderJointTrajectoryCommandBroadcaster() override;
 
   LEADER_JOINT_TRAJECTORY_COMMAND_BROADCASTER_PUBLIC
   controller_interface::InterfaceConfiguration command_interface_configuration() const override;
@@ -105,6 +108,11 @@ public:
     const rclcpp_lifecycle::State & previous_state) override;
 
 protected:
+  // Non-RT reference generation belongs to this common base, never an A2 subclass.
+  std::shared_ptr<LeaderPoseReferenceBridge> pose_reference_bridge_;
+  std::atomic<bool> pose_reference_mode_rt_{false};
+  bool configure_pose_reference();
+  void reset_pose_reference(bool active = false);
   using FollowerJointPositions = std::unordered_map<std::string, double>;
   struct FollowerJointSnapshot
   {

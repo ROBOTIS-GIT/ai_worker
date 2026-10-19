@@ -42,6 +42,10 @@ class State;
 
 namespace leader_joint_trajectory_command_broadcaster
 {
+LeaderJointTrajectoryCommandBroadcaster::~LeaderJointTrajectoryCommandBroadcaster()
+{
+  pose_reference_bridge_.reset();
+}
 const auto kUninitializedValue = std::numeric_limits<double>::quiet_NaN();
 using hardware_interface::HW_IF_POSITION;
 
@@ -342,6 +346,7 @@ controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on
     return CallbackReturn::ERROR;
   }
 
+  if (!configure_pose_reference()) {return CallbackReturn::ERROR;}
   const std::string & urdf = get_robot_description();
   is_model_loaded_ = !urdf.empty() && model_.initString(urdf);
   if (!is_model_loaded_) {
@@ -387,6 +392,7 @@ controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on
 
   // No need to init JointState or DynamicJointState messages, only JointTrajectory
   // will be published. We'll construct it on-the-fly in update()
+  reset_pose_reference(true);
 
   if (params_.enable_teleoperation) {
     publish_control_command();
@@ -408,6 +414,8 @@ controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on
   left_initial_pose_trigger_ = TriggerHoldState{};
   right_initial_pose_trigger_ = TriggerHoldState{};
   previous_requested_arms_rt_ = 0;
+
+  reset_pose_reference();
 
   return CallbackReturn::SUCCESS;
 }
@@ -1224,7 +1232,7 @@ controller_interface::return_type LeaderJointTrajectoryCommandBroadcaster::updat
         // The enable command and raw trajectories travel on different topics. A paused
         // sample can arrive after enable, so it must carry the same valid duration
         // candidate as an enabled sample. Cyclo alone decides when to start/latch it.
-        if (group_arm == 0) {
+        if (group_arm == 0 || pose_reference_mode_rt_.load(std::memory_order_acquire)) {
           traj_msg.points[0].time_from_start = rclcpp::Duration(0, 0);
         } else {
           double group_mean_error = 0.0;
