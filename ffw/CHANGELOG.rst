@@ -2,11 +2,12 @@
 Changelog for package ffw
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2.3.0 (2026-09-21)
+2.3.0 (2026-10-19)
 ------------------
-* Added support for the A2 leader
-* Added extensible A2 teleoperation modes, presets, and pose transitions
-* Added automatic A2 leader serial-port mapping in the Docker environment
+* Added support for A1 and A2 leaders with dedicated controller plugins
+* Integrated Cyclo teleoperation and external action control across AI Worker follower models
+* Added configurable control modes, per-arm presets, and pose-sequence transitions
+* Added leader serial-port discovery and selectable leader bringup in the Docker environment
 * Contributors: Yeonguk Kim
 
 2.2.9 (2026-10-19)
