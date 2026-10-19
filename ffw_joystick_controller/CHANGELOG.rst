@@ -2,6 +2,13 @@
 Changelog for package ffw_joystick_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.0 (2026-10-19)
+------------------
+* Added a separate leader joystick plugin for command-source switching and per-arm teleoperation
+* Added short- and long-press gestures for joystick modes and teleoperation controls
+* Preserved head and lift commands without joystick input while continuously updating follower feedback
+* Contributors: Yeonguk Kim
+
 2.2.9 (2026-10-19)
 ------------------
 * None

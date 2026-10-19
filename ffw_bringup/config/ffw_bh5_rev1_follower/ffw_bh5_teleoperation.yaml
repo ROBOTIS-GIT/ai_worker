@@ -1,0 +1,162 @@
+# Cyclo teleoperation and external-control configuration for BH5.
+# Independent of leader hardware and leader calculation models.
+cyclo_teleoperation:
+  ros__parameters:
+    # 1. Robot plugin and calculation models
+    robot:
+      plugin: cyclo_teleoperation/AIWorkerTeleoperation
+      parameter_prefix: ""
+
+    # Resolved by the follower bringup, not tied to a workspace path.
+    follower_urdf_path: "$(find-pkg-share cyclo_motion_controller_models)/models/ai_worker/ffw_bh5_follower.urdf"
+    follower_srdf_path: "$(find-pkg-share cyclo_motion_controller_models)/models/ai_worker/ffw_bh5_follower_modified.srdf"
+    model_action_follower_srdf_path: "$(find-pkg-share cyclo_motion_controller_models)/models/ai_worker/ffw_bh5_follower_default.srdf"
+
+    # 2. Command/state topics and joint/EEF mapping
+    follower_joint_states_topic: /joint_states
+    right_command_topic: /leader/joint_trajectory_command_broadcaster_right/joint_trajectory
+    left_command_topic: /leader/joint_trajectory_command_broadcaster_left/joint_trajectory
+    control_command_topic: /control/command
+    control_status_topic: /control/status
+
+    # Hands are separate; empty joint names select arm-only output.
+    right_gripper_joint: ""
+    left_gripper_joint: ""
+    follower_right_eef: arm_r_link7
+    follower_left_eef: arm_l_link7
+    publish_follower_eef_state: true
+    publish_eef_pose_references: true
+    follower_right_eef_pose_topic: /state/right/pose
+    follower_left_eef_pose_topic: /state/left/pose
+    follower_right_eef_reference_topic: /action/right/pose
+    follower_left_eef_reference_topic: /action/left/pose
+    follower_right_elbow: arm_r_link4
+    follower_left_elbow: arm_l_link4
+
+    # 3. Common control loop, hold, and pose-sequence settings
+    control_frequency: 100.0
+    joint_state_timeout: 0.5
+    leader_command_timeout: 0.5
+
+    # Disabled-arm hold
+    hold:
+      kp: 20.0
+      max_correction_velocity: 0.2
+      tracking_weight: 100.0
+
+    # Preset and initial/exit pose motion
+    pose_sequence:
+      kp_joint: 30.0
+      tracking_weight: 10.0
+      constraints:
+        position: false
+        self_collision: true
+
+    # 4. Leader teleoperation modes: plugin, gains, constraints, and initial/exit poses
+    available_control_modes: [1, 2]
+    default_control_mode: 1
+
+    control_modes:
+      "1":
+        name: teleoperation
+        plugin: cyclo_teleoperation/MoveJMode
+        reference_type: absolute_joint_position
+        kp_joint: 50.0
+        tracking_weight: 10.0
+        constraints:
+          position: false
+          self_collision: true
+        initial_pose:
+          enabled: false
+        exit_pose:
+          enabled: false
+
+      "2":
+        name: relative_pose
+        plugin: cyclo_teleoperation/AbsolutePoseMode
+        reference_type: absolute_eef_pose
+        pose_anchor_frame: arm_base_link
+        kp_position: 50.0
+        kp_orientation: 50.0
+        weight_position: 10.0
+        weight_orientation: 1.0
+        constraints:
+          position: true
+          self_collision: true
+        initial_pose:
+          enabled: false
+          step_names: [step0, step1]
+          steps:
+            step0:
+              left:
+                positions: [1.57, 0.0, 0.0, -2.5, 0.0, 0.0, 0.0]
+              right:
+                positions: [1.57, 0.0, -0.0, -2.5, 0.0, 0.0, 0.0]
+            step1:
+              left:
+                positions: [0.0, 0.0, 0.0, -1.57, 0.0, 0.0, 0.0]
+              right:
+                positions: [0.0, 0.0, 0.0, -1.57, 0.0, 0.0, 0.0]
+          duration: 3.0
+          completion_tolerance: 0.1
+          timeout: 30.0
+        exit_pose:
+          enabled: false
+
+    # 5. External command inputs and control modes
+    # EEF-mode input topics and reference frame
+    commands:
+      left:
+        joint_topic: /action/left/gripper
+        pose_topic: /action/left/pose
+      right:
+        joint_topic: /action/right/gripper
+        pose_topic: /action/right/pose
+    model_action_reference_frame: base_link
+
+    # External control modes and constraints
+    available_model_action_modes: [1, 2]
+
+    model_action_modes:
+      "1":
+        name: absolute_joint_position
+        reference_type: absolute_joint_position
+        # Direct input on existing /leader/.../joint_trajectory topics; no Cyclo QP.
+
+      "2":
+        name: absolute_eef_pose
+        plugin: cyclo_teleoperation/AbsolutePoseMode
+        reference_type: absolute_eef_pose
+        constraints:
+          position: true
+          self_collision: false
+
+    # 6. Arm presets (separate from hand grasp presets)
+    available_presets: [1, 2]
+
+    presets:
+      "1":
+        name: ready
+        step_names: [step0]
+        steps:
+          step0:
+            left:
+              positions: [0.0, 0.3, 0.0, -1.57, 0.0, 0.0, 0.0]
+            right:
+              positions: [0.0, -0.3, 0.0, -1.57, 0.0, 0.0, 0.0]
+        duration: 3.0
+        completion_tolerance: 0.1
+        timeout: 30.0
+
+      "2":
+        name: home
+        step_names: [step0]
+        steps:
+          step0:
+            left:
+              positions: [0.0, 0.0, 0.0, -1.57, 0.0, 0.0, 0.0]
+            right:
+              positions: [0.0, 0.0, 0.0, -1.57, 0.0, 0.0, 0.0]
+        duration: 4.0
+        completion_tolerance: 0.1
+        timeout: 30.0
