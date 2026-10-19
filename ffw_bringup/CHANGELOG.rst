@@ -2,6 +2,18 @@
 Changelog for package ffw_bringup
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.0 (2026-10-19)
+------------------
+* Added A1 and A2 leader bringup with separate hardware and reference-model settings
+* Integrated Cyclo control into SG2, BG2, F1, F2, SH5, and BH5 hardware and Gazebo bringups
+* Added follower-specific control modes, arm presets, and initial/exit pose sequences
+* Preserved existing follower command topics and sequenced Cyclo startup after controller initialization
+* Contributors: Yeonguk Kim
+
+2.2.9 (2026-10-19)
+------------------
+* None
+
 2.2.8 (2026-09-18)
 ------------------
 * None

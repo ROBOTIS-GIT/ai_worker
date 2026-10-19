@@ -1,7 +1,30 @@
-<library path="joint_trajectory_command_broadcaster">
-  <class name="joint_trajectory_command_broadcaster/JointTrajectoryCommandBroadcaster" type="joint_trajectory_command_broadcaster::JointTrajectoryCommandBroadcaster" base_class_type="controller_interface::ControllerInterface">
-  <description>
-    The joint trajectory command broadcaster publishes the current states from ros2_control system.
-  </description>
-  </class>
-</library>
+<class_libraries>
+  <library path="joint_trajectory_command_broadcaster">
+    <class name="joint_trajectory_command_broadcaster/JointTrajectoryCommandBroadcaster" type="joint_trajectory_command_broadcaster::JointTrajectoryCommandBroadcaster" base_class_type="controller_interface::ControllerInterface">
+      <description>
+        The joint trajectory command broadcaster publishes the current states from ros2_control system.
+      </description>
+    </class>
+  </library>
+  <library path="leader_joint_trajectory_command_broadcaster">
+    <class name="leader_joint_trajectory_command_broadcaster/LeaderJointTrajectoryCommandBroadcaster" type="leader_joint_trajectory_command_broadcaster::LeaderJointTrajectoryCommandBroadcaster" base_class_type="controller_interface::ControllerInterface">
+      <description>
+        Leader trajectory broadcaster with Cyclo teleoperation interfaces.
+      </description>
+    </class>
+  </library>
+  <library path="a2_joint_trajectory_command_broadcaster">
+    <class name="a2_joint_trajectory_command_broadcaster/A2JointTrajectoryCommandBroadcaster" type="a2_joint_trajectory_command_broadcaster::A2JointTrajectoryCommandBroadcaster" base_class_type="controller_interface::ControllerInterface">
+      <description>
+        A2 leader trajectory broadcaster using the common leader teleoperation implementation.
+      </description>
+    </class>
+  </library>
+  <library path="a1_joint_trajectory_command_broadcaster">
+    <class name="a1_joint_trajectory_command_broadcaster/A1JointTrajectoryCommandBroadcaster" type="a1_joint_trajectory_command_broadcaster::A1JointTrajectoryCommandBroadcaster" base_class_type="controller_interface::ControllerInterface">
+      <description>
+        A1 leader trajectory broadcaster with joint-space scaling and common leader interfaces.
+      </description>
+    </class>
+  </library>
+</class_libraries>

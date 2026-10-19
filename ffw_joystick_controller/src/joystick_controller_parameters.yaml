@@ -1,4 +1,11 @@
 joystick_controller:
+  joint_state_timeout: {
+    type: double,
+    default_value: 0.5,
+    description: "Stop motion output when complete follower feedback is older than this many seconds",
+    read_only: true,
+    validation: { gt<>: [0.0] }
+  }
   joystick_sensors: {
     type: string_array,
     default_value: [],

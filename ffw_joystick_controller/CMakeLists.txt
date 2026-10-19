@@ -17,7 +17,10 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   pluginlib
   rclcpp
   rclcpp_lifecycle
+  realtime_tools
+  robotis_interfaces
   std_msgs
+  std_srvs
 )
 
 ################################################################################
@@ -33,6 +36,9 @@ endforeach()
 ################################################################################
 generate_parameter_library(joystick_controller_parameters
   src/joystick_controller_parameters.yaml
+)
+generate_parameter_library(leader_joystick_controller_parameters
+  src/leader_joystick_controller_parameters.yaml
 )
 
 add_library(joystick_controller SHARED
@@ -51,11 +57,35 @@ target_link_libraries(joystick_controller PUBLIC
   pluginlib::pluginlib
   rclcpp::rclcpp
   rclcpp_lifecycle::rclcpp_lifecycle
+  realtime_tools::realtime_tools
 )
 
 # Causes the visibility macros to use dllexport rather than dllimport,
 # which is appropriate when building the dll but not consuming it.
-target_compile_definitions(joystick_controller PRIVATE "joystick_controller_BUILDING_DLL")
+target_compile_definitions(joystick_controller PRIVATE "JOYSTICK_CONTROLLER_BUILDING_LIBRARY")
+
+add_library(leader_joystick_controller SHARED
+  src/leader_joystick_controller.cpp
+)
+target_compile_features(leader_joystick_controller PUBLIC cxx_std_17)
+target_include_directories(leader_joystick_controller PUBLIC
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include/joystick_controller>
+)
+target_link_libraries(leader_joystick_controller PUBLIC
+  ${std_srvs_TARGETS}
+  ${robotis_interfaces_TARGETS}
+  ${std_msgs_TARGETS}
+  leader_joystick_controller_parameters
+  controller_interface::controller_interface
+  joystick_controller
+  pluginlib::pluginlib
+  rclcpp::rclcpp
+  rclcpp_lifecycle::rclcpp_lifecycle
+)
+target_compile_definitions(
+  leader_joystick_controller PRIVATE "LEADER_JOYSTICK_CONTROLLER_BUILDING_DLL"
+)
 pluginlib_export_plugin_description_file(controller_interface joystick_plugin.xml)
 
 ################################################################################
@@ -67,7 +97,9 @@ install(
 )
 install(TARGETS
     joystick_controller
+    leader_joystick_controller
     joystick_controller_parameters
+    leader_joystick_controller_parameters
   EXPORT export_joystick_controller
   RUNTIME DESTINATION bin
   ARCHIVE DESTINATION lib

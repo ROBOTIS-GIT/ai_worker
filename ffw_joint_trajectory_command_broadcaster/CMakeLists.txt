@@ -14,10 +14,13 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   builtin_interfaces
   controller_interface
   generate_parameter_library
+  hardware_interface
   pluginlib
   rclcpp_lifecycle
   rcutils
+  robotis_interfaces
   realtime_tools
+  std_msgs
   urdf
   trajectory_msgs
 )
@@ -27,12 +30,22 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
 ################################################################################
 find_package(ament_cmake REQUIRED)
 find_package(backward_ros REQUIRED)
+find_package(cyclo_teleoperation REQUIRED)
+find_package(ament_index_cpp REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
 foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
   find_package(${Dependency} REQUIRED)
 endforeach()
 
 generate_parameter_library(joint_trajectory_command_broadcaster_parameters
   src/joint_trajectory_command_broadcaster_parameters.yaml
+)
+generate_parameter_library(leader_joint_trajectory_command_broadcaster_parameters
+  src/leader_joint_trajectory_command_broadcaster_parameters.yaml
+)
+generate_parameter_library(a1_joint_trajectory_command_broadcaster_parameters
+  src/a1_joint_trajectory_command_broadcaster_parameters.yaml
 )
 
 add_library(joint_trajectory_command_broadcaster SHARED
@@ -55,6 +68,55 @@ target_link_libraries(joint_trajectory_command_broadcaster PUBLIC
 # Causes the visibility macros to use dllexport rather than dllimport,
 # which is appropriate when building the dll but not consuming it.
 target_compile_definitions(joint_trajectory_command_broadcaster PRIVATE "JOINT_TRAJECTORY_COMMAND_BROADCASTER_BUILDING_DLL")
+
+add_library(leader_joint_trajectory_command_broadcaster SHARED
+  src/leader_joint_trajectory_command_broadcaster.cpp
+  src/leader_pose_reference.cpp
+)
+target_compile_features(leader_joint_trajectory_command_broadcaster PUBLIC cxx_std_17)
+target_include_directories(leader_joint_trajectory_command_broadcaster PUBLIC
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include/joint_trajectory_command_broadcaster>
+)
+target_link_libraries(leader_joint_trajectory_command_broadcaster PUBLIC
+  ${builtin_interfaces_TARGETS}
+  ${robotis_interfaces_TARGETS}
+  ${std_msgs_TARGETS}
+  ${trajectory_msgs_TARGETS}
+  leader_joint_trajectory_command_broadcaster_parameters
+  controller_interface::controller_interface
+  pluginlib::pluginlib
+  rclcpp_lifecycle::rclcpp_lifecycle
+  PRIVATE
+  cyclo_teleoperation::cyclo_teleoperation_leader_reference
+  ament_index_cpp::ament_index_cpp
+  ${geometry_msgs_TARGETS}
+  tf2_ros::tf2_ros
+)
+target_compile_definitions(
+  leader_joint_trajectory_command_broadcaster
+  PRIVATE "LEADER_JOINT_TRAJECTORY_COMMAND_BROADCASTER_BUILDING_DLL"
+)
+
+add_library(a2_joint_trajectory_command_broadcaster SHARED
+  src/a2_joint_trajectory_command_broadcaster.cpp
+)
+target_link_libraries(a2_joint_trajectory_command_broadcaster PUBLIC
+  leader_joint_trajectory_command_broadcaster
+)
+target_compile_definitions(a2_joint_trajectory_command_broadcaster PRIVATE
+  "A2_JOINT_TRAJECTORY_COMMAND_BROADCASTER_BUILDING_DLL"
+)
+add_library(a1_joint_trajectory_command_broadcaster SHARED
+  src/a1_joint_trajectory_command_broadcaster.cpp
+)
+target_link_libraries(a1_joint_trajectory_command_broadcaster PUBLIC
+  leader_joint_trajectory_command_broadcaster
+  a1_joint_trajectory_command_broadcaster_parameters
+)
+target_compile_definitions(a1_joint_trajectory_command_broadcaster PRIVATE
+  "A1_JOINT_TRAJECTORY_COMMAND_BROADCASTER_BUILDING_DLL"
+)
 pluginlib_export_plugin_description_file(controller_interface joint_trajectory_command_plugin.xml)
 
 ################################################################################
@@ -68,7 +130,12 @@ install(
 install(
   TARGETS
     joint_trajectory_command_broadcaster
+    leader_joint_trajectory_command_broadcaster
+    a2_joint_trajectory_command_broadcaster
+    a1_joint_trajectory_command_broadcaster
     joint_trajectory_command_broadcaster_parameters
+    leader_joint_trajectory_command_broadcaster_parameters
+    a1_joint_trajectory_command_broadcaster_parameters
   EXPORT export_joint_trajectory_command_broadcaster
   RUNTIME DESTINATION bin
   ARCHIVE DESTINATION lib

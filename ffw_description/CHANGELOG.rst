@@ -2,6 +2,17 @@
 Changelog for package ffw_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.0 (2026-10-19)
+------------------
+* Added URDF and ros2_control descriptions for A1 and A2 leaders
+* Added A2 meshes, RViz configuration, and a visualization launch file
+* Aligned F2 drive profile acceleration with other follower models
+* Contributors: Yeonguk Kim
+
+2.2.9 (2026-10-19)
+------------------
+* None
+
 2.2.8 (2026-09-18)
 ------------------
 * Added and installed BG2, SG2, and SH5 MuJoCo models and scenes.

@@ -20,6 +20,7 @@ import os
 from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
+from ffw_bringup.launch_utils import start_after_success
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.actions import RegisterEventHandler, SetEnvironmentVariable
@@ -27,6 +28,7 @@ from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterFile
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -154,8 +156,27 @@ def generate_launch_description():
         arguments=['-d', rviz_config_file],
     )
 
+    # The follower owns the shared teleoperation and external-control runtime.
+    config_dir = PathJoinSubstitution([FindPackageShare('ffw_bringup'), 'config'])
+    # Follower-only configuration; leader inputs use the common topic contract.
+    teleoperation_configs = [
+        PathJoinSubstitution([config_dir, model, 'ffw_f1_teleoperation.yaml']),
+    ]
+    teleoperation_node = Node(
+        package='cyclo_teleoperation',
+        executable='cyclo_teleoperation_node',
+        name='cyclo_teleoperation',
+        parameters=[ParameterFile(path, allow_substs=True) for path in teleoperation_configs] + [{
+            'use_sim_time': True,
+        }],
+        output='screen',
+    )
+
     return LaunchDescription([
         *declared_arguments,
+        RegisterEventHandler(OnProcessExit(
+            target_action=robot_controller_spawner,
+            on_exit=start_after_success([robot_controller_spawner], teleoperation_node))),
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=gz_spawn_entity,
