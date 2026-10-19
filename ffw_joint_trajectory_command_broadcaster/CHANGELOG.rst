@@ -8,6 +8,10 @@ Changelog for package ffw_joint_trajectory_command_broadcaster
 * Added per-arm teleoperation, preset, pose-transition, and slow-start handling
 * Contributors: Yeonguk Kim
 
+2.2.9 (2026-10-19)
+------------------
+* None
+
 2.2.8 (2026-09-18)
 ------------------
 * None

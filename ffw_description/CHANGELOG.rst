@@ -7,6 +7,10 @@ Changelog for package ffw_description
 * Added URDF and ros2_control descriptions for the A2 leader
 * Contributors: Yeonguk Kim
 
+2.2.9 (2026-10-19)
+------------------
+* None
+
 2.2.8 (2026-09-18)
 ------------------
 * Added and installed BG2, SG2, and SH5 MuJoCo models and scenes.

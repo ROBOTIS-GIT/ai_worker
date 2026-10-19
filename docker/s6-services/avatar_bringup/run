@@ -3,8 +3,11 @@
 # Uses reusable ROS2 service template
 
 set -e
+exec 2>&1
 
 SERVICE_NAME="avatar_bringup"
+# Discard a process-group ID left by an interrupted previous run.
+rm -f "/run/${SERVICE_NAME}.pgid"
 COMMON_SCRIPT="/usr/local/lib/s6-services/ros2_service_run.sh"
 LEADER_TYPE_FILE="/run/leader_type"
 
