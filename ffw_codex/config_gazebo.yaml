@@ -1,0 +1,141 @@
+# settings for the FFW-SG2 Gazebo run.
+
+model:
+  id: gpt-6-astra
+  # low, medium, high, xhigh, and max
+  reasoning_effort: low
+
+  # USD per 1M tokens (public list price), for cost_usd_estimate in result.json
+  price_per_million: {input: 10.0, cached_input: 1.0, cache_write: 12.5, output: 50.0}
+
+plan:
+  max_steps: 5
+
+codex:
+  bin: /usr/local/bin/codex
+  home: /root/.codex_robot
+  permission_profile: robot_run
+
+episode:
+  max_actions: 80
+  max_seconds: 1800
+
+  # Host ends the episode when the thread's totalTokens reaches this (token_limit); null = none
+  max_total_tokens: 5000000
+
+frames:
+  base: base_link
+  ee:
+    right: end_effector_r_link
+    left: end_effector_l_link
+
+cameras:
+  head: /head_camera/image
+  wrist_left: /wrist_left_camera/image
+  wrist_right: /wrist_right_camera/image
+
+cyclo:
+  x_offset_m: 0.0
+  goal_topic:
+    right: /r_goal_move
+    left: /l_goal_move
+  # Cyclo takes gripper commands on a separate topic and merges them into the arm trajectory.
+  gripper_topic:
+    right: /leader/joint_trajectory_command_broadcaster_right/raw_joint_trajectory
+    left: /leader/joint_trajectory_command_broadcaster_left/raw_joint_trajectory
+  gripper_joint:
+    right: gripper_r_joint1
+    left: gripper_l_joint1
+  move_time_s: 3.0
+
+limits:
+  # Matching the reference setup
+  max_step_m: 0.05
+  max_rotation_rad: 0.35
+  # Joint limit is 1.1 rad but the fingertips overlap when closing on nothing.
+  gripper_rad: [0.0, 1.0]
+
+  head_joint1_rad: [-0.2317, 0.6951]
+  head_joint2_rad: [-0.35, 0.35]
+  lift_joint_m: [-0.5, 0.0]
+
+observation_guard:
+  max_age_s: 60.0
+  max_clock_age_s: 1.0
+  max_image_age_s: 1.0
+  max_state_lag_sim_s: 1.0
+
+  position_m: 0.01
+  orientation_deg: 5.0
+  gripper_rad: 0.03
+  head_rad: 0.03
+  lift_m: 0.01
+  base_position_m: 0.02       # odom; the camera view no longer matches beyond this
+  base_yaw_deg: 3.0
+
+reach:
+  frame: arm_base_link
+  z_min: -0.80
+
+tolerance:
+  position_m: 0.01
+  orientation_deg: 5
+  gripper_rad: 0.02   # Tolerance is for the gripper joint(+/-)
+  settle_s: 0.5       # Completion requires the state to remain
+  # Wall clock, not simulation time. Cyclo does not use sim time.
+  timeout_s: 15.0
+  # A move or gripper command ends when it comes to rest: it moved less than
+  # these for stall_s, judged no earlier than its trajectory time plus stall_s.
+  # At rest inside the tolerance above is arrived, outside is stopped.
+  stall_s: 1.0
+  stall_position_m: 0.002
+  stall_orientation_deg: 0.5
+  stall_gripper_rad: 0.005
+
+run:
+  output_root: runs
+  jpeg_quality: 95
+
+# Observation layer of robot_io.py. Wall clock seconds unless noted.
+io:
+  odom_history: 300           # /odom samples kept, about 3 s at 100 Hz
+  ready_timeout_s: 10.0       # wait_ready: cameras, gripper joints, /clock, both hand transforms
+  lookup_timeout_s: 2.0       # get_ee_pose, get_gripper when nothing has arrived yet
+  image_timeout_s: 2.0        # get_snapshot, including the wait for a time newer than after_stamp_s
+  snapshot_tolerance_s: 0.015  # sim seconds; frames and joint samples closer than this count as one moment
+  image_history: 10           # frames kept per camera, about 0.3 s at 30 Hz
+  joint_history: 200          # /joint_states samples kept per joint, about 2 s at 100 Hz
+
+# Mobile base through swerve_drive_controller. Wall clock seconds unless noted.
+base:
+  cmd_vel_topic: /cmd_vel
+  odom_topic: /odom
+  publish_hz: 20.0
+  # Controller zeroes any axis below these (linear/angular_vel_deadband, read at configure).
+  deadband_mps: 0.1
+  deadband_rps: 0.1
+  max_lin_mps: 0.15           # hypot(vx, vy)
+  max_ang_rps: 0.3
+  max_duration_s: 2.0         # ramp up + hold + ramp down
+  max_step_m: 0.2             # hypot(vx, vy) * duration_s
+  max_step_rad: 0.4           # |wz| * duration_s
+  ramp_s: 0.3
+  path_margin: 1.25           # stop when the odom path exceeds max_step * this
+  steer_grace_s: 1.0          # no progress check while the wheels turn to the new heading
+  progress_window_s: 0.5
+  progress_min_m: 0.01
+  progress_min_rad: 0.02
+  odom_max_age_s: 0.5
+  clock_stall_s: 0.5          # /clock not advancing for this long: paused or stopped
+  rest_window_s: 0.5
+  rest_position_m: 0.002
+  rest_yaw_rad: 0.005
+  rest_speed_mps: 0.01
+  rest_speed_rps: 0.02
+  rest_timeout_s: 5.0
+  # Base motion only with both hands near the body (base_link) and the lift in range.
+  # Gazebo start pose: hands x 0.431, |y| 0.200; lift about -0.08. Set on hardware separately.
+  allowed_posture:
+    ee_x_max_m: 0.48
+    ee_abs_y_max_m: 0.30
+    lift_m: [-0.5, 0.0]

@@ -421,6 +421,9 @@ typings/
 .env
 .env.test
 
+# ffw_codex per-run state
+ffw_codex/runs/
+
 ## parcel-bundler cache (https://parceljs.org/)
 .cache
 

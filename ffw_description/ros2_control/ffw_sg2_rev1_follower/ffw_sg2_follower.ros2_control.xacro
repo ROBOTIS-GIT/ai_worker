@@ -78,6 +78,20 @@
         <state_interface name="velocity"/>
         <state_interface name="effort"/>
       </joint>
+      <xacro:if value="$(arg use_sim)">
+        <joint name="gripper_r_joint2">
+          <state_interface name="position"/>
+          <state_interface name="velocity"/>
+        </joint>
+        <joint name="gripper_r_joint3">
+          <state_interface name="position"/>
+          <state_interface name="velocity"/>
+        </joint>
+        <joint name="gripper_r_joint4">
+          <state_interface name="position"/>
+          <state_interface name="velocity"/>
+        </joint>
+      </xacro:if>
       <joint name="arm_l_joint1">
         <command_interface name="position"/>
         <state_interface name="position"/>
@@ -126,6 +140,20 @@
         <state_interface name="velocity"/>
         <state_interface name="effort"/>
       </joint>
+      <xacro:if value="$(arg use_sim)">
+        <joint name="gripper_l_joint2">
+          <state_interface name="position"/>
+          <state_interface name="velocity"/>
+        </joint>
+        <joint name="gripper_l_joint3">
+          <state_interface name="position"/>
+          <state_interface name="velocity"/>
+        </joint>
+        <joint name="gripper_l_joint4">
+          <state_interface name="position"/>
+          <state_interface name="velocity"/>
+        </joint>
+      </xacro:if>
       <joint name="lift_joint">
         <command_interface name="position"/>
         <state_interface name="position"/>
