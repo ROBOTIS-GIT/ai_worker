@@ -145,9 +145,12 @@ RUN mkdir -p ${COLCON_WS}/src && \
     git clone https://github.com/stereolabs/zed-ros2-wrapper.git && \
     cd zed-ros2-wrapper && git checkout 4c8ee060862c9a85d711d68b6a4f1571bfa3dcc9
 
+# Include this checkout's sensor launch files in the built image.
+COPY ffw_bringup/ ${COLCON_WS}/src/ai_worker/ffw_bringup/
+
 RUN cd ${COLCON_WS} && \
     apt-get update && \
-    apt-get install -y ros-${ROS_DISTRO}-rmw-zenoh-cpp && \
+    apt-get install -y ros-${ROS_DISTRO}-rmw-zenoh-cpp ros-${ROS_DISTRO}-sick-scan-xd && \
     rosdep update && \
     rosdep install -i --from-path src --rosdistro $ROS_DISTRO --skip-keys="librealsense2" -y && \
     rm -rf /var/lib/apt/lists/*

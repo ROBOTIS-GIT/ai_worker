@@ -53,9 +53,12 @@ RUN mkdir -p ${COLCON_WS}/src && \
     git clone -b r/4.56.4 https://github.com/IntelRealSense/realsense-ros.git && \
     cd realsense-ros && git checkout cbd8b8487d4c0126bb590822db9469414496e62a
 
+# Include this checkout's sensor launch files in the built image.
+COPY ffw_bringup/ ${COLCON_WS}/src/ai_worker/ffw_bringup/
+
 RUN cd ${COLCON_WS} && \
     apt-get update && \
-    apt-get install -y ros-${ROS_DISTRO}-rmw-zenoh-cpp && \
+    apt-get install -y ros-${ROS_DISTRO}-rmw-zenoh-cpp ros-${ROS_DISTRO}-sick-scan-xd && \
     rosdep update && \
     rosdep install -i --from-path src --rosdistro $ROS_DISTRO --skip-keys="librealsense2" -y && \
     rm -rf /var/lib/apt/lists/*
