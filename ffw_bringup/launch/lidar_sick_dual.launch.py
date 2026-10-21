@@ -60,7 +60,7 @@ def launch_sensors(context):
         if receiver_address.is_unspecified or receiver_address.is_multicast:
             raise ValueError('udp_receiver_ip must be the receiving computer IPv4 address')
 
-        frame = value(f'sick_frame_id{index}')
+        frame = value(f'frame_id{index}')
         topic = '/' + value(f'output_topic{index}').lstrip('/')
         namespace = f'sick_{side}'
         actions.append(LogInfo(msg=(
@@ -119,8 +119,8 @@ def generate_launch_description():
                               description='Left scan UDP port; the next port is also reserved'),
         DeclareLaunchArgument('sick_udp_port1', default_value='2117',
                               description='Right scan UDP port; the next port is also reserved'),
-        DeclareLaunchArgument('sick_frame_id0', default_value='lidar_l_link'),
-        DeclareLaunchArgument('sick_frame_id1', default_value='lidar_r_link'),
+        DeclareLaunchArgument('frame_id0', default_value='lidar_l_link'),
+        DeclareLaunchArgument('frame_id1', default_value='lidar_r_link'),
         DeclareLaunchArgument('sick_model', default_value='picoscan',
                               choices=['picoscan', 'picoscan120'],
                               description='SICK configuration: picoScan150 or picoScan120'),

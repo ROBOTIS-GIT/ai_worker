@@ -58,7 +58,7 @@ def generate_launch_description():
                               choices=['true', 'false'],
                               description='Use the manual camera YAML or automatic assignment.'),
         DeclareLaunchArgument('launch_lidar', default_value='true',
-                              description='Whether to launch lidar.'),
+                              description='Whether to launch both lidar drivers and the merger.'),
         DeclareLaunchArgument('init_position', default_value='true',
                               description='Whether to launch the init_position node.'),
         DeclareLaunchArgument('model', default_value='ffw_sh5_rev1_follower',
@@ -394,10 +394,15 @@ def generate_launch_description():
     camera_timer_10s = TimerAction(period=10.0, actions=[camera_launch],
                                    condition=UnlessCondition(init_position))
 
-    # Lidar launch include
+    # Shared lidar drivers and merger; the robot model provides mounting TFs
     lidar_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(PathJoinSubstitution([bringup_launch_dir,
-                                                            'lidar_dual.launch.py'])),
+        PythonLaunchDescriptionSource(PathJoinSubstitution([
+            bringup_launch_dir, 'lidar_dual_merged.launch.py',
+        ])),
+        launch_arguments={
+            'publish_mount_tf': 'false',
+            'use_sim_time': use_sim,
+        }.items(),
         condition=IfCondition(launch_lidar)
     )
 
@@ -406,32 +411,6 @@ def generate_launch_description():
                                   condition=IfCondition(init_position))
     lidar_timer_10s = TimerAction(period=10.0, actions=[lidar_launch],
                                   condition=UnlessCondition(init_position))
-
-    dual_laser_merger_node = Node(
-        package='dual_laser_merger',
-        executable='dual_laser_merger_node',
-        output='screen',
-        parameters=[{
-            'laser_1_topic': '/scan_left',
-            'laser_2_topic': '/scan_right',
-            'merged_scan_topic': '/scan',
-            'merged_cloud_topic': '/scan_cloud',
-            'target_frame': 'base_link',
-            'angle_min': -3.141592654,
-            'angle_max': 3.141592654,
-            'angle_increment': 0.006544985,
-            'scan_time': 0.1,
-            'range_min': 0.05,
-            'range_max': 20.0,
-            'use_inf': True,
-            'tolerance': 0.05,
-            'queue_size': 10,
-            'enable_shadow_filter': True,
-            'enable_average_filter': True,
-        }, {
-            'use_sim_time': use_sim,
-        }],
-    )
 
     # The follower owns the shared teleoperation and external-control runtime.
     config_dir = PathJoinSubstitution([FindPackageShare('ffw_bringup'), 'config'])
@@ -487,6 +466,5 @@ def generate_launch_description():
             camera_timer_10s,
             lidar_timer_20s,
             lidar_timer_10s,
-            dual_laser_merger_node,
         ]
     )

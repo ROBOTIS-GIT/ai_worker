@@ -25,6 +25,7 @@
   <exec_depend>ffw_description</exec_depend>
   <exec_depend>ament_index_python</exec_depend>
   <exec_depend>controller_manager</exec_depend>
+  <exec_depend>dual_laser_merger</exec_depend>
   <exec_depend>python3-yaml</exec_depend>
   <exec_depend>cyclo_motion_controller_models</exec_depend>
   <exec_depend>cyclo_teleoperation</exec_depend>
