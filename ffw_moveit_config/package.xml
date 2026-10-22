@@ -12,6 +12,12 @@
   <author email="ywh@robotis.com">Wonho Yun</author>
   <author email="wwj@robotis.com">Woojin Wie</author>
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <exec_depend>ffw_description</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>warehouse_ros_sqlite</exec_depend>
   <exec_depend>moveit_ros_move_group</exec_depend>
   <exec_depend>moveit_kinematics</exec_depend>
   <exec_depend>moveit_planners</exec_depend>
