@@ -12,7 +12,7 @@
         - gripper_l_joint1
       step_names: [home]
       home: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-      duration: 5.0
+      duration: 10.0
       position_tolerance: 0.1
       velocity_tolerance: 0.01
       action_topic: '/arm_l_controller/follow_joint_trajectory'
@@ -32,7 +32,7 @@
         - gripper_r_joint1
       step_names: [home]
       home: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-      duration: 5.0
+      duration: 10.0
       position_tolerance: 0.1
       velocity_tolerance: 0.01
       action_topic: '/arm_r_controller/follow_joint_trajectory'
