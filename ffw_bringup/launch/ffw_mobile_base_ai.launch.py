@@ -51,7 +51,7 @@ def generate_launch_description():
         DeclareLaunchArgument('init_position', default_value='true',
                               description='Whether to launch the init_position node.'),
         DeclareLaunchArgument('robot_type', default_value='sg2', choices=['sg2', 'f2'],
-                              description='Select SG2 or F2 controller and initial-position YAMLs.'),
+                              description='Select SG2 or F2 controller and initial poses.'),
         DeclareLaunchArgument('model', default_value='ffw_sg2_rev1_follower',
                               description='Shared mobile-base description model.'),
         DeclareLaunchArgument(
