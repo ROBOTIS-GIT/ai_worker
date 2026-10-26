@@ -47,6 +47,10 @@ def generate_launch_description():
 
     declared_arguments = [
         DeclareLaunchArgument(
+            'style', default_value='default', choices=['default', 'advanced'],
+            description='Default: both triggers start/pause teleop. Advanced: joystick buttons.',
+        ),
+        DeclareLaunchArgument(
             'description_file',
             default_value='ffw_a2_leader.urdf.xacro',
             description='URDF/XACRO file for the robot model.',
@@ -117,7 +121,8 @@ def generate_launch_description():
         executable='spawner',
         arguments=[
             '--controller-ros-args',
-            '-r /leader/joystick_controller_right/joystick_mode:=/reference/joystick/mode',
+            ['-r /leader/joystick_controller_right/joystick_mode:=/reference/joystick/mode',
+             ' -p style:=', LaunchConfiguration('style')],
             'joint_trajectory_command_broadcaster',
             'trigger_position_controller',
             'joystick_controller',

@@ -1,0 +1,11 @@
+# LG2 reference kinematics; independent of the hardware robot_description.
+/leader/joint_trajectory_command_broadcaster:
+  ros__parameters:
+    leader_pose_reference_enabled: true
+    leader_urdf_path: "$(find-pkg-share cyclo_motion_controller_models)/models/ai_worker/leader/ffw_lg2_leader.urdf"
+    leader_use_follower_reference_model: false
+    # Exclude the model's virtual lift joint from leader arm FK inputs.
+    leader_base_frame: arm_base_link
+    leader_left_eef: "gripper_l_link1"
+    leader_right_eef: "gripper_r_link1"
+    follower_control_node: /cyclo_teleoperation

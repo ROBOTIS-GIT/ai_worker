@@ -111,6 +111,18 @@ leader_joint_trajectory_command_broadcaster:
     default_value: false,
     description: "Enable mode-aware Cyclo teleoperation command handling."
   }
+  style: {
+    type: string,
+    default_value: "default",
+    description: "Leader controls: default uses both triggers; advanced uses joystick long presses.",
+    read_only: true
+  }
+  set_source_service: {
+    type: string,
+    default_value: "/set_source",
+    description: "SetBool service used by default-style triggers to acquire teleop control.",
+    read_only: true
+  }
   leader_pose_reference_enabled: {
     type: bool,
     default_value: false,
