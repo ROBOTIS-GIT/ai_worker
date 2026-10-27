@@ -242,7 +242,8 @@ private:
               self->loaded_root_ = root;
             }
             RCLCPP_INFO(self->node_->get_logger(),
-              "Leader reference model=%s root=%s; Cartesian translation gains: left=%.3f right=%.3f",
+              "Leader reference model=%s root=%s; "
+              "Cartesian translation gains: left=%.3f right=%.3f",
               path.c_str(), root.empty() ? "<URDF root>" : root.c_str(),
               self->params_.cartesian_scaling.left_translation_gain,
               self->params_.cartesian_scaling.right_translation_gain);
