@@ -16,6 +16,7 @@
 
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <deque>
 #include <mutex>
 #include <stdexcept>
@@ -72,6 +73,13 @@ public:
   : node_(std::move(node)), params_(params), buffer_(node_->get_clock()),
     listener_(buffer_, node_, false), pose_mode_rt_(pose_mode_rt)
   {
+    for (const double gain : {params_.cartesian_scaling.left_translation_gain,
+        params_.cartesian_scaling.right_translation_gain})
+    {
+      if (!std::isfinite(gain) || gain <= 0.0) {
+        throw std::invalid_argument("Cartesian translation gains must be finite and positive");
+      }
+    }
     parameters_ = std::make_shared<rclcpp::AsyncParametersClient>(
       node_, params_.follower_control_node);
     const auto command_qos = rclcpp::QoS(1).reliable();
@@ -233,6 +241,11 @@ private:
               self->loaded_model_ = path;
               self->loaded_root_ = root;
             }
+            RCLCPP_INFO(self->node_->get_logger(),
+              "Leader reference model=%s root=%s; Cartesian translation gains: left=%.3f right=%.3f",
+              path.c_str(), root.empty() ? "<URDF root>" : root.c_str(),
+              self->params_.cartesian_scaling.left_translation_gain,
+              self->params_.cartesian_scaling.right_translation_gain);
           }
           self->metadata_ready_ = true;
           self->pose_mode_rt_.store(self->pose_mode_, std::memory_order_release);
@@ -324,8 +337,13 @@ private:
             arm.anchored = true;
             RCLCPP_INFO(node_->get_logger(), "%s relative reference anchored", side.c_str());
           }
+          const double translation_gain = i == 0 ?
+            params_.cartesian_scaling.left_translation_gain :
+            params_.cartesian_scaling.right_translation_gain;
+          // Scale the anchored translation before publishing /action/*/pose.
+          // The measured FK, orientation delta and paused-arm hold stay unscaled.
           goal = cyclo_teleoperation::LeaderPoseReference::absoluteGoal(
-            arm.leader_anchor, leader, arm.follower_anchor, base_from_arm);
+            arm.leader_anchor, leader, arm.follower_anchor, base_from_arm, translation_gain);
           arm.hold = base_from_arm.inverse() * goal;
           arm.hold_valid = true;
         } else {

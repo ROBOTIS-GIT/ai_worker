@@ -174,12 +174,12 @@ bool A1JointTrajectoryCommandBroadcaster::configure_physical_pose_reference()
             const auto found = std::find(state->name.begin(), state->name.end(), name);
             const auto index = static_cast<size_t>(std::distance(state->name.begin(), found));
             double value = found != state->name.end() && index < state->position.size() ?
-              state->position[index] : std::numeric_limits<double>::quiet_NaN();
+            state->position[index] : std::numeric_limits<double>::quiet_NaN();
             // Arm FK receives the original DHI positions by name in every command mode.
             // The shared bridge also forwards the gripper, which retains its command offset.
             if (name == "gripper_l_joint1" || name == "gripper_r_joint1") {
               const double sign = std::find(group.reverse.begin(), group.reverse.end(), name) ==
-                group.reverse.end() ? 1.0 : -1.0;
+              group.reverse.end() ? 1.0 : -1.0;
               value = value * sign + group.offsets[i];
             }
             positions.push_back(value);

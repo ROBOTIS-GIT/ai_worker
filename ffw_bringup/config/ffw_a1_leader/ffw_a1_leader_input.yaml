@@ -1,7 +1,12 @@
-# A1 supplies physical JointState samples to the unchanged shared pose bridge.
+# A1 supplies physical JointState samples to the shared pose bridge.
 /leader/joint_trajectory_command_broadcaster:
   ros__parameters:
     leader_pose_reference_enabled: true
+    # Scale relative translation from the selected FK model in /action/*/pose.
+    # Rotation stays 1:1. Configure before launch; 1.0 preserves existing motion.
+    cartesian_scaling:
+      left_translation_gain: 1.5
+      right_translation_gain: 1.5
     leader_urdf_path: "$(find-pkg-share cyclo_motion_controller_models)/models/ai_worker/leader/ffw_a1_leader.urdf"
     # Relative to /leader: FK always reads measured positions, even during mode changes.
     leader_joint_states_topic: "joint_states"

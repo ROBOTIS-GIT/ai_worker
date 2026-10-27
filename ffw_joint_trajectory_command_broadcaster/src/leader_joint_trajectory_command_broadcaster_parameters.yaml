@@ -128,6 +128,19 @@ leader_joint_trajectory_command_broadcaster:
     default_value: false,
     description: "Generate absolute follower EEF actions in the common leader broadcaster."
   }
+  cartesian_scaling:
+    left_translation_gain:
+      type: double
+      default_value: 1.0
+      read_only: true
+      description: "Scale the left relative FK translation in the published EEF action; rotation stays 1:1."
+      validation: {gt<>: [0.0]}
+    right_translation_gain:
+      type: double
+      default_value: 1.0
+      read_only: true
+      description: "Scale the right relative FK translation in the published EEF action; rotation stays 1:1."
+      validation: {gt<>: [0.0]}
   leader_urdf_path: {type: string, default_value: ""}
   leader_use_follower_reference_model: {
     type: bool,
