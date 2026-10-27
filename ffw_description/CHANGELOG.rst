@@ -2,10 +2,24 @@
 Changelog for package ffw_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2.3.0 (2026-09-21)
+2.3.0 (2026-10-19)
 ------------------
-* Added URDF and ros2_control descriptions for the A2 leader
+* Added URDF and ros2_control descriptions for A1 and A2 leaders
+* Added A2 meshes, RViz configuration, and a visualization launch file
+* Aligned F2 drive profile acceleration with other follower models
 * Contributors: Yeonguk Kim
+
+2.2.9 (2026-10-19)
+------------------
+* None
+
+2.2.8 (2026-09-18)
+------------------
+* Added and installed BG2, SG2, and SH5 MuJoCo models and scenes.
+* Tuned simulation actuators and SG2/SH5 swerve dynamics, including tire collision geometry and steering response.
+* Aligned local HX5-D20 URDFs and SH5 hand descriptions with rev2 joint definitions and palm geometry.
+* Added split palm collision meshes to preserve finger clearance.
+* Contributors: Kiwoong Park
 
 2.2.7 (2026-09-14)
 ------------------

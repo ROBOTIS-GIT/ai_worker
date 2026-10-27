@@ -18,6 +18,7 @@
 // *INDENT-ON*
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <mutex>
@@ -41,13 +42,14 @@
 #include "robotis_interfaces/srv/set_preset.hpp"
 #include "robotis_interfaces/srv/set_teleoperation.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
-#include "std_msgs/msg/bool.hpp"
+#include "std_msgs/msg/string.hpp"
 #include "urdf/model.h"
 #include "trajectory_msgs/msg/joint_trajectory.hpp"
 #include "rclcpp/subscription.hpp"
 
 namespace leader_joint_trajectory_command_broadcaster
 {
+class LeaderPoseReferenceBridge;
 /**
  * \brief Leader Joint Trajectory Command Broadcaster for leader-follower control in a ros2_control system.
  *
@@ -77,6 +79,8 @@ class LeaderJointTrajectoryCommandBroadcaster : public controller_interface::Con
 public:
   LEADER_JOINT_TRAJECTORY_COMMAND_BROADCASTER_PUBLIC
   LeaderJointTrajectoryCommandBroadcaster();
+  LEADER_JOINT_TRAJECTORY_COMMAND_BROADCASTER_PUBLIC
+  ~LeaderJointTrajectoryCommandBroadcaster() override;
 
   LEADER_JOINT_TRAJECTORY_COMMAND_BROADCASTER_PUBLIC
   controller_interface::InterfaceConfiguration command_interface_configuration() const override;
@@ -104,6 +108,11 @@ public:
     const rclcpp_lifecycle::State & previous_state) override;
 
 protected:
+  // Non-RT reference generation belongs to this common base, never an A2 subclass.
+  std::shared_ptr<LeaderPoseReferenceBridge> pose_reference_bridge_;
+  std::atomic<bool> pose_reference_mode_rt_{false};
+  bool configure_pose_reference();
+  void reset_pose_reference(bool active = false);
   using FollowerJointPositions = std::unordered_map<std::string, double>;
   struct FollowerJointSnapshot
   {
@@ -129,7 +138,7 @@ protected:
   void request_final_initial_pose(uint8_t target_arms);
   void teleoperation_command_callback(
     const robotis_interfaces::msg::TeleoperationCommand::SharedPtr msg);
-  void command_source_state_callback(const std_msgs::msg::Bool::SharedPtr msg);
+  void command_source_state_callback(const std_msgs::msg::String::SharedPtr msg);
   void control_status_callback(
     const robotis_interfaces::msg::ControlModeStatus::SharedPtr msg);
   void publish_control_command(
@@ -208,7 +217,9 @@ protected:
     teleoperation_command_subscriber_;
   rclcpp::Subscription<robotis_interfaces::msg::ControlModeStatus>::SharedPtr
     control_status_subscriber_;
-  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr command_source_state_subscriber_;
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr command_source_state_subscriber_;
+  rclcpp::TimerBase::SharedPtr source_watchdog_;
+  std::chrono::steady_clock::time_point source_last_seen_{};
   rclcpp::Publisher<robotis_interfaces::msg::ControlModeCommand>::SharedPtr
     control_command_publisher_;
   rclcpp::Service<robotis_interfaces::srv::SetControlMode>::SharedPtr

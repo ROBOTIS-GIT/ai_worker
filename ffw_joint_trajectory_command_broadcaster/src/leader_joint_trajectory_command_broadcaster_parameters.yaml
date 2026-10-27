@@ -118,6 +118,29 @@ leader_joint_trajectory_command_broadcaster:
     They are still read for the initial-pose and auto-mode triggers. Use when the follower has no
     gripper joints."
   }
+  leader_pose_reference_enabled: {
+    type: bool,
+    default_value: false,
+    description: "Generate absolute follower EEF actions in the common leader broadcaster."
+  }
+  leader_urdf_path: {type: string, default_value: ""}
+  leader_use_follower_reference_model: {
+    type: bool,
+    default_value: false,
+    description: "Allow the leader to use a follower-provided calculation-model hint."
+  }
+  leader_base_frame: {type: string, default_value: ""}
+  leader_left_eef: {type: string, default_value: ""}
+  leader_right_eef: {type: string, default_value: ""}
+  leader_left_model_joints: {type: string_array, default_value: []}
+  leader_right_model_joints: {type: string_array, default_value: []}
+  follower_control_node: {type: string, default_value: "/cyclo_teleoperation"}
+  follower_left_eef_state_topic: {type: string, default_value: "/state/left/pose"}
+  follower_right_eef_state_topic: {type: string, default_value: "/state/right/pose"}
+  left_eef_action_topic: {type: string, default_value: "/action/left/pose"}
+  right_eef_action_topic: {type: string, default_value: "/action/right/pose"}
+  left_gripper_action_topic: {type: string, default_value: "/action/left/gripper"}
+  right_gripper_action_topic: {type: string, default_value: "/action/right/gripper"}
   output_topic_suffix: {
     type: string,
     default_value: "joint_trajectory",
@@ -144,8 +167,8 @@ leader_joint_trajectory_command_broadcaster:
   }
   command_source_state_topic: {
     type: string,
-    default_value: "/control/leader_action_enabled",
-    description: "Latched standard Bool topic selecting leader or model command ownership"
+    default_value: "/source",
+    description: "Latched standard String state of the selected command source"
   }
   control_command_topic: {
     type: string,

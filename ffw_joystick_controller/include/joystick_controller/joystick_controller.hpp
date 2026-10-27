@@ -20,6 +20,7 @@
 #include <vector>
 #include <functional>
 #include <map>
+#include <chrono>
 
 #include "controller_interface/controller_interface.hpp"
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
@@ -33,6 +34,7 @@
 #include "trajectory_msgs/msg/joint_trajectory.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "realtime_tools/realtime_buffer.hpp"
 
 namespace joystick_controller
 {
@@ -90,6 +92,10 @@ public:
     const rclcpp_lifecycle::State & previous_state) override;
 
 protected:
+  // Legacy controllers always own motion. Source-aware plugins may gate only motion;
+  // sensor sampling and button events remain available to select a source again.
+  virtual bool motion_commands_enabled() const {return true;}
+  bool previous_motion_enabled_ = true;
   void joint_states_callback(const sensor_msgs::msg::JointState::SharedPtr msg);
 
   // Helper methods for better code organization
@@ -124,8 +130,13 @@ protected:
   std::vector<std::vector<std::reference_wrapper<hardware_interface::LoanedStateInterface>>>
   joint_state_interface_;
   sensor_msgs::msg::JointState current_joint_states_;
-  bool was_active_ = false;  // Track previous sensorxel_joy state
-  bool has_joint_states_ = false;  // Track if joint states have been received
+  struct FollowerSnapshot
+  {
+    sensor_msgs::msg::JointState state;
+    std::chrono::steady_clock::time_point received{};
+    bool valid = false;
+  };
+  realtime_tools::RealtimeBuffer<FollowerSnapshot> follower_snapshot_;
 
   std::map<std::string, std::vector<std::string>> sensor_controlled_joints_;
   std::map<std::string, std::vector<std::string>> sensor_reverse_interfaces_;

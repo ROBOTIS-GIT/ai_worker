@@ -14,9 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-
-from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
@@ -25,8 +22,7 @@ from launch_ros.actions import Node
 
 def launch_setup(context):
     params_file = LaunchConfiguration('params_file').perform(context)
-    presets_file = LaunchConfiguration('presets_file').perform(context) or os.path.join(
-        get_package_share_directory('ffw_preset_controller'), 'config', 'hand_presets.yaml')
+    presets_file = LaunchConfiguration('presets_file').perform(context)
     initial_preset = LaunchConfiguration('initial_preset').perform(context)
 
     parameters = [{'presets_file': presets_file, 'initial_preset': initial_preset}]

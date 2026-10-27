@@ -30,6 +30,7 @@ from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node, PushRosNamespace
+from launch_ros.descriptions import ParameterFile
 from launch_ros.substitutions import FindPackageShare
 import yaml
 
@@ -54,14 +55,21 @@ def generate_launch_description():
             description='URDF/XACRO file for the robot model.',
         ),
         DeclareLaunchArgument(
+            'leader_input_file',
+            default_value=PathJoinSubstitution([
+                FindPackageShare('ffw_bringup'), 'config', 'ffw_a2_leader',
+                'ffw_a2_leader_input.yaml']),
+            description='Common leader reference model and input mapping settings.',
+        ),
+        DeclareLaunchArgument(
             'use_mock_hardware',
             default_value='false',
             description='Use mock hardware mirroring command.',
         ),
         DeclareLaunchArgument(
-            'start_teleoperation_controller',
-            default_value='true',
-            description='Start the Cyclo A2 teleoperation controller.',
+            'mock_sensor_commands',
+            default_value='false',
+            description='Expose mock joystick sensor command interfaces for testing.',
         ),
         DeclareLaunchArgument(
             'trigger_left_neutral_position',
@@ -84,8 +92,9 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             'hand_presets_file',
-            default_value='',
-            description='Hand preset YAML. Empty uses the ffw_preset_controller default.',
+            default_value=PathJoinSubstitution([
+                FindPackageShare('ffw_bringup'), 'config', 'common', 'hand_presets.yaml']),
+            description='YAML file containing hand release and grasp presets.',
         ),
         DeclareLaunchArgument(
             'hand_initial_preset',
@@ -97,14 +106,14 @@ def generate_launch_description():
     description_file = LaunchConfiguration('description_file')
     use_mock_hardware = LaunchConfiguration('use_mock_hardware')
 
-    start_teleoperation_controller = LaunchConfiguration('start_teleoperation_controller')
     robot_controllers = str(controller_config_path)
+    leader_input = ParameterFile(LaunchConfiguration('leader_input_file'), allow_substs=True)
 
     # ros2_control Node
     control_node = Node(
         package='controller_manager',
         executable='ros2_control_node',
-        parameters=[robot_controllers],
+        parameters=[robot_controllers, leader_input],
         output='both',
     )
 
@@ -117,6 +126,7 @@ def generate_launch_description():
             ),
             ' ',
             'use_mock_hardware:=', use_mock_hardware,
+            ' ', 'mock_sensor_commands:=', LaunchConfiguration('mock_sensor_commands'),
         ]
     )
     robot_description = {'robot_description': robot_description_content}
@@ -125,10 +135,11 @@ def generate_launch_description():
         package='controller_manager',
         executable='spawner',
         arguments=[
-            # The '=' form keeps the spawner from parsing '-p' as its own --param-file option.
+            # Keep the gripper filter and main's joystick mode remapping together.
             [
                 '--controller-ros-args=-p exclude_gripper_joints:=',
                 LaunchConfiguration('use_hand_preset'),
+                ' -r /leader/joystick_controller_right/joystick_mode:=/reference/joystick/mode',
             ],
             'joint_trajectory_command_broadcaster',
             'trigger_position_controller',
@@ -170,7 +181,7 @@ def generate_launch_description():
         parameters=[robot_description, {'frame_prefix': 'leader_'}],
     )
 
-    # Wrap everything in a namespace 'leader'
+    # Hardware state and raw references stay separate from public action/state outputs.
     leader_with_namespace = GroupAction(
         actions=[
             PushRosNamespace('leader'),
@@ -181,62 +192,6 @@ def generate_launch_description():
         ]
     )
 
-    teleoperation_config = PathJoinSubstitution(
-        [
-            FindPackageShare('ffw_bringup'),
-            'config',
-            'ffw_a2_leader',
-            'ffw_a2_teleoperation.yaml',
-        ]
-    )
-    teleoperation_controller_parameters = PathJoinSubstitution(
-        [
-            FindPackageShare('ffw_bringup'),
-            'config',
-            'ffw_a2_leader',
-            'ffw_a2_teleoperation_controller_parameters.yaml',
-        ]
-    )
-    follower_urdf_path = PathJoinSubstitution(
-        [
-            FindPackageShare('cyclo_motion_controller_models'),
-            'models',
-            'ai_worker',
-            'ffw_sg2_follower.urdf',
-        ]
-    )
-    follower_srdf_path = PathJoinSubstitution(
-        [
-            FindPackageShare('cyclo_motion_controller_models'),
-            'models',
-            'ai_worker',
-            'ffw_sg2_follower_modified.srdf',
-        ]
-    )
-    leader_urdf_path = PathJoinSubstitution(
-        [
-            FindPackageShare('cyclo_motion_controller_models'),
-            'models',
-            'ai_worker',
-            'ffw_a2_leader.urdf',
-        ]
-    )
-    teleoperation_node = Node(
-        package='cyclo_teleoperation',
-        executable='cyclo_teleoperation_node',
-        name='cyclo_teleoperation',
-        parameters=[
-            teleoperation_config,
-            teleoperation_controller_parameters,
-            {
-                'follower_urdf_path': follower_urdf_path,
-                'follower_srdf_path': follower_srdf_path,
-                'leader_urdf_path': leader_urdf_path,
-            },
-        ],
-        output='screen',
-        condition=IfCondition(start_teleoperation_controller),
-    )
     hand_preset_controller = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
@@ -257,5 +212,5 @@ def generate_launch_description():
 
     # Return combined LaunchDescription
     return LaunchDescription(
-        declared_arguments + [leader_with_namespace, teleoperation_node, hand_preset_controller]
+        declared_arguments + [leader_with_namespace, hand_preset_controller]
     )

@@ -13,8 +13,14 @@ leader_joystick_controller:
   }
   command_source_state_topic: {
     type: string,
-    default_value: "/control/leader_action_enabled",
-    description: "Latched standard Bool topic selecting leader or model command ownership",
+    default_value: "/source",
+    description: "Latched String state of the selected command source",
+    read_only: true
+  }
+  toggle_source_service: {
+    type: string,
+    default_value: "/toggle_source",
+    description: "Standard Trigger service requesting a source switch",
     read_only: true
   }
   teleoperation_toggle_long_press_duration: {

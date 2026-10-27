@@ -39,8 +39,9 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             'hand_presets_file',
-            default_value='',
-            description='Hand preset YAML. Empty uses the ffw_preset_controller default.',
+            default_value=PathJoinSubstitution([
+                FindPackageShare('ffw_bringup'), 'config', 'common', 'hand_presets.yaml']),
+            description='YAML file containing hand release and grasp presets.',
         ),
         DeclareLaunchArgument(
             'hand_initial_preset',

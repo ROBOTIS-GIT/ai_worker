@@ -2,12 +2,27 @@
 Changelog for package ffw
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2.3.0 (2026-09-21)
+2.3.0 (2026-10-19)
 ------------------
-* Added support for the A2 leader
-* Added extensible A2 teleoperation modes, presets, and pose transitions
-* Added automatic A2 leader serial-port mapping in the Docker environment
+* Added support for A1 and A2 leaders with dedicated controller plugins
+* Integrated Cyclo teleoperation and external action control across AI Worker follower models
+* Added configurable control modes, per-arm presets, and pose-sequence transitions
+* Added leader serial-port discovery and selectable leader bringup in the Docker environment
 * Contributors: Yeonguk Kim
+
+2.2.9 (2026-10-19)
+------------------
+* Store AI Worker bringup, navigation, and leader service logs in dated directories on logger startup, retaining the latest 30 directories.
+* Preserve the existing current-log path through a symbolic link and provide dated log files for Cyclo Manager history browsing.
+* Write each logger session to a single file without log rotation or additional s6 timestamps.
+* Wait for logger readiness before starting bringup, and capture both stdout and stderr, including startup errors.
+* Contributors: Hyungyu Kim
+
+2.2.8 (2026-09-18)
+------------------
+* Added BG2, SG2, and SH5 MuJoCo models to ffw_description.
+* Aligned local HX5-D20 hand descriptions with rev2.
+* Contributors: Kiwoong Park
 
 2.2.7 (2026-09-14)
 ------------------

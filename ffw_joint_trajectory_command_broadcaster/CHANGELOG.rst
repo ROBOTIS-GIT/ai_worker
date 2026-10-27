@@ -2,11 +2,22 @@
 Changelog for package ffw_joint_trajectory_command_broadcaster
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2.3.0 (2026-09-21)
+2.3.0 (2026-10-19)
 ------------------
-* Added a leader-specific trajectory broadcaster for configurable A2 teleoperation modes
-* Added per-arm teleoperation, preset, pose-transition, and slow-start handling
+* Added separate A1 and A2 plugins while preserving the legacy trajectory broadcaster
+* Added Cyclo source switching, per-arm teleoperation, presets, and initial-pose requests
+* Added leader-side absolute EEF reference generation from relative motion using configurable calculation models
+* Improved follower-state snapshots, feedback recovery, and slow-start duration calculation
+* Added direction-dependent joint scaling exclusively to the A1 plugin
 * Contributors: Yeonguk Kim
+
+2.2.9 (2026-10-19)
+------------------
+* None
+
+2.2.8 (2026-09-18)
+------------------
+* None
 
 2.2.7 (2026-09-14)
 ------------------

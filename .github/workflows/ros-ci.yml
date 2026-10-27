@@ -74,6 +74,7 @@ jobs:
           package-name: |
             ffw
             ffw_bringup
+            ffw_preset_controller
             ffw_description
             ffw_joystick_controller
             ffw_joint_trajectory_command_broadcaster

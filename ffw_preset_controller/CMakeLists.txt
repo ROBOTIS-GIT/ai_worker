@@ -16,9 +16,14 @@ install(
 )
 
 install(
-  DIRECTORY config launch
+  DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
 )
+
+if(BUILD_TESTING)
+  find_package(ament_cmake_pytest REQUIRED)
+  ament_add_pytest_test(hand_presets test/test_hand_presets.py)
+endif()
 
 ament_export_dependencies(rosidl_default_runtime)
 ament_package()

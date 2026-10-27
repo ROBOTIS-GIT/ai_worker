@@ -1,10 +1,13 @@
 #!/command/with-contenv bash
-# Avatar Bringup - LG2 / A2 Leader AI service
+# Avatar Bringup - LG2 / A1 / A2 Leader AI service
 # Uses reusable ROS2 service template
 
 set -e
+exec 2>&1
 
 SERVICE_NAME="avatar_bringup"
+# Discard a process-group ID left by an interrupted previous run.
+rm -f "/run/${SERVICE_NAME}.pgid"
 COMMON_SCRIPT="/usr/local/lib/s6-services/ros2_service_run.sh"
 LEADER_TYPE_FILE="/run/leader_type"
 
@@ -16,9 +19,10 @@ fi
 
 case "${LEADER_TYPE}" in
     lg2) ROS2_COMMAND="ros2 launch ffw_bringup ffw_lg2_leader_ai.launch.py" ;;
+    a1) ROS2_COMMAND="ros2 launch ffw_bringup ffw_a1_leader_ai.launch.py" ;;
     a2) ROS2_COMMAND="ros2 launch ffw_bringup ffw_a2_leader_ai.launch.py" ;;
     *)
-        echo "[${SERVICE_NAME}] Error: ${LEADER_TYPE_FILE} must be 'lg2' or 'a2', got: ${LEADER_TYPE}" >&2
+        echo "[${SERVICE_NAME}] Error: ${LEADER_TYPE_FILE} must be 'lg2', 'a1', or 'a2', got: ${LEADER_TYPE}" >&2
         exit 1
         ;;
 esac
