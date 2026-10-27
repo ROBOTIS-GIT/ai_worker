@@ -1,6 +1,20 @@
-"""
-Validation and execution tools reached by the model through RobotRollout and ObservationGuard.
-"""
+#!/usr/bin/env python3
+#
+# Copyright 2026 ROBOTIS CO., LTD.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Author: Jiho Park
 
 import math
 
@@ -12,18 +26,13 @@ OBSERVATION_CAMERAS = ('head', 'wrist_left', 'wrist_right')
 
 
 def _finite_float(args, key):
-    """Read one required argument as a finite float
-
-    Returns:
-        (value, None) on success
-        (None, reason) on failure
-    """
+    """Return (value, None), or (None, reason) for invalid input."""
     if key not in args:
         return None, f'missing required argument {key}'
 
     raw = args[key]
 
-    # bool passes as a number in Python (True == 1) reject it explicitly
+    # Reject bool explicitly because it is a subclass of int.
     if isinstance(raw, bool):
         return None, f'{key} is not a number ({raw!r})'
 
@@ -36,19 +45,16 @@ def _finite_float(args, key):
         return None, f'{key} is not finite'
     return value, None
 
+
 def _arrival_status(arrival):
-    """arrived, stopped (blocked short of the target and still) or timeout"""
+    """Return arrived, stopped or timeout from the arrival result."""
     if arrival['arrived']:
         return 'arrived'
     return 'stopped' if arrival.get('stopped') else 'timeout'
 
-def validate_move(args, cfg, current_pose, arm_base_z):
-    """Validate one absolute E-E target against robot-only limits
 
-    Returns:
-        (True, 'ok', clean) when accepted
-        (False, reason, None) when rejected
-    """
+def validate_move(args, cfg, current_pose, arm_base_z):
+    """Validate an arm target and return (ok, reason, target)."""
     if not isinstance(args, dict):
         return False, f'args must be a dict, not {type(args).__name__}', None
 
@@ -64,8 +70,7 @@ def validate_move(args, cfg, current_pose, arm_base_z):
             return False, error, None
         clean[key] = value
 
-    # Reach is measured from the lift-carried arm base, so the bound moves
-    # with the lift and says nothing about the environment.
+    # Measure reach from the lift-carried arm base.
     reach = cfg['reach']
     z_min = float(reach['z_min'])
     z_from_arm_base = clean['z'] - float(arm_base_z)
@@ -93,8 +98,7 @@ def validate_move(args, cfg, current_pose, arm_base_z):
 
     clean['step_m'] = step_m
 
-    # Rotation is limited against the current measured pose, not a stored
-    # reference pose, so no prior orientation is handed to the model.
+    # Limit rotation from the current measured pose.
     target_quat = rpy_to_quat(clean['roll'], clean['pitch'], clean['yaw'])
     rotation_deg = quat_angle(target_quat, current_pose['quat'])
     max_rotation_deg = math.degrees(float(cfg['limits']['max_rotation_rad']))
@@ -137,22 +141,17 @@ BASE_ARGS = ('vx', 'vy', 'wz', 'duration_s')
 
 
 def validate_base(args, base_cfg):
-    """Validate one body-velocity profile against the base limits
+    """Validate a base velocity profile and return (ok, reason, command).
 
-    Linear speed and step are checked on hypot(vx, vy), not per axis. Every
-    non-zero axis must reach the controller deadband, or the controller
-    zeroes it. duration_s includes the ramps.
-
-    Returns:
-        (True, 'ok', clean) when accepted
-        (False, reason, None) when rejected
+    Use planar speed hypot(vx, vy); duration_s includes ramps.
+    Nonzero axes must meet their controller deadbands.
     """
     if not isinstance(args, dict):
         return False, f'args must be a dict, not {type(args).__name__}', None
 
     clean = {}
     for key in BASE_ARGS:
-        # Numbers only: float() would also accept '0.1' and b'0.1'.
+        # Reject numeric strings and bytes.
         if key in args and not isinstance(args[key], (int, float)):
             return False, f'{key} is not a number ({args[key]!r})', None
         value, error = _finite_float(args, key)
@@ -164,40 +163,68 @@ def validate_base(args, base_cfg):
     duration_s = clean['duration_s']
     max_duration_s = float(base_cfg['max_duration_s'])
     if not 0.0 < duration_s <= max_duration_s + eps:
-        return False, f'duration_s {duration_s} outside (0, {max_duration_s}]', None
+        return (
+            False,
+            f'duration_s {duration_s} outside (0, {max_duration_s}]',
+            None,
+        )
 
     if clean['vx'] == 0.0 and clean['vy'] == 0.0 and clean['wz'] == 0.0:
-        return False, 'vx, vy and wz are all zero', None
+        return (
+            False,
+            'vx, vy and wz are all zero',
+            None,
+        )
 
     for key in ('vx', 'vy', 'wz'):
         deadband = float(base_cfg['deadband_rps' if key == 'wz' else 'deadband_mps'])
         if clean[key] != 0.0 and abs(clean[key]) < deadband - eps:
             unit = 'rad/s' if key == 'wz' else 'm/s'
-            return (False, f'{key}={clean[key]} is below the controller deadband '
-                           f'{deadband} {unit}; use 0 or at least {deadband}', None)
+            return (
+                False,
+                f'{key}={clean[key]} is below the controller deadband '
+                f'{deadband} {unit}; use 0 or at least {deadband}',
+                None,
+            )
 
     speed = math.hypot(clean['vx'], clean['vy'])
     max_lin = float(base_cfg['max_lin_mps'])
     max_ang = float(base_cfg['max_ang_rps'])
     if speed > max_lin + eps:
-        return False, f'hypot(vx, vy) {speed:.3f} m/s exceeds {max_lin} m/s', None
+        return (
+            False,
+            f'hypot(vx, vy) {speed:.3f} m/s exceeds {max_lin} m/s',
+            None,
+        )
     if abs(clean['wz']) > max_ang + eps:
-        return False, f'|wz| {abs(clean["wz"]):.3f} rad/s exceeds {max_ang} rad/s', None
+        return (
+            False,
+            f'|wz| {abs(clean["wz"]):.3f} rad/s exceeds {max_ang} rad/s',
+            None,
+        )
 
     max_step_m = float(base_cfg['max_step_m'])
     max_step_rad = float(base_cfg['max_step_rad'])
     if speed * duration_s > max_step_m + eps:
-        return (False, f'hypot(vx, vy) * duration_s = {speed * duration_s:.3f} m '
-                       f'exceeds {max_step_m} m', None)
+        return (
+            False,
+            f'hypot(vx, vy) * duration_s = {speed * duration_s:.3f} m '
+            f'exceeds {max_step_m} m',
+            None,
+        )
     if abs(clean['wz']) * duration_s > max_step_rad + eps:
-        return (False, f'|wz| * duration_s = {abs(clean["wz"]) * duration_s:.3f} rad '
-                       f'exceeds {max_step_rad} rad', None)
+        return (
+            False,
+            f'|wz| * duration_s = {abs(clean["wz"]) * duration_s:.3f} rad '
+            f'exceeds {max_step_rad} rad',
+            None,
+        )
 
     return True, 'ok', clean
 
 
 def _same_direction(command, stalled):
-    """True when command pushes the way a stalled command did"""
+    """Check whether a command repeats a stalled direction."""
     lin_a = (command['vx'], command['vy'])
     lin_b = (stalled['vx'], stalled['vy'])
     norm_a, norm_b = math.hypot(*lin_a), math.hypot(*lin_b)
@@ -209,16 +236,15 @@ def _same_direction(command, stalled):
 
 
 class RobotTools:
-    """Model-facing tools built on top of RobotIO"""
+    """Model-facing tools built on RobotIO."""
 
     def __init__(self, io, cfg):
         self.io = io
         self.cfg = cfg
-        # Command of the last base stall; blocks a same-direction retry until
-        # another action or a new observation.
+        # Block retries in the last stalled direction.
         self._base_stall = None
-        # Last command that moved a negligible amount; a second one in the
-        # same direction counts as a stall.
+
+        # Repeated negligible motion in one direction counts as a stall.
         self._base_negligible = None
 
     def _model_arms(self, raw_arms):
@@ -252,7 +278,6 @@ class RobotTools:
                 'stamp_s': float(gripper['stamp_s']),
             }
 
-            # Latest-state observations provide age_s, while snapshots do not
             if 'age_s' in gripper:
                 gripper_data['age_s'] = float(gripper['age_s'])
 
@@ -273,7 +298,7 @@ class RobotTools:
 
     @staticmethod
     def _model_base(raw_base):
-        """Odom pose and velocity without the wall-clock receive time"""
+        """Return odometry pose and velocity without the receive timestamp."""
         base = {
             key: (raw_base[key] if key in ('frame', 'child_frame') else float(raw_base[key]))
             for key in ('frame', 'child_frame', 'x', 'y', 'yaw', 'vx', 'vy', 'wz', 'stamp_s')
@@ -353,15 +378,9 @@ class RobotTools:
         }
 
     def _capture_after(self, cameras, stamp_s):
-        """Capture a synchronized observation after an action
-        
-        Returns:
-            (snapshot, None) on success
-            (None, reason) on failure
-        """
+        """Return (snapshot, None) after an action, or (None, reason) on failure."""
         cameras = tuple(cameras)
 
-        # Capture camera frames and robot state from one post-action moment
         try:
             snapshot = self.io.get_snapshot(
                 cameras,
@@ -524,7 +543,7 @@ class RobotTools:
                 ]
             ),
         }
-    
+
     def set_gripper(self, arm, value):
         """Validate, publish and wait for one gripper movement"""
         args = {
@@ -632,7 +651,7 @@ class RobotTools:
                 'head_joint2': head_joint2,
             },
         )
-    
+
     def move_lift(self, position_m):
         return self._move_body(
             'lift',
@@ -743,9 +762,8 @@ class RobotTools:
             ),
         }
 
-    
     def _posture_problem(self):
-        """None when both hands are tucked in and the lift is in range for base motion."""
+        """Return a reason if the arm and lift posture prevents base motion."""
         posture = self.cfg['base']['allowed_posture']
         ee_x_max = float(posture['ee_x_max_m'])
         ee_abs_y_max = float(posture['ee_abs_y_max_m'])
@@ -765,23 +783,19 @@ class RobotTools:
 
     def _base_rest_problem(self, state):
         base = self.cfg['base']
-        if (math.hypot(state['vx'], state['vy']) >= float(base['rest_speed_mps'])
-                or abs(state['wz']) >= float(base['rest_speed_rps'])):
+        if (
+            math.hypot(state['vx'], state['vy']) >= float(base['rest_speed_mps'])
+            or abs(state['wz']) >= float(base['rest_speed_rps'])
+        ):
             return 'the base is still moving'
         return None
 
     def move_base(self, vx, vy, wz, duration_s):
-        """Run one bounded base-velocity profile, confirm rest, then observe
+        """Run a base velocity profile, confirm rest and capture observations.
 
-        Success means the profile ran and the base came to rest, not that a
-        distance was reached. data.motion reports the odom-measured net
-        displacement in the start base_link frame.
-
-        Rejections:
-            data.invalidate_observation False: the request itself is invalid
-                or the posture does not allow base motion; the observation stays.
-            data.invalidate_observation True: the robot is not ready (odom,
-                cmd_vel, base still moving); a new observation is needed.
+        Success confirms execution and rest, not a requested distance.
+        Odometry displacement uses the starting base_link frame.
+        invalidate_observation=True requires a new observation after rejection.
         """
         requested = {'vx': vx, 'vy': vy, 'wz': wz, 'duration_s': duration_s}
         base_cfg = self.cfg['base']
@@ -812,8 +826,10 @@ class RobotTools:
             return rejected(problem, False)
 
         try:
-            problem = (self._base_rest_problem(self.io.get_base_state())
-                       or self.io.base_command_problem())
+            problem = (
+                self._base_rest_problem(self.io.get_base_state())
+                or self.io.base_command_problem()
+            )
         except Exception as exc:
             problem = f'{type(exc).__name__}: {exc}'
         if problem:
@@ -856,17 +872,22 @@ class RobotTools:
         if not rest['rested']:
             return failed('timeout', f'base rest not confirmed: {rest["reason"]}')
         motion['rest_confirmed'] = True
-        motion['odom_measured'] = {'frame': 'start base_link',
-                                   **base_delta(run['start'], rest['state'])}
+        motion['odom_measured'] = {
+            'frame': 'start base_link',
+            **base_delta(run['start'], rest['state']),
+        }
 
-        # A short command can end before the wheels finish steering, so one
-        # negligible move does not block the direction. A stall seen while
-        # moving, or a second negligible move in the same direction, does.
+        # A short move may end during steering.
+        # Block the direction after a stall or repeated negligible motion.
         measured = motion['odom_measured']
-        no_linear = (command['vx'] != 0.0 or command['vy'] != 0.0) and (
-            math.hypot(measured['dx'], measured['dy']) < float(base_cfg['progress_min_m']))
-        no_angular = command['wz'] != 0.0 and (
-            abs(measured['dyaw']) < float(base_cfg['progress_min_rad']))
+        no_linear = (
+            (command['vx'] != 0.0 or command['vy'] != 0.0)
+            and math.hypot(measured['dx'], measured['dy']) < float(base_cfg['progress_min_m'])
+        )
+        no_angular = (
+            command['wz'] != 0.0
+            and abs(measured['dyaw']) < float(base_cfg['progress_min_rad'])
+        )
         if run['outcome'] == 'stalled':
             status = 'stopped'
             reason = f'base made no progress while moving and stopped ({run["detail"]})'
@@ -874,8 +895,10 @@ class RobotTools:
             self._base_negligible = None
         elif no_linear or no_angular:
             status = 'stopped'
-            repeated = (self._base_negligible is not None
-                        and _same_direction(command, self._base_negligible))
+            repeated = (
+                self._base_negligible is not None
+                and _same_direction(command, self._base_negligible)
+            )
             if repeated:
                 reason = 'base moved a negligible amount again in this direction'
                 self._base_stall = dict(command)
@@ -903,7 +926,10 @@ class RobotTools:
             'data': {
                 'target': command,
                 'motion': motion,
-                'arrival': {'arrived': status == 'arrived', 'stopped': status == 'stopped'},
+                'arrival': {
+                    'arrived': status == 'arrived',
+                    'stopped': status == 'stopped',
+                },
                 'post_observation': (
                     None
                     if snapshot is None
@@ -970,7 +996,6 @@ class RobotTools:
             },
         }
 
-        # only allowed tools are accepted
         if not isinstance(name, str) or name not in tool_specs:
             return {
                 'status': 'rejected',

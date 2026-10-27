@@ -1,4 +1,21 @@
-"""Proposed bounded sequential plans; no ROS or model calls here."""
+#!/usr/bin/env python3
+#
+# Copyright 2026 ROBOTIS CO., LTD.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Author: Jiho Park
+
 from copy import deepcopy
 import math
 
@@ -27,15 +44,20 @@ def build_plan_spec(specs, cfg):
             'type': 'object',
             'properties': {
                 'tool': {'type': 'string', 'enum': [spec['name']]},
-                'args': {'type': 'object', 'properties': properties,
-                         'required': list(properties), 'additionalProperties': False},
+                'args': {
+                    'type': 'object',
+                    'properties': properties,
+                    'required': list(properties),
+                    'additionalProperties': False,
+                },
                 'reason': reason,
             },
             'required': ['tool', 'args', 'reason'],
             'additionalProperties': False,
         })
     return {
-        'type': 'function', 'name': PLAN_TOOL,
+        'type': 'function',
+        'name': PLAN_TOOL,
         'description': (
             'Execute a short preplanned sequence, strictly one action at a time. '
             'The host captures observations and checks state after each action. '
@@ -51,8 +73,12 @@ def build_plan_spec(specs, cfg):
             'properties': {
                 'request_id': {'type': 'string'},
                 'reason': {'type': 'string'},
-                'steps': {'type': 'array', 'minItems': 1,
-                          'maxItems': max_steps(cfg), 'items': {'anyOf': variants}},
+                'steps': {
+                    'type': 'array',
+                    'minItems': 1,
+                    'maxItems': max_steps(cfg),
+                    'items': {'anyOf': variants},
+                },
             },
             'required': ['request_id', 'reason', 'steps'],
             'additionalProperties': False,
@@ -61,7 +87,7 @@ def build_plan_spec(specs, cfg):
 
 
 def validate_plan(arguments, specs, cfg):
-    """Check all static arguments before the first command is sent."""
+    """Validate all steps before execution."""
     if not isinstance(arguments, dict) or set(arguments) != {'request_id', 'reason', 'steps'}:
         raise ValueError('Expected request_id, reason, steps.')
     for key in ('request_id', 'reason'):
@@ -95,7 +121,10 @@ def validate_plan(arguments, specs, cfg):
                     finite = False
                 if not finite:
                     raise ValueError(f'Step {i}: {key} must be finite.')
-                if value < schema.get('minimum', -math.inf) or value > schema.get('maximum', math.inf):
+                if (
+                    value < schema.get('minimum', -math.inf)
+                    or value > schema.get('maximum', math.inf)
+                ):
                     raise ValueError(f'Step {i}: {key} is out of range.')
             elif schema['type'] == 'string':
                 if not isinstance(value, str) or value not in schema['enum']:
@@ -125,13 +154,15 @@ def execute_plan(rollout, index, arguments):
         'plan_id': f'plan_{index:04d}',
         'source_observation_id': source.get('observation_id'),
         'source_request_id': arguments['request_id'],
-        'steps': [], 'remaining_steps': steps,
-        'running_step': None, 'stop_reason': None,
+        'steps': [],
+        'remaining_steps': steps,
+        'running_step': None,
+        'stop_reason': None,
     }
     journal = rollout.private_dir / f'plan_{index:04d}_state.json'
     last = None
     images = ()
-    seen = None     # last step packet that returned an observation, and its images
+    seen = None  # last step packet that returned an observation, and its images
     any_sent = False
     status = 'plan_interrupted'
 
@@ -154,13 +185,18 @@ def execute_plan(rollout, index, arguments):
         save_journal()
         try:
             response = rollout._act(
-                index, step['tool'],
-                {**step['args'], 'reason': step['reason'],
-                 'request_id': context['request_id']},
-                internal=True, step_index=step_index,
+                index,
+                step['tool'],
+                {
+                    **step['args'],
+                    'reason': step['reason'],
+                    'request_id': context['request_id'],
+                },
+                internal=True,
+                step_index=step_index,
             )
         except Exception as exc:
-            # Never retry a step whose execution state is uncertain.
+            # Do not retry an uncertain action.
             rollout.halt('uncertain_execution')
             status = 'plan_uncertain'
             summary['stop_reason'] = f'{type(exc).__name__}: {exc}'
@@ -172,8 +208,11 @@ def execute_plan(rollout, index, arguments):
             seen = (last, images)
         any_sent = any_sent or last['action_executed']
         summary['steps'].append({
-            'step_index': step_index, 'tool': step['tool'],
-            'args': step['args'], 'reason': step['reason'], 'packet': last,
+            'step_index': step_index,
+            'tool': step['tool'],
+            'args': step['args'],
+            'reason': step['reason'],
+            'packet': last,
         })
         summary['remaining_steps'] = steps[step_index:]
         summary['running_step'] = None
@@ -190,22 +229,39 @@ def execute_plan(rollout, index, arguments):
     else:
         status = 'plan_completed'
 
-    reason = summary['stop_reason'] or 'All planned actions arrived; inspect the final observation.'
+    reason = (
+        summary['stop_reason']
+        or 'All planned actions arrived; inspect the final observation.'
+    )
     save_journal()
     rollout._record_private(index, PLAN_TOOL, arguments, {
-        'status': status, 'reason': reason, 'command_sent': any_sent,
-        'data': summary, 'images': [],
+        'status': status,
+        'reason': reason,
+        'command_sent': any_sent,
+        'data': summary,
+        'images': [],
     })
     observation = last['observation'] if last else None
     note = last.get('observation_note') if last else None
-    if (observation is None and seen is not None
-            and last['action_context']['movement_allowed']):
-        # A rejected step ran nothing; the earlier step's observation is still current.
+    if (
+        observation is None
+        and seen is not None
+        and last['action_context']['movement_allowed']
+    ):
+        # Reuse the last observation after a rejected step.
         observation, images = seen[0]['observation'], seen[1]
-        note = (f'Step {len(summary["steps"])} was rejected without running; this is the '
-                'observation after the last step that ran, and it is still current.')
+        note = (
+            f'Step {len(summary["steps"])} was rejected without running; this is the '
+            'observation after the last step that ran, and it is still current.'
+        )
     return rollout._reply(
-        index, PLAN_TOOL, action_executed=any_sent,
-        status=status, reason=reason, result=summary,
-        observation=observation, observation_note=note, images=images,
+        index,
+        PLAN_TOOL,
+        action_executed=any_sent,
+        status=status,
+        reason=reason,
+        result=summary,
+        observation=observation,
+        observation_note=note,
+        images=images,
     )

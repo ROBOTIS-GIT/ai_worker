@@ -1,8 +1,20 @@
-"""Rotation and angle helpers shared by robot_io and robot_tools.
-
-Angles are radians in the tf2 convention R = Rz(yaw) * Ry(pitch) * Rx(roll).
-Quaternions are (x, y, z, w).
-"""
+#!/usr/bin/env python3
+#
+# Copyright 2026 ROBOTIS CO., LTD.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Author: Jiho Park
 
 import math
 
@@ -35,9 +47,11 @@ def quat_to_matrix(q):
 def quat_to_rpy(q):
     """Return (roll, pitch, yaw) in the same convention as rpy_to_quat"""
     m = quat_to_matrix(q)
-    return (math.atan2(m[2, 1], m[2, 2]),
-            math.asin(max(-1.0, min(1.0, -m[2, 0]))),
-            math.atan2(m[1, 0], m[0, 0]))
+    return (
+        math.atan2(m[2, 1], m[2, 2]),
+        math.asin(max(-1.0, min(1.0, -m[2, 0]))),
+        math.atan2(m[1, 0], m[0, 0]),
+    )
 
 
 def quat_angle(q1, q2):
@@ -54,7 +68,7 @@ def yaw_from_quat(x, y, z, w):
 
 
 def wrap_angle(angle):
-    """Same angle in (-pi, pi]"""
+    """Wrap an angle to [-pi, pi]"""
     return math.atan2(math.sin(angle), math.cos(angle))
 
 

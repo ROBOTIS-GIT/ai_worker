@@ -1,23 +1,26 @@
-"""Rest detection shared by robot_io's arrival waits.
-
-A command ends when the measured value comes to rest: inside the arrival
-tolerance it arrived, outside it stopped (blocked by contact, such as fingers
-closing on an object or a hand pressing on the table). Waiting for rest also
-keeps a short move from counting as arrived before it has moved.
-"""
-
+#!/usr/bin/env python3
+#
+# Copyright 2026 ROBOTIS CO., LTD.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Author: Jiho Park
 
 from collections import deque
 
 
 class StallDetector:
-    """Tells when a measured value has come to rest.
-
-    A stall needs samples covering the last window_s seconds, all within
-    moved() of the newest one, from a measurement stamp that advanced during
-    the window. Nothing counts as a stall before min_elapsed_s, so a command
-    whose trajectory has not got going yet is not mistaken for a blocked one.
-    """
+    """Detect rest from fresh measurements over a time window"""
 
     def __init__(self, window_s, min_elapsed_s, started, moved):
         self.window_s = float(window_s)
@@ -27,14 +30,16 @@ class StallDetector:
         self.samples = deque()
 
     def update(self, now, stamp, value):
-        """Add one sample taken at monotonic time now; True when stalled"""
         self.samples.append((now, stamp, value))
-        # Keep the newest sample that is at least window_s old as the window start.
+
         while len(self.samples) > 1 and now - self.samples[1][0] >= self.window_s:
             self.samples.popleft()
         first_time, first_stamp, _ = self.samples[0]
+
         if now - self.started < self.min_elapsed_s or now - first_time < self.window_s:
             return False
+
         if stamp <= first_stamp:
-            return False  # no new measurement arrived during the window
+            return False
+
         return not any(self.moved(old, value) for _, _, old in self.samples)

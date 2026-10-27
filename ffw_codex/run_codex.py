@@ -1,14 +1,25 @@
-"""
-Run one episode: Codex app-server as the policy, the robot behind
-dynamic tools, the model's task_complete claim judged later by a person.
+#!/usr/bin/env python3
+#
+# Copyright 2026 ROBOTIS CO., LTD.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Author: Jiho Park
 
-Run inside the ai_worker container, in a shell with the ROS environment loaded,
-while the physical SG2 bringup and Cyclo are running:
-    python3 run_codex.py
-    python3 run_codex.py --task "your task" --run-id first_try
+"""Run one robot episode with Codex app-server
 
-The first Ctrl+C stops new actions and lets a running robot tool finish.
-The summary for judging is runs/<run_id>/result.json
+Requires ROS, SG2 bringup and Cyclo.
+Example: python3 run_codex.py --task "your task" --run-id first_try
 """
 
 import argparse
@@ -25,12 +36,12 @@ from workspace import build_instructions, prepare_workspace, write_run_record
 
 
 HERE = Path(__file__).resolve().parent
-# End reasons where the host itself failed rather than the episode ending
+# Host-level failure reasons
 HOST_FAILURES = frozenset({'host_error', 'transport_closed'})
 
 
 def host_config(cfg, developer, prompt, **overrides):
-    """HostConfig from config.yaml; overrides are for checks (poll_s and so on)."""
+    """Build HostConfig from settings and optional overrides"""
     return HostConfig(
         developer_instructions=developer,
         initial_prompt=prompt,
@@ -45,20 +56,23 @@ def host_config(cfg, developer, prompt, **overrides):
 
 
 def estimate_cost(total, prices):
-    """USD estimate from tokenUsage.total; ignores any long-prompt surcharge"""
+    """Estimate token cost in USD, excluding long-prompt surcharges"""
     if not total or not prices:
         return None
     cached = total.get('cachedInputTokens', 0)
     written = total.get('cacheWriteInputTokens', 0)
     uncached = total.get('inputTokens', 0) - cached - written
-    dollars = (uncached * prices['input'] + cached * prices['cached_input']
-               + written * prices['cache_write']
-               + total.get('outputTokens', 0) * prices['output']) / 1e6
+    dollars = (
+        uncached * prices['input']
+        + cached * prices['cached_input']
+        + written * prices['cache_write']
+        + total.get('outputTokens', 0) * prices['output']
+    ) / 1e6
     return round(dollars, 3)
 
 
 def summarize(record, outcome, cfg):
-    """result.json: what a person needs to judge the episode"""
+    """Build the episode summary for result.json"""
     rollout = outcome.get('rollout') or {}
     total = (outcome.get('token_usage') or {}).get('total') or {}
     cached = total.get('cachedInputTokens', 0)
@@ -88,27 +102,43 @@ def summarize(record, outcome, cfg):
             'reasoning': total.get('reasoningOutputTokens', 0),
         },
         'cost_usd_estimate': estimate_cost(total, cfg['model'].get('price_per_million')),
-        'verdict': None,        # filled in by a person: "success" or "failure"
+        'verdict': None,        # Human verdict: "success" or "failure"
         'verdict_note': None,
     }
 
 
-def run_episode(cfg, config_path, task, run_dir, guard,
-                transport_factory=AppServerTransport, host_overrides=None):
-    """Prepare the workspace, run one Codex thread on guard and write result.json."""
+def run_episode(
+    cfg,
+    config_path,
+    task,
+    run_dir,
+    guard,
+    transport_factory=AppServerTransport,
+    host_overrides=None,
+):
+    """Run one episode and save result.json"""
     run_dir = Path(run_dir).resolve()
     agent_dir = prepare_workspace(
         run_dir,
         cfg['codex']['home'],
         template_dir=HERE / 'agent_template',
-        )
+    )
     developer, prompt = build_instructions(agent_dir, task)
     record = write_run_record(run_dir, run_dir.name, task, cfg, config_path, developer, prompt)
-    rollout = RobotRollout(guard, cfg, run_dir, task,
-                           max_actions=cfg['episode']['max_actions'],
-                           max_seconds=cfg['episode']['max_seconds'])
-    host = CodexHost(host_config(cfg, developer, prompt, **(host_overrides or {})),
-                     rollout, run_dir, transport_factory=transport_factory)
+    rollout = RobotRollout(
+        guard,
+        cfg,
+        run_dir,
+        task,
+        max_actions=cfg['episode']['max_actions'],
+        max_seconds=cfg['episode']['max_seconds'],
+    )
+    host = CodexHost(
+        host_config(cfg, developer, prompt, **(host_overrides or {})),
+        rollout,
+        run_dir,
+        transport_factory=transport_factory,
+    )
     result = summarize(record, host.run(), cfg)
     write_json(run_dir / 'result.json', result)
     return result
@@ -118,7 +148,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
     parser.add_argument('--config', default=str(HERE / 'config.yaml'))
     parser.add_argument('--task', required=True)
-    parser.add_argument('--run-id', default=None, help='folder name under runs/ (default: UTC time)')
+    parser.add_argument(
+        '--run-id',
+        default=None,
+        help='folder name under runs/ (default: UTC time)',
+    )
     args = parser.parse_args()
 
     import rclpy
@@ -145,9 +179,11 @@ def main():
         rclpy.try_shutdown()
 
     claim = result['claim']
-    print(f'\nend: {result["end_reason"]} / {result["finish_reason"]}, '
-          f'actions {result["actions_executed"]}, {result["elapsed_s"]} s, '
-          f'tokens {result["tokens"]["total"]}, ~${result["cost_usd_estimate"]}')
+    print(
+        f'\nend: {result["end_reason"]} / {result["finish_reason"]}, '
+        f'actions {result["actions_executed"]}, {result["elapsed_s"]} s, '
+        f'tokens {result["tokens"]["total"]}, ~${result["cost_usd_estimate"]}'
+    )
     print(f'claim: {claim["reason"] if claim else None}')
     print(f'record: {run_dir}  (fill in verdict in result.json)')
     return 1 if result['end_reason'] in HOST_FAILURES else 0

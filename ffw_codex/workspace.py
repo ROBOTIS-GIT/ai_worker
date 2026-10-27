@@ -1,12 +1,20 @@
-"""
-Episode workspace: the agent/ folder Codex works in, and the instructions it gets.
-
-prepare_workspace copies agent_template/ into runs/<run_id>/agent/ and writes
-workspace.json. Codex itself loads agent/AGENTS.md from its working directory,
-so developerInstructions carry only context/task_context.md and AGENTS.md is
-not sent twice. write_run_record keeps the hashes of everything the model is
-given in run.json, outside the model-readable area.
-"""
+#!/usr/bin/env python3
+#
+# Copyright 2026 ROBOTIS CO., LTD.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Author: Jiho Park
 
 import hashlib
 from pathlib import Path
@@ -16,7 +24,7 @@ from codex_host import utc_now, write_json
 
 
 HERE = Path(__file__).resolve().parent
-# File names Codex loads as instructions, in CODEX_HOME and project folders.
+# Instruction file names
 AGENTS_FILES = ('AGENTS.md', 'AGENTS.override.md')
 CAMERAS = ('head', 'wrist_left', 'wrist_right')
 INITIAL_PROMPT = 'Task: {task}\n\nThe episode has not started. Call robot_start.'
@@ -29,12 +37,7 @@ def sha256(data):
 
 
 def stray_agents_files(agent_dir, codex_home):
-    """AGENTS files Codex would load besides agent/AGENTS.md.
-
-    Codex reads CODEX_HOME/AGENTS.md and the AGENTS files of every folder from
-    the project root (the nearest parent with .git) down to the working
-    directory. Any of them would reach the model unrecorded.
-    """
+    """Find additional AGENTS files that could affect the run"""
     agent_dir = Path(agent_dir).resolve()
     candidates = [Path(codex_home) / name for name in AGENTS_FILES]
     candidates.append(agent_dir / 'AGENTS.override.md')
@@ -46,14 +49,11 @@ def stray_agents_files(agent_dir, codex_home):
 
 
 def prepare_workspace(run_dir, codex_home, template_dir):
-    """Create run_dir/agent from the template and return its path.
-
-    Fails if agent/ already exists, so a run never reuses another run's notes.
-    """
+    """Create the agent workspace; fail if it already exists"""
     run_dir = Path(run_dir).resolve()
     agent_dir = run_dir / 'agent'
     public_dir = run_dir / 'public'
-    # The permission profile names these folders; they must exist before Codex starts.
+    # Create permission-profile directories before Codex starts
     (public_dir / 'observations').mkdir(parents=True, exist_ok=True)
     shutil.copytree(template_dir, agent_dir)
     (agent_dir / 'notes').mkdir(exist_ok=True)
@@ -81,13 +81,13 @@ def prepare_workspace(run_dir, codex_home, template_dir):
 
 
 def build_instructions(agent_dir, task):
-    """(developerInstructions, first turn text) for CodexHost."""
+    """Build developer instructions and the initial prompt"""
     developer = (Path(agent_dir) / 'context' / 'task_context.md').read_text(encoding='utf-8')
     return developer, INITIAL_PROMPT.format(task=task)
 
 
 def write_run_record(run_dir, run_id, task, cfg, config_path, developer, prompt):
-    """run.json: what this run gives the model, by hash, and its settings."""
+    """Record run settings and input hashes in run.json"""
     run_dir = Path(run_dir).resolve()
     agent_dir = run_dir / 'agent'
     record = {
@@ -101,7 +101,8 @@ def write_run_record(run_dir, run_id, task, cfg, config_path, developer, prompt)
         'config_sha256': sha256(Path(config_path).read_bytes()),
         'agent_files_sha256': {
             str(path.relative_to(agent_dir)): sha256(path.read_bytes())
-            for path in sorted(agent_dir.rglob('*')) if path.is_file()
+            for path in sorted(agent_dir.rglob('*'))
+            if path.is_file()
         },
         'instructions': {
             'loaded_by_codex': 'agent/AGENTS.md',

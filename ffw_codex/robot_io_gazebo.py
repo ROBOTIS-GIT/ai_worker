@@ -1,27 +1,43 @@
+#!/usr/bin/env python3
+#
+# Copyright 2026 ROBOTIS CO., LTD.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Author: Jiho Park
+
+from collections import deque
+import math
 import threading
 import time
-import math
 
 from builtin_interfaces.msg import Duration
-from robotis_interfaces.msg import MoveL
-from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
-
-from stall import StallDetector
-from transforms import quat_angle, rpy_to_quat, wrap_angle, yaw_from_quat
-from collections import deque
-
 import cv2
 from cv_bridge import CvBridge
-
+from geometry_msgs.msg import Twist
+from nav_msgs.msg import Odometry
 from rclpy.executors import ExternalShutdownException, SingleThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from rclpy.time import Time
+from robotis_interfaces.msg import MoveL
 from rosgraph_msgs.msg import Clock
 from sensor_msgs.msg import Image, JointState
 from tf2_ros import Buffer, TransformException, TransformListener
-from geometry_msgs.msg import Twist
-from nav_msgs.msg import Odometry
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+
+from stall import StallDetector
+from transforms import quat_angle, rpy_to_quat, wrap_angle, yaw_from_quat
 
 
 BASE_KEYS = ('x', 'y', 'yaw', 'vx', 'vy', 'wz')
@@ -36,7 +52,7 @@ ZERO_REPEATS = 2
 
 
 def stamp_seconds(stamp):
-    """builtin_interfaces/Time as float seconds."""
+    """Convert a builtin_interfaces/Time stamp to seconds."""
     return stamp.sec + stamp.nanosec * 1e-9
 
 
@@ -61,16 +77,13 @@ class RobotIO(Node):
         self._image_cache = {}
         self._sim_clock = None   # sim_s, received, advanced, rewinds
 
-        # Only the calling thread converts images, so one bridge is enough.
         self._bridge = CvBridge()
 
-        # spin_thread=False: the TF subscriptions live on this node and are
-        # served by the same executor as everything else.
+        # Serve TF callbacks on this node's executor.
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self, spin_thread=False)
 
-        # BEST_EFFORT subscriptions connect to both RELIABLE (Gazebo bridge)
-        # and BEST_EFFORT (real camera drivers) publishers.
+        # BEST_EFFORT supports reliable and best-effort publishers.
         self.create_subscription(
             JointState, '/joint_states', self._on_joint_state, qos_profile_sensor_data)
         self.create_subscription(
@@ -115,7 +128,6 @@ class RobotIO(Node):
                 raise ValueError(f'invalid limits. {key}')
             self.body_limits[joint] = (lower, upper)
 
-        # Optional configuration. These are initial tuning values
         motion_cfg = cfg.get('body_motion', {})
         self.body_move_time_s = float(motion_cfg.get('move_time_s', 3.0))
 
@@ -151,7 +163,7 @@ class RobotIO(Node):
             )
         }
 
-        # Mobile base: body velocity on cmd_vel, measured pose from odom.
+        # Mobile base I/O
         base_cfg = cfg['base']
         self.base_cfg = {}
         for key in BASE_LIMITS:
@@ -170,7 +182,6 @@ class RobotIO(Node):
         self.create_subscription(
             Odometry, self.odom_topic, self._on_odom, qos_profile_sensor_data)
 
-
         self._io_executor = SingleThreadedExecutor()
         self._io_executor.add_node(self)
         self._spin_thread = None
@@ -178,9 +189,7 @@ class RobotIO(Node):
         self._closing = False
         self._closed = False
 
-    # ---------------------------------------------------------------
     # callbacks, run on the spin thread
-    # ---------------------------------------------------------------
 
     def _on_joint_state(self, msg):
         received = time.monotonic()
@@ -213,10 +222,12 @@ class RobotIO(Node):
 
     def _image_callback(self, camera):
         def on_image(msg):
-            # Keep the raw message. Converting to JPEG here would block the
-            # spin thread for every frame of every camera.
-            entry = {'msg': msg, 'stamp_s': stamp_seconds(msg.header.stamp),
-                     'received': time.monotonic()}
+            # Cache raw images; encode JPEGs when requested.
+            entry = {
+                'msg': msg,
+                'stamp_s': stamp_seconds(msg.header.stamp),
+                'received': time.monotonic(),
+            }
             with self._cache_lock:
                 history = self._image_cache.get(camera)
                 if history is None:
@@ -235,9 +246,7 @@ class RobotIO(Node):
             if sim_s > clock['sim_s']:
                 clock['advanced'] = now
             elif sim_s < clock['sim_s']:
-                # Gazebo was reset or restarted. Count it so callers can tell,
-                # and drop history from the old run so a snapshot cannot match
-                # frames or transforms whose stamps belong to it.
+                # Clear cached state and TF when simulation time rewinds.
                 clock['rewinds'] += 1
                 clock['advanced'] = now
                 self._image_cache.clear()
@@ -246,15 +255,14 @@ class RobotIO(Node):
                 self.tf_buffer.clear()
             clock['sim_s'] = sim_s
             clock['received'] = now
-    # ---------------------------------------------------------------
+
     # thread lifecycle
-    # ---------------------------------------------------------------
 
     def _spin(self):
         try:
             self._io_executor.spin()
         except ExternalShutdownException:
-            pass  # rclpy.shutdown() while spinning, for example Ctrl+C
+            pass  # ROS shutdown
         except Exception as exc:
             if not self._closing:
                 self._spin_error = exc
@@ -273,17 +281,19 @@ class RobotIO(Node):
         if self._closing:
             raise RuntimeError('RobotIO is closing or already closed')
         if self._spin_error is not None:
-            raise RuntimeError(f'ROS spin thread failed: {self._spin_error!r}') from self._spin_error
+            raise RuntimeError(
+                f'ROS spin thread failed: {self._spin_error!r}'
+            ) from self._spin_error
         if self._spin_thread is None:
             raise RuntimeError('RobotIO.start() has not been called')
         if not self._spin_thread.is_alive():
             raise RuntimeError('ROS spin thread stopped (rclpy shut down?)')
 
     def close(self):
-        """Stop the base and callbacks before destroying the node; failed shutdown can be retried."""
+        """Stop base motion and callbacks; allow retry if shutdown fails."""
         if self._closed:
             return
-        # Stop a running base command while the publisher still exists.
+        # Stop base motion before destroying its publisher.
         self._base_cancel.set()
         if self._base_lock.acquire(timeout=2.0):
             self._base_lock.release()
@@ -300,9 +310,7 @@ class RobotIO(Node):
         self.destroy_node()
         self._closed = True
 
-    # ---------------------------------------------------------------
     # observation
-    # ---------------------------------------------------------------
 
     def _missing_observations(self):
         missing = []
@@ -328,7 +336,7 @@ class RobotIO(Node):
         return missing
 
     def wait_ready(self, timeout_s=None):
-        """Block until every camera, gripper joint, /clock and both hand transforms arrived once."""
+        """Wait for cameras, gripper joints, /clock and both hand transforms."""
         if timeout_s is None:
             timeout_s = self.ready_timeout_s
         deadline = time.monotonic() + timeout_s
@@ -339,14 +347,15 @@ class RobotIO(Node):
                 return
             if time.monotonic() >= deadline:
                 raise TimeoutError(
-                    f'observations not ready after {timeout_s:.1f} s, missing: {", ".join(missing)}')
+                    f'observations not ready after {timeout_s:.1f} s, '
+                    f'missing: {", ".join(missing)}'
+                )
             time.sleep(0.1)
 
     def get_ee_pose(self, arm, timeout_s=None):
-        """Latest measured base_link -> end effector transform.
+        """Return the latest base_link pose in meters and quaternion (x, y, z, w).
 
-        Real SG2 coordinates, meters, quaternion (x, y, z, w). No Cyclo offset.
-        stamp_s is the simulation time of the transform.
+        stamp_s uses simulation time; no Cyclo offset is applied.
         """
         if timeout_s is None:
             timeout_s = self.lookup_timeout_s
@@ -356,8 +365,7 @@ class RobotIO(Node):
         while True:
             self._check_running()
             try:
-                # Time() requests the latest available transform. Explicit TF
-                # times, if needed, must come from simulation-stamped data.
+                # Time() requests the latest transform.
                 tf = self.tf_buffer.lookup_transform(base, ee, Time())
             except TransformException as exc:
                 if time.monotonic() >= deadline:
@@ -366,19 +374,20 @@ class RobotIO(Node):
                 time.sleep(0.05)
                 continue
             t, r = tf.transform.translation, tf.transform.rotation
-            return {'frame': base, 'x': t.x, 'y': t.y, 'z': t.z,
-                    'quat': [r.x, r.y, r.z, r.w],
-                    'stamp_s': stamp_seconds(tf.header.stamp)}
+            return {
+                'frame': base,
+                'x': t.x,
+                'y': t.y,
+                'z': t.z,
+                'quat': [r.x, r.y, r.z, r.w],
+                'stamp_s': stamp_seconds(tf.header.stamp),
+            }
 
     def get_arm_base_z(self, timeout_s=None):
-        """Height of the lift-carried arm base in base_link, in meters
-        
-        The lift is a prismatic z joint whose child link carries both arms,
-        so reach limits measured from this link stay valid at any lift height
-        """
+        """Return the lift-carried arm base height in base_link, in meters."""
         if timeout_s is None:
             timeout_s = self.lookup_timeout_s
-            
+
         base = self.cfg['frames']['base']
         arm_base = self.cfg['reach']['frame']
         deadline = time.monotonic() + timeout_s
@@ -393,9 +402,12 @@ class RobotIO(Node):
                         f'{timeout_s:.1f} s ({exc})') from exc
                 time.sleep(0.05)
                 continue
-            return {'frame': base, 'link': arm_base,
-                    'z': tf.transform.translation.z,
-                    'stamp_s': stamp_seconds(tf.header.stamp)}
+            return {
+                'frame': base,
+                'link': arm_base,
+                'z': tf.transform.translation.z,
+                'stamp_s': stamp_seconds(tf.header.stamp),
+            }
 
     def get_gripper(self, arm, timeout_s=None):
         """Gripper joint position in rad from /joint_states, with its stamp and age."""
@@ -409,9 +421,12 @@ class RobotIO(Node):
                 history = self._joint_cache.get(joint)
                 entry = history[-1] if history else None
             if entry is not None:
-                return {'joint': joint, 'position_rad': entry['position'],
-                        'stamp_s': entry['stamp_s'],
-                        'age_s': time.monotonic() - entry['received']}
+                return {
+                    'joint': joint,
+                    'position_rad': entry['position'],
+                    'stamp_s': entry['stamp_s'],
+                    'age_s': time.monotonic() - entry['received'],
+                }
             if time.monotonic() >= deadline:
                 raise RuntimeError(f'no /joint_states value for {joint} within {timeout_s:.1f} s')
             time.sleep(0.05)
@@ -450,7 +465,6 @@ class RobotIO(Node):
                 )
                 for joint in names
             )
-
 
             if ready:
                 return {
@@ -510,11 +524,7 @@ class RobotIO(Node):
                 'rewinds': clock['rewinds']}
 
     def get_state(self):
-        """Latest value of each source for both arms, plus the simulation clock. Raw units.
-
-        Sources are sampled independently and retain their own timestamps.
-        Camera data is queried separately with get_snapshot().
-        """
+        """Return independently sampled robot state and the simulation clock."""
         arms = {}
         for arm in self.cfg['frames']['ee']:
             arms[arm] = {'ee': self.get_ee_pose(arm), 'gripper': self.get_gripper(arm)}
@@ -532,35 +542,46 @@ class RobotIO(Node):
         return min(history, key=lambda entry: abs(entry['stamp_s'] - stamp_s), default=None)
 
     def _state_at(self, stamp_s, joints):
-        """Arm poses from TF and gripper samples at one simulation time.
+        """Match arm state at a simulation timestamp
 
-        Returns (problem, arms). problem is None when every value was found.
-        """
+        Returns (problem, arms)."""
         base = self.cfg['frames']['base']
         tol = self.snapshot_tolerance_s
         arms = {}
         for arm, ee in self.cfg['frames']['ee'].items():
             try:
-                # TF keeps sim-stamped samples and interpolates between them.
-                # A stamp newer than the last /tf raises, and the caller retries.
+                # Retry if TF has not reached the requested simulation timestamp.
                 tf = self.tf_buffer.lookup_transform(base, ee, Time(seconds=stamp_s))
             except TransformException as exc:
-                return f'tf {base} -> {ee} at {stamp_s:.3f} not available yet ({type(exc).__name__})', None
+                return (
+                    f'tf {base} -> {ee} at {stamp_s:.3f} '
+                    f'not available yet ({type(exc).__name__})',
+                    None,
+                )
             joint = self.cfg['cyclo']['gripper_joint'][arm]
             sample = self._nearest(joints[arm], stamp_s)
             if sample is None or abs(sample['stamp_s'] - stamp_s) > tol:
                 return f'no {joint} sample within {tol} s of {stamp_s:.3f}', None
             t, r = tf.transform.translation, tf.transform.rotation
             arms[arm] = {
-                'ee': {'frame': base, 'x': t.x, 'y': t.y, 'z': t.z,
-                       'quat': [r.x, r.y, r.z, r.w], 'stamp_s': stamp_s},
-                'gripper': {'joint': joint, 'position_rad': sample['position'],
-                            'stamp_s': sample['stamp_s']},
+                'ee': {
+                    'frame': base,
+                    'x': t.x,
+                    'y': t.y,
+                    'z': t.z,
+                    'quat': [r.x, r.y, r.z, r.w],
+                    'stamp_s': stamp_s,
+                },
+                'gripper': {
+                    'joint': joint,
+                    'position_rad': sample['position'],
+                    'stamp_s': sample['stamp_s'],
+                },
             }
         return None, arms
 
     def _try_snapshot(self, cameras, after_stamp_s):
-        """One attempt at matching frames and state. Returns (problem, stamp_s, frames, state)."""
+        """Try to match camera frames and robot state at a simulation timestamp."""
         tol = self.snapshot_tolerance_s
         with self._cache_lock:
             frames = {c: list(self._image_cache.get(c, ())) for c in cameras}
@@ -576,12 +597,7 @@ class RobotIO(Node):
         if waiting:
             return f'no frame yet from {", ".join(waiting)}', None, None, None
 
-        # Gazebo renders all cameras on the same simulation steps, so their
-        # stamps match exactly or differ by a whole frame. Walk the times newest
-        # first and return the first one with a frame from every camera whose TF
-        # and joint samples have already arrived. If TF lags the cameras by more
-        # than a frame, the newest time is never complete when checked, so
-        # waiting only for it would time out every call.
+        # TF may lag camera frames; require matching state before returning.
         newest_problem = None
         for stamp_s in sorted({f['stamp_s'] for f in frames[cameras[0]]}, reverse=True):
             if after_stamp_s is not None and stamp_s <= after_stamp_s:
@@ -613,19 +629,15 @@ class RobotIO(Node):
 
                 if newest_problem is None:
                     newest_problem = problem
-                    
+
             return newest_problem, None, None, None
         after = '' if after_stamp_s is None else f' newer than {after_stamp_s:.3f}'
         return f'no time{after} with a frame from every camera', None, None, None
 
     def get_snapshot(self, cameras, after_stamp_s=None, timeout_s=None):
-        """Camera frames and both arms' state that belong to one simulation time.
+        """Return the latest timestamp-matched camera and robot state.
 
-        The frames pick the time: the newest stamp every listed camera has a frame
-        for (within snapshot_tolerance_s). Arm poses are TF at that stamp, gripper
-        values the /joint_states samples nearest to it.
-        after_stamp_s: accept only a time later than this, for example the moment
-        a move settled, so the snapshot cannot show the robot before it finished.
+        Use simulation timestamps; the snapshot must exceed after_stamp_s if set.
         """
         cameras = list(cameras)
         unknown = [c for c in cameras if c not in self.cameras]
@@ -650,9 +662,12 @@ class RobotIO(Node):
         body = state['body']
         base = state['base']
 
-        # JPEG encoding happens after matching, outside the lock and off the spin thread.
+        # Encode matched frames outside the cache lock.
         now = time.monotonic()
-        images = {camera: self._encode_frame(camera, frame, now) for camera, frame in frames.items()}
+        images = {
+            camera: self._encode_frame(camera, frame, now)
+            for camera, frame in frames.items()
+        }
         offsets = [
             abs(image['stamp_s'] - stamp_s)
             for image in images.values()
@@ -667,9 +682,16 @@ class RobotIO(Node):
         ]
         offsets.append(abs(base['stamp_s'] - stamp_s))
 
-        return {'stamp_s': stamp_s, 'frame': self.cfg['frames']['base'],
-                'arms': arms, 'body': body, 'base': base, 'images': images,
-                'max_offset_s': max(offsets), 'clock': self.get_sim_clock()}
+        return {
+            'stamp_s': stamp_s,
+            'frame': self.cfg['frames']['base'],
+            'arms': arms,
+            'body': body,
+            'base': base,
+            'images': images,
+            'max_offset_s': max(offsets),
+            'clock': self.get_sim_clock(),
+        }
 
     def _encode_frame(self, camera, frame, now):
         msg = frame['msg']
@@ -677,15 +699,19 @@ class RobotIO(Node):
         ok, buffer = cv2.imencode('.jpg', image, [cv2.IMWRITE_JPEG_QUALITY, self.jpeg_quality])
         if not ok:
             raise RuntimeError(f'{camera}: JPEG encoding failed')
-        return {'camera': camera, 'jpeg': buffer.tobytes(),
-                'topic': self.cameras[camera], 'frame_id': msg.header.frame_id,
-                'stamp_s': frame['stamp_s'],
-                'receive_age_s': now - frame['received'],
-                'width': msg.width, 'height': msg.height, 'encoding': msg.encoding}
+        return {
+            'camera': camera,
+            'jpeg': buffer.tobytes(),
+            'topic': self.cameras[camera],
+            'frame_id': msg.header.frame_id,
+            'stamp_s': frame['stamp_s'],
+            'receive_age_s': now - frame['received'],
+            'width': msg.width,
+            'height': msg.height,
+            'encoding': msg.encoding,
+        }
 
-    # ---------------------------------------------------------------
     # Cyclo command publication
-    # ---------------------------------------------------------------
 
     def _wait_for_subscriber(self, publisher, timeout_s=5.0):
         """Wait in wall time until Cyclo subscribes to the publisher"""
@@ -714,7 +740,7 @@ class RobotIO(Node):
         sec = int(seconds)
         nanosec = int(round((seconds - sec) * 1e9))
 
-        # Protect against rounding 0.999999999... to one full second.
+        # Handle nanosecond rounding overflow.
         if nanosec == 1_000_000_000:
             sec += 1
             nanosec = 0
@@ -738,7 +764,7 @@ class RobotIO(Node):
         msg.pose.header.frame_id = self.cfg['frames']['base']
         msg.pose.header.stamp = self.get_clock().now().to_msg()
 
-        # Apply the SG2 solver correction here and only here.
+        # Apply the SG2 solver offset once.
         msg.pose.pose.position.x = float(
             target['x'] + self.cfg['cyclo']['x_offset_m']
         )
@@ -827,20 +853,15 @@ class RobotIO(Node):
         point.time_from_start = self._duration(self.body_move_time_s)
         trajectory.points = [point]
 
-        # Leave header.stamp at zero: start upon receipt by the controller.
+        # A zero stamp starts the trajectory on receipt.
         sent_at = time.monotonic()
         publisher.publish(trajectory)
         return sent_at
 
-    # ---------------------------------------------------------------
     # mobile base
-    # ---------------------------------------------------------------
 
     def base_command_problem(self):
-        """None when the controller subscribes to cmd_vel and nobody else publishes.
-
-        A check of the ROS graph, which lags discovery. Not a lock.
-        """
+        """Check cmd_vel peers; graph discovery may lag and provides no lock."""
         if self.cmd_vel_pub.get_subscription_count() < 1:
             return f'nothing subscribes to {self.cmd_vel_topic}'
         publishers = self.count_publishers(self.cmd_vel_topic)
@@ -876,17 +897,15 @@ class RobotIO(Node):
         return floor + (1.0 - floor) * max(0.0, edge) / ramp_s
 
     def send_base(self, vx, vy, wz, duration_s):
-        """Run one bounded body-velocity profile on cmd_vel, then publish zero.
+        """Run a base velocity profile, then publish zero.
 
-        Raises only before the first publish. After that it always returns,
-        with command_sent True and outcome saying how the profile ended.
-        Rest is not confirmed here; call wait_until_base_stopped next.
+        Raises only before publication; later failures return command_sent=True.
+        Confirm rest with wait_until_base_stopped().
         """
         cfg = self.base_cfg
         command = {'vx': float(vx), 'vy': float(vy), 'wz': float(wz)}
         duration_s = float(duration_s)
 
-        # RobotTools validates first; this is the last line before the wheels.
         if not all(math.isfinite(v) for v in (*command.values(), duration_s)):
             raise ValueError('base command must be finite')
         if not 0.0 < duration_s <= cfg['max_duration_s']:
@@ -905,7 +924,7 @@ class RobotIO(Node):
     def _run_base(self, command, duration_s):
         cfg = self.base_cfg
 
-        # Before the first publish: any failure here sent nothing.
+        # Pre-publication failures send no command.
         if self._base_cancel.is_set():
             raise RuntimeError('RobotIO is closing')
         problem = self.base_command_problem()
@@ -914,7 +933,7 @@ class RobotIO(Node):
         start = self.get_base_state()
         rewinds = self.get_sim_clock()['rewinds']
 
-        # Keep every moving axis at or above the controller deadband through the ramps.
+        # Keep active axes at or above the deadband.
         moving = [
             (abs(value), cfg['deadband_rps' if axis == 'wz' else 'deadband_mps'])
             for axis, value in command.items() if value != 0.0
@@ -956,7 +975,10 @@ class RobotIO(Node):
                 if clock['rewinds'] != rewinds:
                     outcome, detail = 'clock_reset', 'simulation clock was reset'
                     break
-                if clock['advanced_age_s'] is None or clock['advanced_age_s'] > cfg['clock_stall_s']:
+                if (
+                    clock['advanced_age_s'] is None
+                    or clock['advanced_age_s'] > cfg['clock_stall_s']
+                ):
                     outcome, detail = 'clock_stopped', 'simulation clock stopped (paused?)'
                     break
 
@@ -975,7 +997,7 @@ class RobotIO(Node):
                     outcome, detail = 'path_limit', f'odom path {path_m:.3f} m, {path_rad:.3f} rad'
                     break
 
-                # Progress over the last window, after the wheels had time to steer.
+                # Check progress after the steering grace period.
                 window.append((now, path_m, path_rad))
                 while len(window) > 1 and now - window[1][0] >= cfg['progress_window_s']:
                     window.popleft()
@@ -986,7 +1008,10 @@ class RobotIO(Node):
                     if ((moves_linear and gained_m < cfg['progress_min_m'])
                             or (moves_angular and gained_rad < cfg['progress_min_rad'])):
                         outcome = 'stalled'
-                        detail = f'{gained_m:.3f} m, {gained_rad:.3f} rad in {cfg["progress_window_s"]} s'
+                        detail = (
+                            f'{gained_m:.3f} m, {gained_rad:.3f} rad '
+                            f'in {cfg["progress_window_s"]} s'
+                        )
                         break
 
                 tick += 1
@@ -1012,12 +1037,7 @@ class RobotIO(Node):
         }
 
     def wait_until_base_stopped(self, after_received, timeout_s=None):
-        """Confirm rest on odom samples received after the zero command.
-
-        Rest: the pose moved less than rest_position_m and rest_yaw_rad for
-        rest_window_s, and the reported velocity is below rest_speed_*.
-        Never raises; rested False carries the reason.
-        """
+        """Confirm base rest from fresh odometry; return rested=False on failure."""
         cfg = self.base_cfg
         if timeout_s is None:
             timeout_s = cfg['rest_timeout_s']
@@ -1032,8 +1052,12 @@ class RobotIO(Node):
         sample = None
 
         def result(rested, reason):
-            return {'rested': rested, 'reason': reason, 'state': sample,
-                    'elapsed_s': time.monotonic() - started}
+            return {
+                'rested': rested,
+                'reason': reason,
+                'state': sample,
+                'elapsed_s': time.monotonic() - started,
+            }
 
         try:
             rewinds = self.get_sim_clock()['rewinds']
@@ -1044,7 +1068,10 @@ class RobotIO(Node):
                 clock = self.get_sim_clock()
                 if clock['rewinds'] != rewinds:
                     return result(False, 'simulation clock was reset')
-                if clock['advanced_age_s'] is None or clock['advanced_age_s'] > cfg['clock_stall_s']:
+                if (
+                    clock['advanced_age_s'] is None
+                    or clock['advanced_age_s'] > cfg['clock_stall_s']
+                ):
                     return result(False, 'simulation clock stopped (paused?)')
                 try:
                     sample = self.get_base_state(
@@ -1064,12 +1091,9 @@ class RobotIO(Node):
             return result(False, f'{type(exc).__name__}: {exc}')
 
     def wait_until_arrived(self, arm, target, target_quat, timeout_s=None):
-        """Wait until the measured hand pose comes to rest.
+        """Wait for hand rest after the trajectory time.
 
-        At rest inside tolerance is arrived; at rest outside it is stopped
-        (blocked, e.g. pressing on an object). Rest is judged only after the
-        MoveL trajectory time, so a short move cannot count as arrived before
-        it has moved, and a pose still converging is not reported early.
+        Report arrived inside tolerance or stopped outside it.
         """
         tolerance = self.cfg['tolerance']
         if timeout_s is None:
@@ -1131,11 +1155,9 @@ class RobotIO(Node):
             time.sleep(min(0.05, max(0.0, deadline - now)))
 
     def wait_until_gripper_arrived(self, arm, target_rad, timeout_s=None, move_time_s=1.0):
-        """Wait until the measured gripper joint comes to rest.
+        """Wait for gripper rest after move_time_s.
 
-        At rest inside tolerance is arrived; at rest outside it is stopped
-        (fingers closed on an object). Rest is judged only after move_time_s,
-        the trajectory time given to send_gripper.
+        Report arrived inside tolerance or stopped outside it.
         """
         tolerance = self.cfg['tolerance']
         if timeout_s is None:
@@ -1326,7 +1348,7 @@ class RobotIO(Node):
             }
 
         return None, body
-    
+
     def _base_state_at(self, stamp_s, history):
         """Match an odom sample to the selected camera timestamp."""
         sample = self._nearest(history, stamp_s)

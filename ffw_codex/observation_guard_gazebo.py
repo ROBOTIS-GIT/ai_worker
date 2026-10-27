@@ -1,7 +1,20 @@
-"""Run-local observation binding in front of RobotTools.dispatch.
-
-This does not cancel Cyclo commands or provide cross-process command ownership.
-"""
+#!/usr/bin/env python3
+#
+# Copyright 2026 ROBOTIS CO., LTD.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Author: Jiho Park
 
 from copy import deepcopy
 import math
@@ -38,14 +51,18 @@ def finite(value):
 
 
 class ObservationGuard:
+    """Validate observations before executing robot actions."""
+
     def __init__(self, tools, cfg):
         self.tools = tools
         self.cfg = cfg
         supplied = cfg.get('observation_guard', {})
         if not isinstance(supplied, dict) or set(supplied) - set(DEFAULTS):
             raise ValueError('invalid observation_guard configuration')
-        self.limits = {key: finite(supplied.get(key, default))
-                       for key, default in DEFAULTS.items()}
+        self.limits = {
+            key: finite(supplied.get(key, default))
+            for key, default in DEFAULTS.items()
+        }
         if any(value <= 0 for value in self.limits.values()):
             raise ValueError('observation_guard limits must be positive')
         self._baseline = None
@@ -76,8 +93,11 @@ class ObservationGuard:
             'status': 'rejected',
             'reason': reason,
             'command_sent': False,
-            'data': {'code': code, 'requires_observe': not self._halted,
-                     'run_halted': self._halted},
+            'data': {
+                'code': code,
+                'requires_observe': not self._halted,
+                'run_halted': self._halted,
+            },
             'images': [],
         }
 
@@ -138,21 +158,36 @@ class ObservationGuard:
             return 'base odometry frame changed'
         if not fresh(b):
             return 'base measurement is stale'
-        distance = math.hypot(finite(b['x']) - finite(a['x']), finite(b['y']) - finite(a['y']))
+        distance = math.hypot(
+            finite(b['x']) - finite(a['x']),
+            finite(b['y']) - finite(a['y']),
+        )
         if distance > self.limits['base_position_m']:
             return f'base position changed by {distance:.4f} m'
-        turn = abs(math.degrees(wrap_angle(finite(b['yaw']) - finite(a['yaw']))))
+        turn = abs(
+            math.degrees(
+                wrap_angle(finite(b['yaw']) - finite(a['yaw']))
+            )
+        )
         if turn > self.limits['base_yaw_deg']:
             return f'base heading changed by {turn:.2f} degrees'
         return None
 
     def _base_moving(self, state):
-        """Any action needs the base at rest, however little it has moved so far."""
+        """Return a reason if the base is moving."""
         base, rest = state['base'], self.cfg['base']
-        speed = math.hypot(finite(base['vx']), finite(base['vy']))
+        speed = math.hypot(
+            finite(base['vx']),
+            finite(base['vy']),
+        )
         turn = abs(finite(base['wz']))
-        if speed >= float(rest['rest_speed_mps']) or turn >= float(rest['rest_speed_rps']):
+
+        if (
+            speed >= float(rest['rest_speed_mps'])
+            or turn >= float(rest['rest_speed_rps'])
+        ):
             return f'the base is moving ({speed:.3f} m/s, {turn:.3f} rad/s)'
+
         return None
 
     def _register(self, data, images):
@@ -186,8 +221,10 @@ class ObservationGuard:
             return result
 
         if self._halted:
-            return self._reject('Movement blocked for this run after an uncertain action.',
-                                'run_halted')
+            return self._reject(
+                'Movement blocked for this run after an uncertain action.',
+                'run_halted'
+            )
         if not isinstance(args, dict):
             return self._reject('Action arguments must be an object.')
         observation_id = args.get('observation_id')
@@ -196,7 +233,11 @@ class ObservationGuard:
             return self._reject('Copy observation_id and request_id from action_context.')
         if request_id in self._used_requests:
             return self._reject('This request_id was already processed.', 'duplicate_request')
-        if self._request_id is None or observation_id != self._observation_id or request_id != self._request_id:
+        if (
+            self._request_id is None
+            or observation_id != self._observation_id
+            or request_id != self._request_id
+        ):
             return self._reject('Action does not match the current observation. Call observe.')
 
         try:
@@ -205,7 +246,10 @@ class ObservationGuard:
             current = self.tools.dispatch('get_state', {})
             if current['status'] != 'ok':
                 raise ValueError(current['reason'])
-            problem = self._state_problem(current['data']) or self._base_moving(current['data'])
+            problem = (
+                self._state_problem(current['data'])
+                or self._base_moving(current['data'])
+            )
             if problem:
                 raise ValueError(problem)
             if time.monotonic() - self._observed_at > self.limits['max_age_s']:
@@ -214,11 +258,14 @@ class ObservationGuard:
             self._invalidate()
             return self._reject(f'Pre-action check failed: {exc}. Call observe.')
 
-        # Claim the request before RobotTools can publish anything
+        # Consume the request before sending a command.
         self._used_requests.add(request_id)
         self._request_id = None
-        clean_args = {key: value for key, value in args.items()
-                      if key not in ('observation_id', 'request_id')}
+        clean_args = {
+            key: value
+            for key, value in args.items()
+            if key not in ('observation_id', 'request_id')
+        }
         try:
             result = self.tools.dispatch(name, clean_args)
             status, sent = result['status'], result['command_sent']
@@ -227,11 +274,10 @@ class ObservationGuard:
 
             if status == 'rejected' and sent is False:
                 if result['data'].get('invalidate_observation'):
-                    # Nothing moved, but the robot was not ready; observe again.
+                    # Robot not ready; require a new observation.
                     self._invalidate()
                 else:
-                    # A known validation rejection did not move anything.
-                    # Preserve the observation age and issue a new attempt token.
+                    # Keep the observation age and issue a new request ID.
                     self._request_id = 'req_' + uuid4().hex
             elif status in ('arrived', 'stopped') and sent is True:
                 self._invalidate()
@@ -239,12 +285,13 @@ class ObservationGuard:
                 if snapshot is not None and not result['data'].get('post_observation_error'):
                     self._register(snapshot, result['images'])
             else:
-                # A timeout is not a Cyclo cancellation or a completion ACK.
+                # A timeout does not confirm the command stopped.
                 self._halted = True
                 self._invalidate()
             result['data']['action_context'] = self._context()
             result['data']['accepted_request'] = {
-                'observation_id': observation_id, 'request_id': request_id,
+                'observation_id': observation_id,
+                'request_id': request_id,
             }
             return result
         except Exception as exc:
@@ -254,8 +301,12 @@ class ObservationGuard:
                 'status': 'error',
                 'reason': f'Action execution or result processing failed: {exc}',
                 'command_sent': None,
-                'data': {'action_context': self._context(),
-                         'accepted_request': {'observation_id': observation_id,
-                                              'request_id': request_id}},
+                'data': {
+                    'action_context': self._context(),
+                    'accepted_request': {
+                        'observation_id': observation_id,
+                        'request_id': request_id
+                    },
+                },
                 'images': [],
             }

@@ -1,9 +1,8 @@
 model:
   id: gpt-6-astra
-  # low, medium, high, xhigh, and max
   reasoning_effort: low
 
-  # USD per 1M tokens (public list price), for cost_usd_estimate in result.json
+  # Approximate USD per million tokens, based on Astra
   price_per_million: {input: 10.0, cached_input: 1.0, cache_write: 12.5, output: 50.0}
 
 plan:
@@ -18,8 +17,7 @@ episode:
   max_actions: 80
   max_seconds: 1800
 
-  # Host ends the episode when the thread's totalTokens reaches this (token_limit); null = none
-  max_total_tokens: 5000000
+  max_total_tokens: 5000000  # null: unlimited
 
 frames:
   base: base_link
@@ -37,7 +35,6 @@ cyclo:
   goal_topic:
     right: /r_goal_move
     left: /l_goal_move
-  # Cyclo takes gripper commands on a separate topic and merges them into the arm trajectory.
   gripper_topic:
     right: /leader/joint_trajectory_command_broadcaster_right/raw_joint_trajectory
     left: /leader/joint_trajectory_command_broadcaster_left/raw_joint_trajectory
@@ -49,7 +46,7 @@ cyclo:
 limits:
   max_step_m: 0.1
   max_rotation_rad: 0.35
-  # Joint limit is 1.1 rad but the fingertips overlap when closing on nothing.
+  # Limit closure to avoid fingertip overlap
   gripper_rad: [0.0, 1.0]
 
   head_joint1_rad: [-0.2317, 0.6951]
@@ -84,11 +81,9 @@ tolerance:
   orientation_deg: 5
   gripper_rad: 0.02
   settle_s: 0.5
-  # Wall clock, not simulation time. Cyclo doesn't use sim time.
-  timeout_s: 15.0
-  # A move or gripper command ends when it comes to rest: it moved less than
-  # these for stall_s, judged no earlier than its trajectory time plus stall_s.
-  # At rest inside the tolerance above is arrived, outside is stopped.
+  timeout_s: 15.0  # Wall time
+
+  # Stall checks start after motion time + stall_s
   stall_s: 1.0
   stall_position_m: 0.002
   stall_orientation_deg: 0.5
@@ -98,20 +93,19 @@ run:
   output_root: runs
   jpeg_quality: 95
 
-# Observation layer of robot_io.py. Wall clock seconds unless noted
+# Observation I/O; timeouts use wall time
 io:
   ready_timeout_s: 30.0
   lookup_timeout_s: 2.0
   image_timeout_s: 5.0
 
-  # Each image/joint sample must be this close to the reference timestamp
   snapshot_tolerance_s: 0.05
 
-  image_history: 90
-  joint_history: 300
+  image_history: 90  # Frames per camera
+  joint_history: 300  # Samples per joint
   odom_history: 300
 
-# Mobile base through swerve_drive_controller. Wall clock seconds unless noted.
+# Mobile base control; durations use wall time
 base:
   cmd_vel_topic: /cmd_vel
   odom_topic: /odom
@@ -119,25 +113,29 @@ base:
 
   deadband_mps: 0.1
   deadband_rps: 0.1
-  max_lin_mps: 0.15           # hypot(vx, vy)
+  max_lin_mps: 0.15  # hypot(vx, vy)
   max_ang_rps: 0.3
-  max_duration_s: 2.0         # ramp up + hold + ramp down
-  max_step_m: 0.2             # hypot(vx, vy) * duration_s
-  max_step_rad: 0.4           # |wz| * duration_s
+  max_duration_s: 2.0  # Ramp up + hold + ramp down
+  max_step_m: 0.2  # hypot(vx, vy) * duration_s
+  max_step_rad: 0.4  # |wz| * duration_s
   ramp_s: 0.3
-  path_margin: 1.25           # stop when the odom path exceeds max_step * this
-  steer_grace_s: 1.0          # no progress check while the wheels turn to the new heading
+
+  path_margin: 1.25  # Odometry path limit multiplier
+  steer_grace_s: 1.0  # Delay before progress checks
   progress_window_s: 0.5
   progress_min_m: 0.01
   progress_min_rad: 0.02
+
   odom_max_age_s: 0.5
+
   rest_window_s: 0.5
   rest_position_m: 0.002
   rest_yaw_rad: 0.005
   rest_speed_mps: 0.01
   rest_speed_rps: 0.02
   rest_timeout_s: 5.0
-  # Base motion only with both hands near the body (base_link) and the lift in range.
+
+  # Base motion posture limits; hand positions use base_link
   allowed_posture:
     ee_x_max_m: 0.48
     ee_abs_y_max_m: 0.30

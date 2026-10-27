@@ -1,10 +1,20 @@
-"""
-Line-delimited JSON-RPC client for one `codex app-server --stdio` process.
-
-Only the host's main loop calls request/next_message. A reader thread just
-moves stdout lines into a queue, so the app-server never blocks on a full pipe
-while the host is executing a robot tool.
-"""
+#!/usr/bin/env python3
+#
+# Copyright 2026 ROBOTIS CO., LTD.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Author: Jiho Park
 
 from collections import deque
 import hashlib
@@ -30,7 +40,7 @@ class RpcError(RuntimeError):
 
 
 def redact(value):
-    """Copy of value with long data: URLs replaced by their size and hash, for logs."""
+    """Summarize long data URLs for logging"""
     if isinstance(value, str):
         if value.startswith('data:') and len(value) > 256:
             header, _, body = value.partition(',')
@@ -45,7 +55,7 @@ def redact(value):
 
 
 class AppServerTransport:
-    """stdio JSON-RPC to one app-server child process, logged to log_dir."""
+    """Manage stdio JSON-RPC and logging for one app-server process"""
 
     def __init__(self, argv, env, cwd, log_dir, popen=subprocess.Popen):
         log_dir = Path(log_dir)
@@ -53,9 +63,15 @@ class AppServerTransport:
         self._out_log = (log_dir / 'rpc_out.jsonl').open('a', buffering=1, encoding='utf-8')
         self._stderr = (log_dir / 'app_stderr.log').open('a', buffering=1, encoding='utf-8')
         self.process = popen(
-            argv, env=env, cwd=str(cwd),
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=self._stderr,
-            text=True, encoding='utf-8', bufsize=1,
+            argv,
+            env=env,
+            cwd=str(cwd),
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=self._stderr,
+            text=True,
+            encoding='utf-8',
+            bufsize=1,
         )
         self._incoming = queue.Queue()
         self._stash = deque()
@@ -81,7 +97,7 @@ class AppServerTransport:
         return f'app-server closed (exit code {self.process.poll()}); see app_stderr.log'
 
     def _take(self, timeout):
-        """Next raw message from the reader, or None on timeout."""
+        """Return the next raw message, or None on timeout"""
         if self._closed:
             raise TransportClosed(self._closed_reason())
         try:
@@ -107,13 +123,13 @@ class AppServerTransport:
                 raise TransportClosed(f'write to app-server failed: {exc}') from exc
 
     def next_message(self, timeout):
-        """Next notification or server request in arrival order, or None on timeout."""
+        """Return the next notification or request, or None on timeout"""
         if self._stash:
             return self._stash.popleft()
         return self._take(timeout)
 
     def request(self, method, params, timeout):
-        """Send a request and wait for its response. Other messages keep their order."""
+        """Send a request and await its reply, preserving other message order"""
         identifier = self._next_id
         self._next_id += 1
         self._send({'jsonrpc': '2.0', 'id': identifier, 'method': method, 'params': params})
@@ -138,8 +154,11 @@ class AppServerTransport:
         self._send({'jsonrpc': '2.0', 'id': identifier, 'result': result})
 
     def reply_error(self, identifier, code, message):
-        self._send({'jsonrpc': '2.0', 'id': identifier,
-                    'error': {'code': code, 'message': message}})
+        self._send({
+            'jsonrpc': '2.0',
+            'id': identifier,
+            'error': {'code': code, 'message': message},
+        })
 
     def close(self, timeout=10.0):
         try:
@@ -153,10 +172,9 @@ class AppServerTransport:
             except subprocess.TimeoutExpired:
                 self.process.kill()
                 self.process.wait(timeout=timeout)
-        # The reader writes rpc_in.jsonl; let it finish before closing the logs.
+        # Wait for the reader before closing its log files
         self._reader.join(timeout=timeout)
         self._closed = True
         for stream in (self.process.stdout, self._in_log, self._out_log, self._stderr):
             if stream is not None:
                 stream.close()
-
