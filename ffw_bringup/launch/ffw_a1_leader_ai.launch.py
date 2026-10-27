@@ -28,6 +28,7 @@ from launch.event_handlers import OnProcessExit
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node, PushRosNamespace
 from launch_ros.descriptions import ParameterFile
+from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 import yaml
 
@@ -114,7 +115,10 @@ def generate_launch_description():
             ' ', 'mock_sensor_commands:=', LaunchConfiguration('mock_sensor_commands'),
         ]
     )
-    robot_description = {'robot_description': robot_description_content}
+    # URDF is XML; comments containing ':' must not trigger YAML type inference.
+    robot_description = {
+        'robot_description': ParameterValue(robot_description_content, value_type=str),
+    }
 
     robot_controller_spawner = Node(
         package='controller_manager',

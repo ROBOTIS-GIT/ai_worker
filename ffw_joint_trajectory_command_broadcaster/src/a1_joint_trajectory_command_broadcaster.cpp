@@ -111,13 +111,88 @@ controller_interface::CallbackReturn A1JointTrajectoryCommandBroadcaster::on_con
   }
   const auto result = Base::on_configure(previous_state);
   if (result == controller_interface::CallbackReturn::SUCCESS) {
+    if (!configure_physical_pose_reference()) {
+      return controller_interface::CallbackReturn::ERROR;
+    }
     RCLCPP_INFO(
       get_node()->get_logger(),
-      "A1 MoveJ scaling: joint6 %s (gain %.3f), joint7 %s (gain %.3f); RelativePose unchanged",
+      "A1 MoveJ swaps joint1/2: joint6 %s (gain %.3f), joint7 %s (gain %.3f); "
+      "RelativePose uses physical joint states",
       joint6.gain != 1.0 ? "enabled" : "disabled", joint6.gain,
       joint7.gain != 1.0 ? "enabled" : "disabled", joint7.gain);
   }
   return result;
+}
+
+bool A1JointTrajectoryCommandBroadcaster::configure_physical_pose_reference()
+{
+  physical_state_subscription_.reset();
+  if (!params_.enable_teleoperation || !params_.leader_pose_reference_enabled) {
+    return true;
+  }
+  if (scaling_params_.leader_joint_states_topic.empty()) {
+    RCLCPP_ERROR(get_node()->get_logger(), "A1 physical JointState topic must not be empty");
+    return false;
+  }
+  using Trajectory = trajectory_msgs::msg::JointTrajectory;
+  struct PhysicalGroup
+  {
+    rclcpp::Publisher<Trajectory>::SharedPtr publisher;
+    std::vector<std::string> names;
+    std::vector<double> offsets;
+    std::vector<std::string> reverse;
+  };
+  std::vector<PhysicalGroup> groups;
+  decltype(joint_trajectory_publishers_) physical_publishers;
+  try {
+    for (const auto & name : {"left", "right"}) {
+      auto publisher = get_node()->create_publisher<Trajectory>(
+        std::string("~/physical_") + name + "_joint_trajectory", rclcpp::QoS(1).reliable());
+      physical_publishers.emplace(name, publisher);
+      groups.push_back({publisher, group_joint_names_.at(name),
+          group_joint_offsets_.at(name), group_reverse_joints_.at(name)});
+    }
+    // The existing protected hook selects its input topics from these publishers.
+    // Reconfigure only this A1 instance; restore the MoveJ publishers before activation.
+    // The realtime publishers remain untouched, so commands cannot enter the FK topics.
+    joint_trajectory_publishers_.swap(physical_publishers);
+    const bool configured = configure_pose_reference();
+    joint_trajectory_publishers_.swap(physical_publishers);
+    if (!configured) {return false;}
+    physical_state_subscription_ = get_node()->create_subscription<sensor_msgs::msg::JointState>(
+      scaling_params_.leader_joint_states_topic, rclcpp::SensorDataQoS().keep_last(1),
+      [groups = std::move(groups)](const sensor_msgs::msg::JointState::SharedPtr state) {
+        for (const auto & group : groups) {
+          Trajectory sample;
+          sample.header = state->header;
+          sample.joint_names = group.names;
+          sample.points.resize(1);
+          auto & positions = sample.points.front().positions;
+          positions.reserve(group.names.size());
+          for (size_t i = 0; i < group.names.size(); ++i) {
+            const auto & name = group.names[i];
+            const auto found = std::find(state->name.begin(), state->name.end(), name);
+            const auto index = static_cast<size_t>(std::distance(state->name.begin(), found));
+            double value = found != state->name.end() && index < state->position.size() ?
+              state->position[index] : std::numeric_limits<double>::quiet_NaN();
+            // Arm FK receives the original DHI positions by name in every command mode.
+            // The shared bridge also forwards the gripper, which retains its command offset.
+            if (name == "gripper_l_joint1" || name == "gripper_r_joint1") {
+              const double sign = std::find(group.reverse.begin(), group.reverse.end(), name) ==
+                group.reverse.end() ? 1.0 : -1.0;
+              value = value * sign + group.offsets[i];
+            }
+            positions.push_back(value);
+          }
+          group.publisher->publish(sample);
+        }
+      });
+    return true;
+  } catch (const std::exception & error) {
+    RCLCPP_ERROR(get_node()->get_logger(), "A1 physical FK input configuration failed: %s",
+      error.what());
+    return false;
+  }
 }
 
 controller_interface::CallbackReturn A1JointTrajectoryCommandBroadcaster::on_activate(
@@ -136,6 +211,7 @@ controller_interface::CallbackReturn A1JointTrajectoryCommandBroadcaster::on_act
   for (const auto & source : state_interfaces_) {
     InputConversion conversion;
     conversion.joint_name = source.get_prefix_name();
+    conversion.joint_reference_source_index = input_conversions_.size();
     conversion.last_raw_position = std::numeric_limits<double>::quiet_NaN();
     const auto mapping = map_interface_to_joint_state_.find(source.get_interface_name());
     const auto & mapped_name = mapping == map_interface_to_joint_state_.end() ?
@@ -165,6 +241,32 @@ controller_interface::CallbackReturn A1JointTrajectoryCommandBroadcaster::on_act
     cached_state_handles_.push_back(std::move(handle));
     input_conversions_.push_back(std::move(conversion));
   }
+  // Hardware and JointState names follow the physical A1 chain. Only joint-mode
+  // follower references exchange the first two joints, independently of loan order.
+  for (auto & conversion : input_conversions_) {
+    if (!conversion.is_position) {
+      continue;
+    }
+    std::string source_name = conversion.joint_name;
+    if (source_name == "arm_l_joint1" || source_name == "arm_r_joint1") {
+      source_name.back() = '2';
+    } else if (source_name == "arm_l_joint2" || source_name == "arm_r_joint2") {
+      source_name.back() = '1';
+    } else {
+      continue;
+    }
+    const auto source = std::find_if(
+      input_conversions_.begin(), input_conversions_.end(),
+      [&source_name](const InputConversion & candidate) {
+        return candidate.is_position && candidate.joint_name == source_name;
+      });
+    if (source == input_conversions_.end()) {
+      RCLCPP_ERROR(get_node()->get_logger(), "A1 joint mapping requires %s", source_name.c_str());
+      return controller_interface::CallbackReturn::ERROR;
+    }
+    conversion.joint_reference_source_index =
+      static_cast<size_t>(std::distance(input_conversions_.begin(), source));
+  }
   return controller_interface::CallbackReturn::SUCCESS;
 }
 
@@ -181,23 +283,24 @@ controller_interface::CallbackReturn A1JointTrajectoryCommandBroadcaster::on_dea
 controller_interface::return_type A1JointTrajectoryCommandBroadcaster::update(
   const rclcpp::Time & time, const rclcpp::Duration & period)
 {
-  if (scaling_params_.joint6_scaling.gain == 1.0 && scaling_params_.joint7_scaling.gain == 1.0) {
-    return Base::update(time, period);
-  }
   if (cached_state_handles_.size() != state_interfaces_.size()) {
     return controller_interface::return_type::ERROR;
   }
   // The common pose bridge resolves reference_type from YAML. Do not assume a
-  // numeric mode ID: only joint references receive A1-specific scaling.
+  // numeric mode ID: only joint references receive A1 mapping and scaling.
   const bool joint_reference = params_.enable_teleoperation &&
     !pose_reference_mode_rt_.load(std::memory_order_acquire);
+  // Read every physical source before constructing either swapped destination.
   for (size_t i = 0; i < state_interfaces_.size(); ++i) {
-    auto & conversion = input_conversions_[i];
     const auto measurement = state_interfaces_[i].get_optional();
     if (measurement) {
-      conversion.last_raw_position = *measurement;
+      input_conversions_[i].last_raw_position = *measurement;
     }
-    double cached_position = conversion.last_raw_position;
+  }
+  for (size_t i = 0; i < input_conversions_.size(); ++i) {
+    const auto & conversion = input_conversions_[i];
+    const auto source_index = joint_reference ? conversion.joint_reference_source_index : i;
+    double cached_position = input_conversions_[source_index].last_raw_position;
     if (conversion.is_position && joint_reference && std::isfinite(cached_position)) {
       const double corrected = cached_position * conversion.sign + conversion.offset;
       const double target = scale_command_position(conversion.joint_name, corrected);
