@@ -2,6 +2,12 @@
 Changelog for package ffw_joystick_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.1 (2026-10-26)
+------------------
+* Added selectable default and advanced leader joystick controls
+* Preserved short-press tact events and head/swerve switching in both styles
+* Contributors: Yeonguk Kim
+
 2.3.0 (2026-10-19)
 ------------------
 * Added a separate leader joystick plugin for command-source switching and per-arm teleoperation

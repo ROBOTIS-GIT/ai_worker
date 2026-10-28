@@ -2,6 +2,11 @@
 /leader/joint_trajectory_command_broadcaster:
   ros__parameters:
     leader_pose_reference_enabled: true
+    # Scale relative translation from the selected FK model in /action/*/pose.
+    # Rotation stays 1:1. Configure before launch; 1.0 preserves existing motion.
+    cartesian_scaling:
+      left_translation_gain: 1.0
+      right_translation_gain: 1.0
     leader_urdf_path: "$(find-pkg-share cyclo_motion_controller_models)/models/ai_worker/leader/ffw_a2_leader.urdf"
     # Preserve the follower-sized A2 reference geometry on F1/F2.
     # Set false when supplying a different leader calculation URDF.

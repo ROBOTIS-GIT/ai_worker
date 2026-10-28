@@ -27,4 +27,11 @@
       </description>
     </class>
   </library>
+  <library path="lg2_joint_trajectory_command_broadcaster">
+    <class name="lg2_joint_trajectory_command_broadcaster/LG2JointTrajectoryCommandBroadcaster" type="lg2_joint_trajectory_command_broadcaster::LG2JointTrajectoryCommandBroadcaster" base_class_type="controller_interface::ControllerInterface">
+      <description>
+        LG2 leader trajectory broadcaster using the common leader teleoperation implementation.
+      </description>
+    </class>
+  </library>
 </class_libraries>

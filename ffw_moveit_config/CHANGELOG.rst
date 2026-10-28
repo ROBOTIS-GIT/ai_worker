@@ -2,6 +2,13 @@
 Changelog for package ffw_moveit_config
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.1 (2026-10-26)
+------------------
+* Added model selection for BG2, SG2, F1, and F2 with model-specific SRDF and joint limits
+* Separated shared planning settings from model-specific configurations
+* Loaded robot descriptions directly from ffw_description and reused follower controllers
+* Contributors: Yeonguk Kim
+
 2.3.0 (2026-10-19)
 ------------------
 * None

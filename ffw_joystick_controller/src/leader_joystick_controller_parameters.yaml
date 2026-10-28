@@ -1,4 +1,10 @@
 leader_joystick_controller:
+  style: {
+    type: string,
+    default_value: "default",
+    description: "Leader controls: default uses both triggers; advanced uses joystick long presses.",
+    read_only: true
+  }
   teleoperation_toggle_enabled: {
     type: bool,
     default_value: false,

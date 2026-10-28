@@ -1,26 +1,20 @@
 moveit_setup_assistant_config:
   urdf:
     package: ffw_description
-    relative_path: urdf/ffw.urdf.xacro
+    relative_path: urdf/ffw_bg2_rev4_follower/ffw_bg2_follower.urdf.xacro
   srdf:
     package: ffw_moveit_config
-    relative_path: config/ffw.srdf
+    relative_path: config/bg2/robot.srdf
   package_settings:
     author_name: Woojin Wie
     author_email: wwj@robotis.com
     generated_timestamp: 1742432524
   control_xacro:
     command:
-      - position
+    - position
     state:
-      - position
-      - velocity
+    - position
+    - velocity
   modified_urdf:
     xacros:
-      - control_xacro
-  control_xacro:
-    command:
-      - position
-    state:
-      - position
-      - velocity
+    - control_xacro

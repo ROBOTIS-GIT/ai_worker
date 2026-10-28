@@ -2,6 +2,14 @@
 Changelog for package ffw_bringup
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.1 (2026-10-26)
+------------------
+* Added selectable control styles and Cyclo-based LG2 leader bringup
+* Selected A1 as the default leader in F1 and F2 combined bringups
+* Added F2 mobile-base configuration selection and updated swerve wheel offsets
+* Selected dedicated BG2 collision-policy files
+* Contributors: Yeonguk Kim
+
 2.3.0 (2026-10-19)
 ------------------
 * Added A1 and A2 leader bringup with separate hardware and reference-model settings
