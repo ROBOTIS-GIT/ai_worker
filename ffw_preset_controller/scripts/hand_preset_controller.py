@@ -27,6 +27,7 @@ from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from rclpy.time import Time
+from robotis_interfaces.msg import ControlModeStatus
 from robotis_interfaces.srv import SetPreset
 from sensor_msgs.msg import JointState
 from std_msgs.msg import String
@@ -157,6 +158,7 @@ class HandSide:
         self.switch_start: Optional[Time] = None
         self.gripper_position: Optional[float] = None
         self.gripper_stamp: Optional[Time] = None
+        self.last_publish_stamp: Optional[Time] = None
 
     def grasp_ratio(self) -> float:
         ratio = (self.gripper_position - self.gripper_release) / \
@@ -192,6 +194,7 @@ class HandPresetController(Node):
         self.declare_parameter('enabled_arms', 'both')
         self.declare_parameter('leader_joint_states_topic', '/leader/joint_states')
         self.declare_parameter('robot_description_topic', '/robot_description')
+        self.declare_parameter('control_status_topic', '/control/status')
         self.declare_parameter('clamp_to_joint_limits', True)
         self.declare_parameter('publish_rate', 50.0)
         self.declare_parameter('time_from_start', 0.0)
@@ -210,6 +213,9 @@ class HandPresetController(Node):
             self.declare_parameter(
                 f'{side}.command_topic',
                 f'/leader/joint_trajectory_command_broadcaster_{side}_hand/joint_trajectory')
+            self.declare_parameter(
+                f'{side}.arm_trajectory_topic',
+                f'/leader/joint_trajectory_command_broadcaster_{side}/raw_joint_trajectory')
 
         self.presets_file = self.get_parameter('presets_file').value
         self.publish_rate = float(self.get_parameter('publish_rate').value)
@@ -278,12 +284,21 @@ class HandPresetController(Node):
         self.create_subscription(
             JointState, self.get_parameter('leader_joint_states_topic').value,
             self.leader_joint_states_callback, 10)
+        self.active_sides = set()
+        self.create_subscription(
+            ControlModeStatus, self.get_parameter('control_status_topic').value,
+            self.control_status_callback,
+            QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL,
+                       reliability=ReliabilityPolicy.RELIABLE))
+        for side_name in self.sides:
+            self.create_subscription(
+                JointTrajectory, self.get_parameter(f'{side_name}.arm_trajectory_topic').value,
+                lambda msg, side=side_name: self.arm_trajectory_callback(side, msg),
+                QoSProfile(depth=1))
 
         self.preset_transition_id = 0
         self.create_service(SetPreset, '~/set_preset', self.set_preset_callback)
         self.create_service(Trigger, '~/reload_presets', self.reload_presets_callback)
-
-        self.create_timer(1.0 / self.publish_rate, self.publish_commands)
 
         self.get_logger().info(
             f'Hand preset controller ready: hands={list(self.sides)}, '
@@ -324,8 +339,41 @@ class HandPresetController(Node):
                 side.gripper_position = position
                 side.gripper_stamp = now
 
-    def publish_commands(self):
+    def control_status_callback(self, msg: ControlModeStatus):
+        """Follow the runtime's acknowledged per-arm teleoperation activation."""
+        def sides(value):
+            if value == 'both':
+                return set(SIDES)
+            return {value} if value in SIDES else set()
+
+        active = sides(msg.active_arms) & sides(msg.requested_arms) & self.sides.keys()
+        if msg.state == ControlModeStatus.STATE_ERROR:
+            active = set()
+        if active != self.active_sides:
+            for name in active - self.active_sides:
+                self.sides[name].last_publish_stamp = None
+            self.active_sides = active
+            self.get_logger().info(f'Hand teleoperation active: {sorted(active)}')
+
+    def arm_trajectory_callback(self, side_name: str, msg: JointTrajectory):
+        """Publish only in response to this hand's matching leader arm output."""
+        if side_name not in self.active_sides:
+            return
+        if not msg.joint_names or not msg.points or \
+                len(msg.points[0].positions) != len(msg.joint_names):
+            return
+        side = self.sides[side_name]
         now = self.get_clock().now()
+        if side.gripper_stamp is None or \
+                (now - side.gripper_stamp).nanoseconds * 1e-9 > self.leader_state_timeout:
+            self.get_logger().warning(
+                f'{side.name} hand paused: no recent `{side.gripper_joint}` state '
+                'from the leader', throttle_duration_sec=2.0)
+            return
+        if side.last_publish_stamp is not None:
+            elapsed = (now - side.last_publish_stamp).nanoseconds * 1e-9
+            if 0.0 <= elapsed < 1.0 / self.publish_rate:
+                return
         if self.clamp_to_joint_limits and not self.joint_limits and \
                 not self.warned_missing_limits:
             self.warned_missing_limits = True
@@ -333,27 +381,20 @@ class HandPresetController(Node):
                 'Follower robot description not received yet; '
                 'hand commands are not clamped to joint limits')
 
-        for side in self.sides.values():
-            if side.gripper_stamp is None or \
-                    (now - side.gripper_stamp).nanoseconds * 1e-9 > self.leader_state_timeout:
-                self.get_logger().warning(
-                    f'{side.name} hand paused: no recent `{side.gripper_joint}` state '
-                    'from the leader', throttle_duration_sec=2.0)
-                continue
+        positions = side.effective_pose(now, self.switch_duration).at(side.grasp_ratio())
+        for index, joint_name in enumerate(side.joint_names):
+            limit = self.joint_limits.get(joint_name)
+            if limit is not None:
+                positions[index] = min(max(positions[index], limit[0]), limit[1])
 
-            positions = side.effective_pose(now, self.switch_duration).at(side.grasp_ratio())
-            for index, joint_name in enumerate(side.joint_names):
-                limit = self.joint_limits.get(joint_name)
-                if limit is not None:
-                    positions[index] = min(max(positions[index], limit[0]), limit[1])
-
-            point = JointTrajectoryPoint()
-            point.positions = positions
-            point.time_from_start = Duration(seconds=self.time_from_start).to_msg()
-            trajectory = JointTrajectory()
-            trajectory.joint_names = side.joint_names
-            trajectory.points = [point]
-            side.publisher.publish(trajectory)
+        point = JointTrajectoryPoint()
+        point.positions = positions
+        point.time_from_start = Duration(seconds=self.time_from_start).to_msg()
+        trajectory = JointTrajectory()
+        trajectory.joint_names = side.joint_names
+        trajectory.points = [point]
+        side.publisher.publish(trajectory)
+        side.last_publish_stamp = now
 
     def set_preset_callback(self, request, response):
         target_arm = request.target_arm or SetPreset.Request.TARGET_BOTH

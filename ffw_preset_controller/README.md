@@ -8,8 +8,8 @@ and grasp poses for SH5/BH5 hands. Each hand command contains 20 joint positions
 With the follower hand controllers running, enable presets in either leader launch:
 
 ```bash
-ros2 launch ffw_bringup ffw_lg2_leader_ai.launch.py use_hand_preset:=true
-ros2 launch ffw_bringup ffw_a2_leader_ai.launch.py use_hand_preset:=true
+ros2 launch ffw_bringup ffw_lg2_leader_ai.launch.py use_hand_preset:=true style:=advanced
+ros2 launch ffw_bringup ffw_a2_leader_ai.launch.py use_hand_preset:=true style:=advanced
 ```
 
 Use one leader launch. `use_hand_preset` defaults to `false`, preserving normal
@@ -41,8 +41,34 @@ contains one-based joint indices to negate for the left hand; optional
 `left_release` and `left_grasp` mappings override that mirroring.
 `default_preset` selects the initial pose unless overridden at launch.
 
+Each hand publishes only while its corresponding arm is both requested and active
+in Cyclo's `robotis_interfaces/msg/ControlModeStatus` on `/control/status`, and
+when a matching leader arm trajectory arrives. The status topic is configurable
+with `control_status_topic`. Until status confirms activation, both hands stay idle.
+Gripper JointState messages or preset service calls alone do not publish commands.
+`left.arm_trajectory_topic` and `right.arm_trajectory_topic` select the input:
+A2 and LG2 use the `..._{left,right}/raw_joint_trajectory` topics.
+`publish_rate` limits each hand's maximum rate
+(50 Hz by default); stopping arm publications stops hand publications without a
+timer continuing to resend the last command.
+
+This follows the shared arm broadcaster's conditions: both leaders require a fresh
+`teleop` source heartbeat and, in joint mode, valid follower feedback. Raw references can still be
+published for individually disabled arms; the hand controller blocks that side's
+output using Cyclo's activation status. An error status also pauses both hands.
+
+The launch examples use `style:=advanced` for joystick-button source/arm toggles,
+leaving the gripper triggers available for hand input. Upstream's default
+`style:=default` uses both gripper triggers to start/pause teleoperation; omitting
+the style argument selects that behavior.
+In advanced style, selecting the teleop source with both joystick buttons does
+not enable either hand. Enabling the left/right arm enables its hand as well.
+In default style, holding both triggers for `trigger_duration` (2 seconds by
+default) starts both arms and hands once Cyclo confirms activation. Release both
+triggers before repeating the gesture to pause/resume both sides.
+
 The node interpolates between release and grasp, clamps the input ratio to
-0–1, and blends preset changes over `preset_switch_duration`. It pauses a hand
+0–1, and blends preset changes over `preset_switch_duration`. It also pauses a hand
 when its leader gripper state becomes stale. With `clamp_to_joint_limits` enabled,
 it applies limits received on `robot_description_topic`; before receiving those
 limits it warns and publishes unclamped commands.

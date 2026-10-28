@@ -190,3 +190,175 @@ def test_preset_switch_continuity():
     halfway = side.effective_pose(controller.Time(seconds=1.5), 1.0)
     side.set_pose('first', first, controller.Time(seconds=1.5), 1.0)
     assert side.effective_pose(controller.Time(seconds=1.5), 1.0) == halfway
+
+
+@pytest.fixture
+def output_controller(selection_controller):
+    """Capture hand output while advancing a controllable ROS clock."""
+    node = selection_controller
+    node.now = controller.Time(seconds=1)
+    node.get_clock = lambda: SimpleNamespace(now=lambda: node.now)
+    node.get_logger = lambda: SimpleNamespace(
+        warning=lambda *args, **kwargs: None, info=lambda message: None)
+    node.publish_rate = 50.0
+    node.active_sides = set(node.sides)
+    node.leader_state_timeout = 0.5
+    node.clamp_to_joint_limits = True
+    node.joint_limits = {}
+    node.warned_missing_limits = False
+    node.time_from_start = 0.0
+    node.messages = {side: [] for side in node.sides}
+    for name, side in node.sides.items():
+        side.joint_names = [f'finger_{name}_joint{i}' for i in range(1, 21)]
+        side.publisher = SimpleNamespace(publish=node.messages[name].append)
+    return node
+
+
+def gripper_sample(node):
+    """Feed fresh gripper positions without supplying any arm trajectory."""
+    controller.HandPresetController.leader_joint_states_callback(
+        node, controller.JointState(
+            name=[side.gripper_joint for side in node.sides.values()], position=[0.5, 0.5]))
+
+
+def arm_sample(node, side='left', message=None):
+    """Feed an arm publication to the matching hand callback."""
+    if message is None:
+        message = controller.JointTrajectory(
+            joint_names=['arm_joint1'],
+            points=[controller.JointTrajectoryPoint(positions=[0.0])])
+    controller.HandPresetController.arm_trajectory_callback(node, side, message)
+
+
+def test_gripper_states_and_preset_selection_do_not_publish(output_controller):
+    """Startup, gripper telemetry and service requests cannot bypass arm gating."""
+    node = output_controller
+    gripper_sample(node)
+    assert select(node, left=2).accepted
+    assert not any(node.messages.values())
+
+
+def test_arm_publications_gate_each_hand(output_controller):
+    """Only a matching arm sample can produce a hand command."""
+    node = output_controller
+    gripper_sample(node)
+    arm_sample(node, 'left')
+    assert len(node.messages['left']) == 1
+    assert not node.messages['right']
+    assert list(node.messages['left'][0].points[0].positions) == [0.5] * 20
+    node.now = controller.Time(seconds=1.1)
+    gripper_sample(node)
+    assert len(node.messages['left']) == 1
+    arm_sample(node, 'right')
+    assert len(node.messages['right']) == 1
+
+
+def test_arm_samples_still_require_fresh_gripper_state(output_controller):
+    """Arm output cannot revive a missing or stale gripper input."""
+    node = output_controller
+    arm_sample(node)
+    assert not node.messages['left']
+    gripper_sample(node)
+    node.now = controller.Time(seconds=1.6)
+    arm_sample(node)
+    assert not node.messages['left']
+    gripper_sample(node)
+    arm_sample(node)
+    assert len(node.messages['left']) == 1
+
+
+def test_arm_driven_output_rate_limit(output_controller):
+    """Rate-limit each hand without replaying old arm messages on a timer."""
+    node = output_controller
+    gripper_sample(node)
+    arm_sample(node)
+    node.now = controller.Time(seconds=1.01)
+    arm_sample(node)
+    assert len(node.messages['left']) == 1
+    node.now = controller.Time(seconds=1.02)
+    arm_sample(node)
+    assert len(node.messages['left']) == 2
+
+
+@pytest.mark.parametrize('message', [
+    controller.JointTrajectory(),
+    controller.JointTrajectory(joint_names=['arm_joint1']),
+    controller.JointTrajectory(
+        joint_names=['arm_joint1'], points=[controller.JointTrajectoryPoint()])])
+def test_invalid_arm_message_does_not_publish(output_controller, message):
+    """Empty or incomplete arm trajectories must not trigger a hand command."""
+    node = output_controller
+    gripper_sample(node)
+    arm_sample(node, message=message)
+    assert not any(node.messages.values())
+
+
+def activation(node, requested='none', active='none', state=None):
+    """Deliver Cyclo's reported activation, independently of raw arm output."""
+    controller.HandPresetController.control_status_callback(
+        node, controller.ControlModeStatus(
+            requested_arms=requested, active_arms=active,
+            state=controller.ControlModeStatus.STATE_ACTIVE if state is None else state))
+
+
+def test_source_selection_alone_does_not_enable_hands(output_controller):
+    """Teleop source may produce raw arm references while both arms are disabled."""
+    node = output_controller
+    activation(node)
+    gripper_sample(node)
+    arm_sample(node, 'left')
+    arm_sample(node, 'right')
+    assert not any(node.messages.values())
+
+
+def test_hand_activation_follows_each_arm(output_controller):
+    """Advanced-style side toggles start and pause only the corresponding hand."""
+    node = output_controller
+    activation(node, 'left', 'left')
+    gripper_sample(node)
+    arm_sample(node, 'left')
+    arm_sample(node, 'right')
+    assert len(node.messages['left']) == 1 and not node.messages['right']
+    activation(node, 'right', 'right')
+    arm_sample(node, 'left')
+    arm_sample(node, 'right')
+    assert len(node.messages['left']) == 1 and len(node.messages['right']) == 1
+
+
+def test_both_arm_activation_and_pause(output_controller):
+    """Default-style trigger start/pause applies to both hands together."""
+    node = output_controller
+    activation(node, 'both', 'both')
+    gripper_sample(node)
+    for side in controller.SIDES:
+        arm_sample(node, side)
+    assert all(len(messages) == 1 for messages in node.messages.values())
+    activation(node)
+    node.now = controller.Time(seconds=1.1)
+    for side in controller.SIDES:
+        arm_sample(node, side)
+    assert all(len(messages) == 1 for messages in node.messages.values())
+
+
+@pytest.mark.parametrize('requested,active,state', [
+    ('left', 'none', controller.ControlModeStatus.STATE_ACTIVATING),
+    ('none', 'left', controller.ControlModeStatus.STATE_ACTIVE),
+    ('left', 'left', controller.ControlModeStatus.STATE_ERROR),
+    ('invalid', 'both', controller.ControlModeStatus.STATE_ACTIVE)])
+def test_unacknowledged_or_failed_activation_blocks_output(
+        output_controller, requested, active, state):
+    """A pending request, removed request, malformed status or error cannot enable a hand."""
+    node = output_controller
+    activation(node, requested, active, state)
+    gripper_sample(node)
+    arm_sample(node)
+    assert not any(node.messages.values())
+
+
+def test_activation_alone_does_not_publish(output_controller):
+    """Activation still needs a new corresponding arm reference and fresh gripper state."""
+    node = output_controller
+    activation(node)
+    gripper_sample(node)
+    activation(node, 'both', 'both')
+    assert not any(node.messages.values())

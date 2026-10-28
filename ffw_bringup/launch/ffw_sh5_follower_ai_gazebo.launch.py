@@ -26,6 +26,7 @@ from launch.actions import DeclareLaunchArgument
 from launch.actions import IncludeLaunchDescription
 from launch.actions import RegisterEventHandler
 from launch.actions import SetEnvironmentVariable
+from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command
@@ -43,6 +44,8 @@ def generate_launch_description():
                               description='Robot model name.'),
         DeclareLaunchArgument('world', default_value='default',
                               description='Gz sim World'),
+        DeclareLaunchArgument('rviz', default_value='true', choices=['true', 'false'],
+                              description='Start RViz.'),
     ]
 
     model = LaunchConfiguration('model')
@@ -217,6 +220,7 @@ def generate_launch_description():
         output='log',
         arguments=['-d', rviz_config_file],
         parameters=[{'use_sim_time': True}],
+        condition=IfCondition(LaunchConfiguration('rviz')),
     )
 
     # The follower owns the shared teleoperation and external-control runtime.

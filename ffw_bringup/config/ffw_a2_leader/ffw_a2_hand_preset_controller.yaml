@@ -3,6 +3,8 @@
     ros__parameters:
       leader_joint_states_topic: /leader/joint_states
       robot_description_topic: /robot_description
+      control_status_topic: /control/status
+      # Each publication requires the corresponding active arm and a raw arm message.
       publish_rate: 50.0
       time_from_start: 0.0
       preset_switch_duration: 1.0
@@ -11,10 +13,12 @@
       # Release matches the -0.4 rad trigger neutral position; grasp spans the
       # 0.0-1.1 rad follower gripper range with the 0.4 rad gripper offset.
       left:
+        arm_trajectory_topic: /leader/joint_trajectory_command_broadcaster_left/raw_joint_trajectory
         gripper_joint: gripper_l_joint1
         gripper_release_position: -0.4
         gripper_grasp_position: 0.7
       right:
+        arm_trajectory_topic: /leader/joint_trajectory_command_broadcaster_right/raw_joint_trajectory
         gripper_joint: gripper_r_joint1
         gripper_release_position: -0.4
         gripper_grasp_position: 0.7
