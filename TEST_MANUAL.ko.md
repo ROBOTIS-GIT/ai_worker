@@ -343,6 +343,75 @@ Cyclo의 **`/set_preset`**은 팔 프리셋용이므로 구분한다.
 
 ## 8. 사용자 YAML 변경과 다시 읽기
 
+### 8.1. RViz 슬라이더로 자세를 만들고 프리셋 기록하기
+
+`robotis_hand_description`의 핸드 표시 launch를 실행하고, 함께 열리는
+`joint_state_publisher_gui` 슬라이더로 자세를 만든다. RViz에서 자세를 확인한 뒤
+`record_hand_preset`으로 `/joint_states`의 20개 관절 위치를 한 번 읽어 저장한다.
+실제 핸드 하드웨어는 필요하지 않다. 이 절차는 현재 ROS domain ID와 RMW 설정을
+그대로 사용하며, 두 터미널 모두 같은 환경을 source한다.
+슬라이더의 `/joint_states`가 다른 follower의 joint state와 섞이지 않도록
+자세 편집 중에는 해당 토픽을 발행하는 follower launch를 종료한다.
+
+**터미널 1 — 핸드와 슬라이더 실행:**
+
+```bash
+ros2 launch robotis_hand_description hx5_d20_right.launch.py
+```
+
+왼손으로 자세를 만들려면 `hx5_d20_left.launch.py`를 사용한다.
+슬라이더를 조절하여 먼저 grasp 자세를 만든다.
+
+**터미널 2 — grasp 기록:**
+
+```bash
+ros2 run ffw_preset_controller record_hand_preset \
+  --file /root/ros2_ws/src/ai_worker/ffw_bringup/config/common/hand_presets.yaml \
+  --name my_preset --id 4 --pose grasp
+```
+
+**터미널 1**의 슬라이더를 release 자세로 바꾼 뒤, **터미널 2**에서 같은 이름과
+ID로 release를 기록한다.
+
+```bash
+ros2 run ffw_preset_controller record_hand_preset \
+  --file /root/ros2_ws/src/ai_worker/ffw_bringup/config/common/hand_presets.yaml \
+  --name my_preset --id 4 --pose release
+```
+
+필수 인자와 저장 동작:
+
+- `--file`: 수정할 기존 YAML 파일. 위 예시는 bringup의 소스 설정 파일이다.
+- `--name`: 추가하거나 수정할 프리셋 이름.
+- `--id`: 중복되지 않는 정수 ID(1~65535). 기존 이름을 수정할 때는 기존 ID와 같아야 한다.
+  예시의 `4`가 다른 프리셋에 사용 중이면 사용하지 않는 번호를 선택한다.
+- `--pose grasp|release`: 이번에 기록할 자세. 두 자세는 같은 이름과 ID로 각각 기록한다.
+- 새 프리셋은 YAML의 `default_preset`을 복사하여 만든다. 아직 기록하지 않은 반대 자세는
+  템플릿 값을 유지하므로 두 자세를 모두 기록한다. 다른 템플릿은 `--base pinch`처럼 지정한다.
+- 관절 이름으로 좌우를 자동 판별하고, 메시지의 관절 순서와 관계없이 손가락별로 정렬한다.
+  왼손을 기록하면 `mirrored_joints`의 부호 반전을 되돌려 오른손 기준으로 저장한다.
+  런타임에서는 기존 프리셋과 동일하게 왼손 자세를 미러링하여 사용한다.
+- 같은 자세에 `left_grasp` 또는 `left_release` override가 있으면 해당 override를 제거하여
+  새로 기록한 공통 자세가 양손에 적용되게 한다. 반대 자세와 다른 프리셋은 유지한다.
+- 20개 관절의 유한한 위치 값이 모두 수신되어야 저장한다. 기본 대기 시간은 10초이며,
+  실패하면 YAML을 수정하지 않는다. 저장 전에 전체 YAML을 검증하고 파일을 원자적으로 교체한다.
+  `.bak` 등 백업 파일은 생성하지 않는다.
+
+선택 인자:
+
+- 양손이 모두 포함된 토픽에서는 `--side left` 또는 `--side right`로 기록할 손을 선택한다.
+- 다른 토픽을 읽으려면 `--topic /원하는/joint_states`를 지정한다.
+- 표시 launch에 `prefix:=hand_`를 전달했다면 기록 명령에도 `--prefix hand_`를 전달한다.
+- 수신 대기 시간은 `--timeout 20`처럼 변경한다.
+
+기록 완료 후 터미널 1의 표시 launch를 `Ctrl+C`로 종료하고 follower/리더 시험을 재개한다.
+실행 중인 프리셋 컨트롤러가 **기록한 파일과 같은 경로**를 읽도록
+`hand_presets_file`을 지정해야 한다. 설치 경로에 복사된 YAML은 소스 파일을 기록해도
+자동으로 바뀌지 않으므로 bringup을 다시 빌드하거나 저장한 소스 경로를 직접 지정한다.
+아래 8.2절의 절차로 파일을 지정하고 reload한 뒤, 7절의 선택 서비스에서 새 ID를 사용한다.
+
+### 8.2. 사용할 파일 지정, 수동 편집과 reload
+
 기본 YAML을 복사하여 편집용 파일로 사용한다. 컨테이너 삭제 후에도 보존하려면
 `/workspace` 등 실제 영속 마운트 경로에 저장한다.
 
@@ -475,6 +544,7 @@ BG2에는 핸드가 없다. SH5/BH5 Gazebo launch는 `rviz:=false`로 RViz를 �
 - 왼손만 변경, 양손 서로 다른 프리셋, 부드러운 전환 확인.
 - 잘못된 ID 요청 시 양손 상태 유지 확인.
 - 사용자 YAML reload 성공 및 오류 시 이전 프리셋 유지 확인.
+- RViz 슬라이더로 grasp/release를 기록하고 좌우 자동 판별과 미러링 결과 확인.
 - 실제 로봇 시험이라면 핸드 관절 제한 수신과 follower 동작 여부.
 - 실패 시 실행 명령, 서비스 응답, 관련 로그, 토픽 publisher/subscriber 수.
 
