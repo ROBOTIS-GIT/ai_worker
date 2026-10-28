@@ -2,6 +2,13 @@
 Changelog for package ffw_joint_trajectory_command_broadcaster
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.1 (2026-10-26)
+------------------
+* Added default-style bilateral trigger control with bounded Cyclo source handoff
+* Added a dedicated LG2 plugin inheriting the common leader broadcaster
+* Preserved advanced-style per-arm initial-pose trigger controls
+* Contributors: Yeonguk Kim
+
 2.3.0 (2026-10-19)
 ------------------
 * Added separate A1 and A2 plugins while preserving the legacy trajectory broadcaster

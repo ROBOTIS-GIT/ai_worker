@@ -44,7 +44,7 @@ def generate_launch_description():
     )
     leader = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(bringup_launch_dir,
-                                                   'ffw_lg2_leader_ai.launch.py'))
+                                                   'ffw_a1_leader_ai.launch.py'))
     )
 
     return LaunchDescription([

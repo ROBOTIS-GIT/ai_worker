@@ -50,6 +50,10 @@ def generate_launch_description():
 
     declared_arguments = [
         DeclareLaunchArgument(
+            'style', default_value='default', choices=['default', 'advanced'],
+            description='Default: both triggers start/pause teleop. Advanced: joystick buttons.',
+        ),
+        DeclareLaunchArgument(
             'description_file',
             default_value='ffw_a2_leader.urdf.xacro',
             description='URDF/XACRO file for the robot model.',
@@ -135,10 +139,11 @@ def generate_launch_description():
         package='controller_manager',
         executable='spawner',
         arguments=[
-            # Keep the gripper filter and main's joystick mode remapping together.
+            # Pass the hand filter, control style, and joystick remap together.
             [
                 '--controller-ros-args=-p exclude_gripper_joints:=',
                 LaunchConfiguration('use_hand_preset'),
+                ' -p style:=', LaunchConfiguration('style'),
                 ' -r /leader/joystick_controller_right/joystick_mode:=/reference/joystick/mode',
             ],
             'joint_trajectory_command_broadcaster',

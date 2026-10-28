@@ -172,6 +172,11 @@ controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on
   }
   params_ = param_listener_->get_params();
 
+  if (params_.style != "default" && params_.style != "advanced") {
+    RCLCPP_ERROR(get_node()->get_logger(), "style must be 'default' or 'advanced'");
+    return CallbackReturn::ERROR;
+  }
+
   if (
     params_.enable_teleoperation &&
     (!std::isfinite(params_.slow_start_min_duration) ||
@@ -284,6 +289,13 @@ controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on
       previous_requested_arms_rt_ = 0;
       left_initial_pose_trigger_ = TriggerHoldState{};
       right_initial_pose_trigger_ = TriggerHoldState{};
+      if (params_.style == "default") {
+        source_client_ = get_node()->create_client<std_srvs::srv::SetBool>(
+          params_.set_source_service);
+        default_trigger_timer_ = get_node()->create_wall_timer(
+          std::chrono::milliseconds(20),
+          std::bind(&LeaderJointTrajectoryCommandBroadcaster::process_default_trigger, this));
+      }
       auto command_qos = rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local();
       control_command_publisher_ =
         get_node()->create_publisher<robotis_interfaces::msg::ControlModeCommand>(
@@ -337,8 +349,8 @@ controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on
           this, std::placeholders::_1, std::placeholders::_2));
       RCLCPP_INFO(
         get_node()->get_logger(),
-        "Cyclo teleoperation enabled with default control mode %u",
-        static_cast<unsigned int>(requested_control_mode_));
+        "Cyclo teleoperation enabled: style=%s, default control mode=%u",
+        params_.style.c_str(), static_cast<unsigned int>(requested_control_mode_));
     }
   } catch (const std::exception & e) {
     // get_node() may throw, logging raw here
@@ -393,6 +405,9 @@ controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on
   // No need to init JointState or DynamicJointState messages, only JointTrajectory
   // will be published. We'll construct it on-the-fly in update()
   reset_pose_reference(true);
+  default_trigger_ = TriggerHoldState{};
+  default_trigger_pending_.store(false);
+  controller_active_.store(true);
 
   if (params_.enable_teleoperation) {
     publish_control_command();
@@ -405,6 +420,13 @@ controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on
 controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on_deactivate(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
+  controller_active_.store(false);
+  default_trigger_pending_.store(false);
+  {
+    std::lock_guard<std::mutex> lock(default_start_mutex_);
+    cancel_default_start();
+  }
+  default_trigger_ = TriggerHoldState{};
   joint_names_.clear();
   name_if_value_mapping_.clear();
   joints_synced_ = false;
@@ -711,6 +733,130 @@ void LeaderJointTrajectoryCommandBroadcaster::update_trigger_state(
   }
 }
 
+void LeaderJointTrajectoryCommandBroadcaster::update_default_trigger_state(
+  const rclcpp::Time & current_time)
+{
+  const bool left = check_arm_trigger_active(kLeftArm);
+  const bool right = check_arm_trigger_active(kRightArm);
+  if (!left && !right) {
+    default_trigger_ = TriggerHoldState{};
+    return;
+  }
+  if (!left || !right) {
+    default_trigger_.counting = false;
+    return;
+  }
+  if (default_trigger_.triggered) {
+    return;
+  }
+  if (!default_trigger_.counting || current_time < default_trigger_.start_time) {
+    default_trigger_.start_time = current_time;
+    default_trigger_.counting = true;
+  }
+  if ((current_time - default_trigger_.start_time).seconds() >= params_.trigger_duration) {
+    default_trigger_.triggered = true;
+    default_trigger_pending_.store(true, std::memory_order_release);
+  }
+}
+
+void LeaderJointTrajectoryCommandBroadcaster::cancel_default_start()
+{
+  if (source_client_ && default_source_request_id_ >= 0) {
+    source_client_->remove_pending_request(default_source_request_id_);
+  }
+  default_source_request_id_ = -1;
+  default_start_waiting_ = false;
+  default_source_accepted_ = false;
+  ++default_start_generation_;
+}
+
+void LeaderJointTrajectoryCommandBroadcaster::process_default_trigger()
+{
+  std::lock_guard<std::mutex> lock(default_start_mutex_);
+  if (!controller_active_.load()) {
+    default_trigger_pending_.store(false);
+    cancel_default_start();
+    return;
+  }
+
+  const bool triggered = default_trigger_pending_.exchange(false);
+  const auto now = std::chrono::steady_clock::now();
+  if (default_start_waiting_) {
+    if (triggered || now >= default_start_deadline_ ||
+      now - source_last_seen_ > std::chrono::milliseconds(500))
+    {
+      cancel_default_start();
+      RCLCPP_WARN(get_node()->get_logger(),
+        "Both-arm start cancelled: another trigger request or control source timeout");
+      return;
+    }
+    if (!default_source_accepted_ || !leader_action_enabled_rt_.load()) {
+      return;
+    }
+    cancel_default_start();
+    auto command = std::make_shared<robotis_interfaces::msg::TeleoperationCommand>();
+    command->target_arm = "both";
+    command->command = robotis_interfaces::msg::TeleoperationCommand::COMMAND_ENABLE;
+    teleoperation_command_callback(command);
+    RCLCPP_INFO(get_node()->get_logger(), "Teleop source acquired; both-arm start requested");
+    return;
+  }
+  if (!triggered) {
+    return;
+  }
+  if (leader_action_enabled_rt_.load()) {
+    // A partial enable must stop both arms, not swap the enabled arm via XOR.
+    auto command = std::make_shared<robotis_interfaces::msg::TeleoperationCommand>();
+    command->target_arm = "both";
+    command->command = requested_arms_rt_.load() != 0 ?
+      robotis_interfaces::msg::TeleoperationCommand::COMMAND_DISABLE :
+      robotis_interfaces::msg::TeleoperationCommand::COMMAND_ENABLE;
+    teleoperation_command_callback(command);
+    RCLCPP_INFO(get_node()->get_logger(), "Both-trigger teleoperation %s requested",
+      command->command == robotis_interfaces::msg::TeleoperationCommand::COMMAND_ENABLE ?
+      "start" : "pause");
+    return;
+  }
+  if (!source_client_->service_is_ready()) {
+    RCLCPP_WARN(get_node()->get_logger(),
+      "Both-arm start not sent: service '%s' is unavailable", source_client_->get_service_name());
+    return;
+  }
+  default_start_waiting_ = true;
+  default_source_accepted_ = false;
+  // Bound the complete handoff, not just the service response; never enable much later.
+  default_start_deadline_ = now + std::chrono::seconds(10);
+  const auto generation = ++default_start_generation_;
+  auto request = std::make_shared<std_srvs::srv::SetBool::Request>();
+  request->data = true;
+  try {
+    const auto pending = source_client_->async_send_request(request,
+        [this, generation](rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture future) {
+          std::lock_guard<std::mutex> response_lock(default_start_mutex_);
+          if (!controller_active_.load() || !default_start_waiting_ ||
+          generation != default_start_generation_)
+          {
+            return;
+          }
+          default_source_request_id_ = -1;
+          const auto response = future.get();
+          if (!response->success) {
+            cancel_default_start();
+            RCLCPP_WARN(get_node()->get_logger(), "Both-arm start rejected: %s",
+              response->message.c_str());
+            return;
+          }
+          default_source_accepted_ = true;
+        });
+    default_source_request_id_ = pending.request_id;
+    RCLCPP_INFO(get_node()->get_logger(),
+      "Both-trigger start requested; waiting for teleop control source");
+  } catch (const std::exception & error) {
+    cancel_default_start();
+    RCLCPP_WARN(get_node()->get_logger(), "Both-arm start failed: %s", error.what());
+  }
+}
+
 bool LeaderJointTrajectoryCommandBroadcaster::check_arm_trigger_active(const uint8_t arm) const
 {
   const char * joint_name = arm == kLeftArm ? "gripper_l_joint1" : "gripper_r_joint1";
@@ -903,6 +1049,14 @@ void LeaderJointTrajectoryCommandBroadcaster::command_source_state_callback(
     return;
   }
   const bool enabled = msg->data == "teleop";
+  if (msg->data == "none" || msg->data == "starting") {
+    std::lock_guard<std::mutex> lock(default_start_mutex_);
+    if (default_start_waiting_) {
+      cancel_default_start();
+      RCLCPP_WARN(get_node()->get_logger(),
+          "Both-arm start cancelled: control source is not ready");
+    }
+  }
   source_last_seen_ = std::chrono::steady_clock::now();
   const bool previous =
     leader_action_enabled_rt_.exchange(enabled, std::memory_order_acq_rel);
@@ -1120,6 +1274,11 @@ controller_interface::return_type LeaderJointTrajectoryCommandBroadcaster::updat
     }
   }
 
+  // Default triggers can acquire teleop ownership, so inspect them before the output gate.
+  if (params_.enable_teleoperation && params_.style == "default") {
+    update_default_trigger_state(time);
+  }
+
   // Use one immutable follower snapshot throughout this controller update.
   if (params_.enable_teleoperation &&
     !leader_action_enabled_rt_.load(std::memory_order_acquire))
@@ -1135,7 +1294,9 @@ controller_interface::return_type LeaderJointTrajectoryCommandBroadcaster::updat
   uint8_t requested_arms = 0;
   uint8_t newly_enabled_arms = 0;
   if (params_.enable_teleoperation) {
-    if (leader_action_enabled_rt_.load(std::memory_order_acquire)) {
+    if (params_.style == "advanced" &&
+      leader_action_enabled_rt_.load(std::memory_order_acquire))
+    {
       update_initial_pose_trigger_state(time);
     } else {
       left_initial_pose_trigger_ = TriggerHoldState{};

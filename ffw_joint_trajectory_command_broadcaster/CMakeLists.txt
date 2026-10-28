@@ -21,6 +21,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   robotis_interfaces
   realtime_tools
   std_msgs
+  std_srvs
   urdf
   trajectory_msgs
 )
@@ -82,6 +83,7 @@ target_link_libraries(leader_joint_trajectory_command_broadcaster PUBLIC
   ${builtin_interfaces_TARGETS}
   ${robotis_interfaces_TARGETS}
   ${std_msgs_TARGETS}
+  ${std_srvs_TARGETS}
   ${trajectory_msgs_TARGETS}
   leader_joint_trajectory_command_broadcaster_parameters
   controller_interface::controller_interface
@@ -117,6 +119,15 @@ target_link_libraries(a1_joint_trajectory_command_broadcaster PUBLIC
 target_compile_definitions(a1_joint_trajectory_command_broadcaster PRIVATE
   "A1_JOINT_TRAJECTORY_COMMAND_BROADCASTER_BUILDING_DLL"
 )
+add_library(lg2_joint_trajectory_command_broadcaster SHARED
+  src/lg2_joint_trajectory_command_broadcaster.cpp
+)
+target_link_libraries(lg2_joint_trajectory_command_broadcaster PUBLIC
+  leader_joint_trajectory_command_broadcaster
+)
+target_compile_definitions(lg2_joint_trajectory_command_broadcaster PRIVATE
+  "LG2_JOINT_TRAJECTORY_COMMAND_BROADCASTER_BUILDING_DLL"
+)
 pluginlib_export_plugin_description_file(controller_interface joint_trajectory_command_plugin.xml)
 
 ################################################################################
@@ -133,6 +144,7 @@ install(
     leader_joint_trajectory_command_broadcaster
     a2_joint_trajectory_command_broadcaster
     a1_joint_trajectory_command_broadcaster
+    lg2_joint_trajectory_command_broadcaster
     joint_trajectory_command_broadcaster_parameters
     leader_joint_trajectory_command_broadcaster_parameters
     a1_joint_trajectory_command_broadcaster_parameters

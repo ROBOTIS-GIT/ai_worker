@@ -1,0 +1,115 @@
+<?xml version="1.0"?>
+<robot name="ffw_sg2_follower">
+  <!-- Model-specific collision rules. Cross-arm collision checks remain enabled. -->
+  <group name="arm_l">
+    <chain base_link="arm_base_link" tip_link="end_effector_l_link" />
+  </group>
+  <group name="arm_r">
+    <chain base_link="arm_base_link" tip_link="end_effector_r_link" />
+  </group>
+  <group name="head">
+    <chain base_link="arm_base_link" tip_link="head_link2" />
+  </group>
+  <group name="lift">
+    <joint name="lift_joint" />
+  </group>
+  <group_state name="init" group="arm_l">
+    <joint name="arm_l_joint1" value="0" />
+    <joint name="arm_l_joint2" value="0" />
+    <joint name="arm_l_joint3" value="0" />
+    <joint name="arm_l_joint4" value="0" />
+    <joint name="arm_l_joint5" value="0" />
+    <joint name="arm_l_joint6" value="0" />
+    <joint name="arm_l_joint7" value="0" />
+  </group_state>
+  <group_state name="init" group="arm_r">
+    <joint name="arm_r_joint1" value="0" />
+    <joint name="arm_r_joint2" value="0" />
+    <joint name="arm_r_joint3" value="0" />
+    <joint name="arm_r_joint4" value="0" />
+    <joint name="arm_r_joint5" value="0" />
+    <joint name="arm_r_joint6" value="0" />
+    <joint name="arm_r_joint7" value="0" />
+  </group_state>
+  <group_state name="init" group="head">
+    <joint name="head_joint1" value="0" />
+    <joint name="head_joint2" value="0" />
+  </group_state>
+  <group_state name="init" group="lift">
+    <joint name="lift_joint" value="0" />
+  </group_state>
+  <passive_joint name="left_wheel_steer" />
+  <passive_joint name="left_wheel_drive" />
+  <passive_joint name="right_wheel_steer" />
+  <passive_joint name="right_wheel_drive" />
+  <passive_joint name="rear_wheel_steer" />
+  <passive_joint name="rear_wheel_drive" />
+  <disable_collisions link1="arm_base_link" link2="arm_l_link1" reason="Adjacent" />
+  <disable_collisions link1="arm_base_link" link2="arm_r_link1" reason="Adjacent" />
+  <disable_collisions link1="arm_base_link" link2="base_link" reason="Adjacent" />
+  <disable_collisions link1="arm_base_link" link2="head_link1" reason="Adjacent" />
+  <disable_collisions link1="arm_base_link" link2="lift_link" reason="Adjacent" />
+  <disable_collisions link1="arm_l_link1" link2="arm_l_link2" reason="Adjacent" />
+  <disable_collisions link1="arm_l_link2" link2="arm_l_link3" reason="Adjacent" />
+  <disable_collisions link1="arm_l_link3" link2="arm_l_link4" reason="Adjacent" />
+  <disable_collisions link1="arm_l_link4" link2="arm_l_link5" reason="Adjacent" />
+  <disable_collisions link1="arm_l_link5" link2="arm_l_link6" reason="Adjacent" />
+  <disable_collisions link1="arm_l_link6" link2="arm_l_link7" reason="Adjacent" />
+  <disable_collisions link1="arm_l_link6" link2="camera_left_link" reason="Adjacent" />
+  <disable_collisions link1="arm_l_link6" link2="gripper_l_rh_p12_rn_base" reason="Adjacent" />
+  <disable_collisions link1="arm_l_link7" link2="camera_left_link" reason="Adjacent" />
+  <disable_collisions link1="arm_l_link7" link2="gripper_l_rh_p12_rn_base" reason="Adjacent" />
+  <disable_collisions link1="arm_l_link7" link2="gripper_l_rh_p12_rn_l1" reason="Adjacent" />
+  <disable_collisions link1="arm_l_link7" link2="gripper_l_rh_p12_rn_r1" reason="Adjacent" />
+  <disable_collisions link1="arm_r_link1" link2="arm_r_link2" reason="Adjacent" />
+  <disable_collisions link1="arm_r_link2" link2="arm_r_link3" reason="Adjacent" />
+  <disable_collisions link1="arm_r_link3" link2="arm_r_link4" reason="Adjacent" />
+  <disable_collisions link1="arm_r_link4" link2="arm_r_link5" reason="Adjacent" />
+  <disable_collisions link1="arm_r_link5" link2="arm_r_link6" reason="Adjacent" />
+  <disable_collisions link1="arm_r_link6" link2="arm_r_link7" reason="Adjacent" />
+  <disable_collisions link1="arm_r_link6" link2="camera_right_link" reason="Adjacent" />
+  <disable_collisions link1="arm_r_link6" link2="gripper_r_rh_p12_rn_base" reason="Adjacent" />
+  <disable_collisions link1="arm_r_link7" link2="camera_right_link" reason="Adjacent" />
+  <disable_collisions link1="arm_r_link7" link2="gripper_r_rh_p12_rn_base" reason="Adjacent" />
+  <disable_collisions link1="arm_r_link7" link2="gripper_r_rh_p12_rn_l1" reason="Adjacent" />
+  <disable_collisions link1="arm_r_link7" link2="gripper_r_rh_p12_rn_r1" reason="Adjacent" />
+  <disable_collisions link1="base_link" link2="left_wheel_steer_link" reason="Adjacent" />
+  <disable_collisions link1="base_link" link2="lift_link" reason="Adjacent" />
+  <disable_collisions link1="base_link" link2="rear_wheel_steer_link" reason="Adjacent" />
+  <disable_collisions link1="base_link" link2="right_wheel_steer_link" reason="Adjacent" />
+  <disable_collisions link1="camera_left_link" link2="gripper_l_rh_p12_rn_base" reason="Adjacent" />
+  <disable_collisions link1="camera_left_link" link2="gripper_l_rh_p12_rn_l1" reason="Adjacent" />
+  <disable_collisions link1="camera_left_link" link2="gripper_l_rh_p12_rn_r1" reason="Adjacent" />
+  <disable_collisions link1="camera_right_link" link2="gripper_r_rh_p12_rn_base" reason="Adjacent" />
+  <disable_collisions link1="camera_right_link" link2="gripper_r_rh_p12_rn_l1" reason="Adjacent" />
+  <disable_collisions link1="camera_right_link" link2="gripper_r_rh_p12_rn_r1" reason="Adjacent" />
+  <disable_collisions link1="gripper_l_rh_p12_rn_base" link2="gripper_l_rh_p12_rn_l1" reason="Gripper linkage" />
+  <disable_collisions link1="gripper_l_rh_p12_rn_base" link2="gripper_l_rh_p12_rn_l2" reason="Gripper linkage" />
+  <disable_collisions link1="gripper_l_rh_p12_rn_base" link2="gripper_l_rh_p12_rn_r1" reason="Gripper linkage" />
+  <disable_collisions link1="gripper_l_rh_p12_rn_base" link2="gripper_l_rh_p12_rn_r2" reason="Gripper linkage" />
+  <disable_collisions link1="gripper_l_rh_p12_rn_l1" link2="gripper_l_rh_p12_rn_l2" reason="Gripper linkage" />
+  <disable_collisions link1="gripper_l_rh_p12_rn_l1" link2="gripper_l_rh_p12_rn_r1" reason="Gripper linkage" />
+  <disable_collisions link1="gripper_l_rh_p12_rn_l1" link2="gripper_l_rh_p12_rn_r2" reason="Gripper linkage" />
+  <disable_collisions link1="gripper_l_rh_p12_rn_l2" link2="gripper_l_rh_p12_rn_r1" reason="Gripper linkage" />
+  <disable_collisions link1="gripper_l_rh_p12_rn_l2" link2="gripper_l_rh_p12_rn_r2" reason="Gripper linkage" />
+  <disable_collisions link1="gripper_l_rh_p12_rn_r1" link2="gripper_l_rh_p12_rn_r2" reason="Gripper linkage" />
+  <disable_collisions link1="gripper_r_rh_p12_rn_base" link2="gripper_r_rh_p12_rn_l1" reason="Gripper linkage" />
+  <disable_collisions link1="gripper_r_rh_p12_rn_base" link2="gripper_r_rh_p12_rn_l2" reason="Gripper linkage" />
+  <disable_collisions link1="gripper_r_rh_p12_rn_base" link2="gripper_r_rh_p12_rn_r1" reason="Gripper linkage" />
+  <disable_collisions link1="gripper_r_rh_p12_rn_base" link2="gripper_r_rh_p12_rn_r2" reason="Gripper linkage" />
+  <disable_collisions link1="gripper_r_rh_p12_rn_l1" link2="gripper_r_rh_p12_rn_l2" reason="Gripper linkage" />
+  <disable_collisions link1="gripper_r_rh_p12_rn_l1" link2="gripper_r_rh_p12_rn_r1" reason="Gripper linkage" />
+  <disable_collisions link1="gripper_r_rh_p12_rn_l1" link2="gripper_r_rh_p12_rn_r2" reason="Gripper linkage" />
+  <disable_collisions link1="gripper_r_rh_p12_rn_l2" link2="gripper_r_rh_p12_rn_r1" reason="Gripper linkage" />
+  <disable_collisions link1="gripper_r_rh_p12_rn_l2" link2="gripper_r_rh_p12_rn_r2" reason="Gripper linkage" />
+  <disable_collisions link1="gripper_r_rh_p12_rn_r1" link2="gripper_r_rh_p12_rn_r2" reason="Gripper linkage" />
+  <disable_collisions link1="head_link1" link2="head_link2" reason="Adjacent" />
+  <disable_collisions link1="head_link1" link2="zed_camera_center" reason="Adjacent" />
+  <disable_collisions link1="head_link2" link2="zed_camera_center" reason="Adjacent" />
+  <disable_collisions link1="left_wheel_drive_link" link2="left_wheel_steer_link" reason="Adjacent" />
+  <disable_collisions link1="left_wheel_steer_link" link2="lift_link" reason="Adjacent" />
+  <disable_collisions link1="lift_link" link2="rear_wheel_steer_link" reason="Adjacent" />
+  <disable_collisions link1="lift_link" link2="right_wheel_steer_link" reason="Adjacent" />
+  <disable_collisions link1="rear_wheel_drive_link" link2="rear_wheel_steer_link" reason="Adjacent" />
+  <disable_collisions link1="right_wheel_drive_link" link2="right_wheel_steer_link" reason="Adjacent" />
+</robot>

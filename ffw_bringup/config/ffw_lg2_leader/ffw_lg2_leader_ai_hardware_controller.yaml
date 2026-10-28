@@ -8,7 +8,7 @@
         type: joint_state_broadcaster/JointStateBroadcaster
 
       joint_trajectory_command_broadcaster:
-        type: joint_trajectory_command_broadcaster/JointTrajectoryCommandBroadcaster
+        type: lg2_joint_trajectory_command_broadcaster/LG2JointTrajectoryCommandBroadcaster
 
       spring_actuator_controller_left:
         type: spring_actuator_controller/SpringActuatorController
@@ -17,11 +17,20 @@
         type: spring_actuator_controller/SpringActuatorController
 
       joystick_controller:
-        type: joystick_controller/JoystickController
+        type: joystick_controller/LeaderJoystickController
 
-/**:
   joint_trajectory_command_broadcaster:
     ros__parameters:
+      enable_teleoperation: true
+      output_topic_suffix: raw_joint_trajectory
+      default_control_mode: 1
+      command_source_state_topic: "/source"
+      joystick_command_topic: "/control/teleoperation"
+      control_command_topic: "/control/command"
+      control_status_topic: "/control/status"
+      set_mode_service: "/set_control_mode"
+      set_teleoperation_service: "/set_enabled"
+      set_preset_service: "/set_preset"
       left_joints:
         - arm_l_joint1
         - arm_l_joint2
@@ -60,7 +69,6 @@
         - 0.3
       trigger_threshold: -0.5
 
-/**:
   spring_actuator_controller_left:
     ros__parameters:
       joints:
@@ -71,7 +79,6 @@
         - position
         - velocity
 
-/**:
   spring_actuator_controller_right:
     ros__parameters:
       joints:
@@ -82,9 +89,12 @@
         - position
         - velocity
 
-/**:
   joystick_controller:
     ros__parameters:
+      teleoperation_toggle_enabled: true
+      teleoperation_command_topic: "/control/teleoperation"
+      command_source_state_topic: "/source"
+      teleoperation_toggle_long_press_duration: 0.5
       joystick_sensors:
         - sensorxel_l_joy
         - sensorxel_r_joy

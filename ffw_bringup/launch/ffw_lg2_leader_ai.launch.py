@@ -22,11 +22,31 @@ from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node, PushRosNamespace
+from launch_ros.descriptions import ParameterFile
 from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
     declared_arguments = [
+        DeclareLaunchArgument(
+            'style', default_value='default', choices=['default', 'advanced'],
+            description='Default: both triggers start/pause teleop. Advanced: joystick buttons.',
+        ),
+        DeclareLaunchArgument(
+            'leader_input_file',
+            default_value=PathJoinSubstitution([
+                FindPackageShare('ffw_bringup'), 'config', 'ffw_lg2_leader',
+                'ffw_lg2_leader_input.yaml']),
+            description='Common leader reference model and input mapping settings.',
+        ),
+        DeclareLaunchArgument(
+            'use_mock_hardware', default_value='false',
+            description='Use mock hardware mirroring command.',
+        ),
+        DeclareLaunchArgument(
+            'mock_sensor_commands', default_value='false',
+            description='Expose mock joystick sensor command interfaces for testing.',
+        ),
         DeclareLaunchArgument(
             'description_file',
             default_value='ffw_lg2_leader.urdf.xacro',
@@ -66,7 +86,8 @@ def generate_launch_description():
     control_node = Node(
         package='controller_manager',
         executable='ros2_control_node',
-        parameters=[robot_controllers],
+        parameters=[robot_controllers,
+                    ParameterFile(LaunchConfiguration('leader_input_file'), allow_substs=True)],
         output='both',
     )
 
@@ -77,6 +98,8 @@ def generate_launch_description():
             PathJoinSubstitution(
                 [FindPackageShare('ffw_description'), 'urdf', 'ffw_lg2_leader', description_file]
             ),
+            ' ', 'use_mock_hardware:=', LaunchConfiguration('use_mock_hardware'),
+            ' ', 'mock_sensor_commands:=', LaunchConfiguration('mock_sensor_commands'),
         ]
     )
     robot_description = {'robot_description': robot_description_content}
@@ -89,6 +112,8 @@ def generate_launch_description():
             [
                 '--controller-ros-args=-p exclude_gripper_joints:=',
                 LaunchConfiguration('use_hand_preset'),
+                ' -p style:=', LaunchConfiguration('style'),
+                ' -r /leader/joystick_controller_right/joystick_mode:=/reference/joystick/mode',
             ],
             'joint_trajectory_command_broadcaster',
             'spring_actuator_controller_left',

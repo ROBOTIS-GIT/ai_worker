@@ -58,6 +58,11 @@ controller_interface::CallbackReturn LeaderJoystickController::on_configure(
   }
   leader_params_ = leader_param_listener_->get_params();
 
+  if (leader_params_.style != "default" && leader_params_.style != "advanced") {
+    RCLCPP_ERROR(get_node()->get_logger(), "style must be 'default' or 'advanced'");
+    return controller_interface::CallbackReturn::ERROR;
+  }
+
   if (leader_params_.teleoperation_toggle_enabled) {
     current_mode_ = kHeadControlMode;
     teleoperation_command_pub_ =
@@ -129,8 +134,8 @@ controller_interface::CallbackReturn LeaderJoystickController::on_configure(
 
   RCLCPP_INFO(
     get_node()->get_logger(),
-    "Leader joystick controller configured (teleoperation toggle hold: %.2f s)",
-    leader_params_.teleoperation_toggle_long_press_duration);
+    "Leader joystick controller configured (style=%s, button hold: %.2f s)",
+    leader_params_.style.c_str(), leader_params_.teleoperation_toggle_long_press_duration);
   return controller_interface::CallbackReturn::SUCCESS;
 }
 
@@ -179,9 +184,10 @@ void LeaderJoystickController::handle_tact_switches(
         leader_params_.teleoperation_toggle_long_press_duration)
       {
         both_tact_long_press_triggered_ = true;
-        toggle_leader_action_output();
-        RCLCPP_INFO(
-          get_node()->get_logger(), "Control source toggle requested");
+        if (leader_params_.style == "advanced") {
+          toggle_leader_action_output();
+          RCLCPP_INFO(get_node()->get_logger(), "Control source toggle requested");
+        }
       }
     }
   }
@@ -205,14 +211,16 @@ void LeaderJoystickController::handle_tact_switches(
     if (press_duration.seconds() >=
       leader_params_.teleoperation_toggle_long_press_duration)
     {
-      publish_teleoperation_toggle(
-        robotis_interfaces::msg::TeleoperationCommand::TARGET_LEFT);
-      if (leader_action_enabled_) {
-        RCLCPP_INFO(get_node()->get_logger(), "Left-arm teleoperation toggle requested");
-      } else {
-        RCLCPP_INFO(
-          get_node()->get_logger(),
-          "Left-arm teleoperation request ignored: teleop source is not active");
+      if (leader_params_.style == "advanced") {
+        publish_teleoperation_toggle(
+          robotis_interfaces::msg::TeleoperationCommand::TARGET_LEFT);
+        if (leader_action_enabled_) {
+          RCLCPP_INFO(get_node()->get_logger(), "Left-arm teleoperation toggle requested");
+        } else {
+          RCLCPP_INFO(
+            get_node()->get_logger(),
+            "Left-arm teleoperation request ignored: teleop source is not active");
+        }
       }
       left_tact_long_press_triggered_ = true;
     }
@@ -222,14 +230,16 @@ void LeaderJoystickController::handle_tact_switches(
     if (press_duration.seconds() >=
       leader_params_.teleoperation_toggle_long_press_duration)
     {
-      publish_teleoperation_toggle(
-        robotis_interfaces::msg::TeleoperationCommand::TARGET_RIGHT);
-      if (leader_action_enabled_) {
-        RCLCPP_INFO(get_node()->get_logger(), "Right-arm teleoperation toggle requested");
-      } else {
-        RCLCPP_INFO(
-          get_node()->get_logger(),
-          "Right-arm teleoperation request ignored: teleop source is not active");
+      if (leader_params_.style == "advanced") {
+        publish_teleoperation_toggle(
+          robotis_interfaces::msg::TeleoperationCommand::TARGET_RIGHT);
+        if (leader_action_enabled_) {
+          RCLCPP_INFO(get_node()->get_logger(), "Right-arm teleoperation toggle requested");
+        } else {
+          RCLCPP_INFO(
+            get_node()->get_logger(),
+            "Right-arm teleoperation request ignored: teleop source is not active");
+        }
       }
       right_tact_long_press_triggered_ = true;
     }
