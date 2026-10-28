@@ -1,6 +1,0 @@
-# Hand to apply the preset to: "left", "right" or "both".
-string target_arm
-string preset_name
----
-bool success
-string message

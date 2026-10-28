@@ -47,16 +47,26 @@ when its leader gripper state becomes stale. With `clamp_to_joint_limits` enable
 it applies limits received on `robot_description_topic`; before receiving those
 limits it warns and publishes unclamped commands.
 
-List, select, or reload presets on a running system:
+Select or reload presets on a running system. The YAML file is the preset catalog;
+the controller does not define a second custom discovery service. Each preset has
+a required unique `id` in 1–65535 used with the shared
+`robotis_interfaces/srv/SetPreset` API. The shipped IDs are 1 (`envelope`),
+2 (`pinch`), and 3 (`3finger`). Keep IDs stable when reordering the YAML.
 
 ```bash
-ros2 service call /hand_preset_controller/get_presets ffw_preset_controller/srv/GetHandPresets '{}'
-ros2 service call /hand_preset_controller/select_preset ffw_preset_controller/srv/SelectHandPreset "{target_arm: both, preset_name: pinch}"
+ros2 service call /hand_preset_controller/set_preset robotis_interfaces/srv/SetPreset "{target_arm: both, left_preset_id: 2, right_preset_id: 2}"
 ros2 service call /hand_preset_controller/reload_presets std_srvs/srv/Trigger '{}'
 ```
 
-`target_arm` accepts `left`, `right`, or `both`. Invalid reloads retain the previous
-presets. Editing the source default requires rebuilding bringup unless the install
+`target_arm` accepts `left`, `right`, or `both`; only selected arms' preset IDs
+are used, and each hand can select a different preset. Invalid requests leave both
+hands unchanged. The response's `accepted` acknowledges selection;
+`transition_id` increments for each accepted request within the node's lifetime.
+It does not report completion of the configured blend.
+The hand service is namespaced separately from Cyclo's `/set_preset` arm service.
+
+Invalid reloads retain the previous presets. Editing the source default requires
+rebuilding bringup unless the install
 is symlinked; an absolute custom file can be edited and reloaded directly.
 
 The standalone launch requires an explicit preset path, keeping this package

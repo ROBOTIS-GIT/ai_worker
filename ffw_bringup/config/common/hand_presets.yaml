@@ -12,6 +12,7 @@
 # The left hand uses the same values with the joints in `mirrored_joints` negated.
 #
 # A preset may give `left_release` / `left_grasp` to override the mirrored left-hand poses.
+# `id` is the stable uint16 value used by robotis_interfaces/srv/SetPreset.
 # Edit this file and call the `~/reload_presets` service to apply changes without restarting.
 
 default_preset: envelope
@@ -20,6 +21,7 @@ mirrored_joints: [1, 2, 3, 4, 5, 9, 13, 17]
 
 presets:
   envelope:
+    id: 1
     release:
       thumb:  [1.047, -1.571, -0.436, 0.0]
       index:  [0.0, 0.0, 0.0, 0.0]
@@ -34,6 +36,7 @@ presets:
       little: [0.0, 1.426, 1.571, 1.571]
 
   pinch:
+    id: 2
     release:
       thumb:  [0.0, -1.571, 0.175, 0.262]
       index:  [0.0, 0.0, 0.0, 0.0]
@@ -48,6 +51,7 @@ presets:
       little: [0.0, 1.197, 1.501, 1.197]
 
   3finger:
+    id: 3
     release:
       thumb:  [0.199, -1.571, 0.0, 0.0]
       index:  [-0.147, 0.0, 0.0, 0.0]

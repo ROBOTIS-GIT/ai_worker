@@ -46,8 +46,8 @@ def generate_launch_description():
             'params_file', default_value='',
             description='Leader-specific parameters (gripper calibration, topics).'),
         DeclareLaunchArgument(
-            'presets_file', default_value='',
-            description='Hand preset YAML. Empty uses the file installed with this package.'),
+            'presets_file',
+            description='Path to the hand preset YAML file (required).'),
         DeclareLaunchArgument(
             'initial_preset', default_value='',
             description='Preset to start with. Empty uses `default_preset` from the YAML.'),

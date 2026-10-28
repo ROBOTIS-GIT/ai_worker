@@ -21,13 +21,13 @@ import math
 from typing import Dict, List, Optional, Tuple
 import xml.etree.ElementTree as ET
 
-from ffw_preset_controller.srv import GetHandPresets, SelectHandPreset
 import rclpy
 from rclpy.duration import Duration
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from rclpy.time import Time
+from robotis_interfaces.srv import SetPreset
 from sensor_msgs.msg import JointState
 from std_msgs.msg import String
 from std_srvs.srv import Trigger
@@ -87,8 +87,8 @@ def _mirror(pose: Tuple[float, ...], mirrored_joints: List[int]) -> Tuple[float,
         for index, value in enumerate(pose))
 
 
-def load_presets(path: str) -> Tuple[str, Dict[str, Dict[str, HandPose]]]:
-    """Load presets as {name: {'left': HandPose, 'right': HandPose}}."""
+def load_presets(path: str) -> Tuple[str, Dict[str, Dict[str, HandPose]], Dict[int, str]]:
+    """Load named hand poses and their stable numeric SetPreset identifiers."""
     try:
         with open(path, encoding='utf-8') as preset_file:
             data = yaml.safe_load(preset_file)
@@ -100,7 +100,7 @@ def load_presets(path: str) -> Tuple[str, Dict[str, Dict[str, HandPose]]]:
 
     mirrored_joints = data.get('mirrored_joints', [])
     if not isinstance(mirrored_joints, list) or not all(
-            isinstance(j, int) and 1 <= j <= NUM_HAND_JOINTS for j in mirrored_joints):
+            type(j) is int and 1 <= j <= NUM_HAND_JOINTS for j in mirrored_joints):
         raise PresetFileError(f'mirrored_joints must be joint numbers in 1..{NUM_HAND_JOINTS}')
 
     raw_presets = data.get('presets')
@@ -108,10 +108,19 @@ def load_presets(path: str) -> Tuple[str, Dict[str, Dict[str, HandPose]]]:
         raise PresetFileError(f'{path}: `presets` must be a non-empty mapping')
 
     presets = {}
+    preset_ids = {}
     for name, preset in raw_presets.items():
         name = str(name)
         if not isinstance(preset, dict):
             raise PresetFileError(f'presets.{name}: expected a mapping')
+        preset_id = preset.get('id')
+        if isinstance(preset_id, bool) or not isinstance(preset_id, int) or \
+                not 1 <= preset_id <= 65535:
+            raise PresetFileError(f'presets.{name}.id: expected an integer in 1..65535')
+        if preset_id in preset_ids:
+            raise PresetFileError(
+                f'presets.{name}.id: duplicate preset ID {preset_id} '
+                f'for `{preset_ids[preset_id]}`')
         release = _parse_pose(preset.get('release'), f'presets.{name}.release')
         grasp = _parse_pose(preset.get('grasp'), f'presets.{name}.grasp')
         left_release = (
@@ -124,11 +133,12 @@ def load_presets(path: str) -> Tuple[str, Dict[str, Dict[str, HandPose]]]:
             'left': HandPose(left_release, left_grasp),
             'right': HandPose(release, grasp),
         }
+        preset_ids[preset_id] = name
 
     default_preset = str(data.get('default_preset', next(iter(presets))))
     if default_preset not in presets:
         raise PresetFileError(f'default_preset `{default_preset}` is not a defined preset')
-    return default_preset, presets
+    return default_preset, presets, preset_ids
 
 
 class HandSide:
@@ -244,7 +254,7 @@ class HandPresetController(Node):
                     JointTrajectory, self.get_parameter(f'{side}.command_topic').value, 10),
             )
 
-        self.default_preset, self.presets = load_presets(self.presets_file)
+        self.default_preset, self.presets, self.preset_ids = load_presets(self.presets_file)
         initial_preset = self.get_parameter('initial_preset').value or self.default_preset
         if initial_preset not in self.presets:
             raise ValueError(
@@ -269,15 +279,15 @@ class HandPresetController(Node):
             JointState, self.get_parameter('leader_joint_states_topic').value,
             self.leader_joint_states_callback, 10)
 
-        self.create_service(SelectHandPreset, '~/select_preset', self.select_preset_callback)
-        self.create_service(GetHandPresets, '~/get_presets', self.get_presets_callback)
+        self.preset_transition_id = 0
+        self.create_service(SetPreset, '~/set_preset', self.set_preset_callback)
         self.create_service(Trigger, '~/reload_presets', self.reload_presets_callback)
 
         self.create_timer(1.0 / self.publish_rate, self.publish_commands)
 
         self.get_logger().info(
             f'Hand preset controller ready: hands={list(self.sides)}, '
-            f'preset=`{initial_preset}`, presets={list(self.presets)}, file={self.presets_file}')
+            f'preset=`{initial_preset}`, preset IDs={self.preset_ids}, file={self.presets_file}')
 
     def robot_description_callback(self, msg: String):
         try:
@@ -345,42 +355,49 @@ class HandPresetController(Node):
             trajectory.points = [point]
             side.publisher.publish(trajectory)
 
-    def select_preset_callback(self, request, response):
-        target_arm = request.target_arm or 'both'
-        if target_arm == 'both':
+    def set_preset_callback(self, request, response):
+        target_arm = request.target_arm or SetPreset.Request.TARGET_BOTH
+        if target_arm == SetPreset.Request.TARGET_BOTH:
             targets = list(self.sides.values())
         elif target_arm in self.sides:
             targets = [self.sides[target_arm]]
         else:
-            response.success = False
+            response.accepted = False
             response.message = (
                 f'Invalid target_arm `{request.target_arm}`; enabled hands: {list(self.sides)}')
             return response
-        if request.preset_name not in self.presets:
-            response.success = False
-            response.message = (
-                f'Unknown preset `{request.preset_name}`; available: {list(self.presets)}')
-            return response
 
+        selections = {
+            'left': request.left_preset_id,
+            'right': request.right_preset_id,
+        }
+        missing = [
+            f'{side.name}={selections[side.name]}' for side in targets
+            if selections[side.name] not in self.preset_ids
+        ]
+        if missing:
+            response.accepted = False
+            response.message = (
+                f'Unknown hand preset ID(s): {", ".join(missing)}; '
+                f'available: {sorted(self.preset_ids)}')
+            return response
         now = self.get_clock().now()
         for side in targets:
-            side.set_pose(request.preset_name, self.presets[request.preset_name][side.name],
+            preset_name = self.preset_ids[selections[side.name]]
+            side.set_pose(preset_name, self.presets[preset_name][side.name],
                           now, self.switch_duration)
-        response.success = True
+        self.preset_transition_id += 1
+        response.accepted = True
+        response.transition_id = self.preset_transition_id
         response.message = (
-            f'Preset `{request.preset_name}` selected for {[side.name for side in targets]}')
+            'Hand preset IDs selected: ' +
+            ', '.join(f'{side.name}={selections[side.name]}' for side in targets))
         self.get_logger().info(response.message)
-        return response
-
-    def get_presets_callback(self, _request, response):
-        response.preset_names = list(self.presets)
-        response.left_preset = self.sides['left'].preset_name if 'left' in self.sides else ''
-        response.right_preset = self.sides['right'].preset_name if 'right' in self.sides else ''
         return response
 
     def reload_presets_callback(self, _request, response):
         try:
-            default_preset, presets = load_presets(self.presets_file)
+            default_preset, presets, preset_ids = load_presets(self.presets_file)
         except PresetFileError as error:
             response.success = False
             response.message = f'Reload failed, keeping previous presets: {error}'
@@ -389,6 +406,7 @@ class HandPresetController(Node):
 
         self.default_preset = default_preset
         self.presets = presets
+        self.preset_ids = preset_ids
         now = self.get_clock().now()
         for side in self.sides.values():
             preset_name = side.preset_name
