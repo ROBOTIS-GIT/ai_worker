@@ -7,10 +7,10 @@ cyclo_teleoperation:
       plugin: cyclo_teleoperation/AIWorkerTeleoperation
       parameter_prefix: ""
 
-    # BG2 rev4 geometry with the shared SG2 collision-pair policies.
+    # BG2 rev4 geometry and dedicated collision-pair policies.
     follower_urdf_path: "$(find-pkg-share cyclo_motion_controller_models)/models/ai_worker/ffw_bg2_follower.urdf"
-    follower_srdf_path: "$(find-pkg-share cyclo_motion_controller_models)/models/ai_worker/ffw_sg2_follower_modified.srdf"
-    model_action_follower_srdf_path: "$(find-pkg-share cyclo_motion_controller_models)/models/ai_worker/ffw_sg2_follower_default.srdf"
+    follower_srdf_path: "$(find-pkg-share cyclo_motion_controller_models)/models/ai_worker/ffw_bg2_follower_modified.srdf"
+    model_action_follower_srdf_path: "$(find-pkg-share cyclo_motion_controller_models)/models/ai_worker/ffw_bg2_follower_default.srdf"
 
     # 2. Command/state topics and joint/EEF mapping
     follower_joint_states_topic: /joint_states

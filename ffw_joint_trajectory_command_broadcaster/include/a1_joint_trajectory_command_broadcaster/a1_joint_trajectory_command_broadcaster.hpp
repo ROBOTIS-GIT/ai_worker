@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <vector>
@@ -60,6 +61,8 @@ protected:
     const std::string & joint_name, double position) const;
 
 private:
+  bool configure_physical_pose_reference();
+  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr physical_state_subscription_;
   std::shared_ptr<ParamListener> scaling_param_listener_;
   Params scaling_params_;
 
@@ -67,6 +70,7 @@ private:
   {
     std::string joint_name;
     bool is_position = false;
+    size_t joint_reference_source_index = 0;
     double sign = 1.0;
     double offset = 0.0;
     double last_raw_position = 0.0;

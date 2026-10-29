@@ -1,4 +1,9 @@
 a1_joint_trajectory_command_broadcaster:
+  leader_joint_states_topic:
+    type: string
+    default_value: "joint_states"
+    read_only: true
+    description: "Physical A1 JointState input for FK; independent of MoveJ mapping and gains."
   joint6_scaling:
     gain:
       type: double

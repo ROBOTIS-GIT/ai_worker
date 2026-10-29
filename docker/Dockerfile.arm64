@@ -168,6 +168,8 @@ RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc  && \
     echo "alias ffw_bh5_follower_ai='ros2 launch ffw_bringup ffw_bh5_follower_ai.launch.py'" >> ~/.bashrc && \
     echo "alias motion_controller='ros2 launch cyclo_motion_controller_ros ai_worker_controller.launch.py'" >> ~/.bashrc && \
     echo "alias motion_controller_hand='ros2 launch cyclo_motion_controller_ros ai_worker_controller.launch.py controller_type:=vr hand:=true'" >> ~/.bashrc && \
+    echo "alias ffw_a2_leader_ai='ros2 launch ffw_bringup ffw_a2_leader_ai.launch.py'" >> ~/.bashrc && \
+    echo "alias ffw_a1_leader_ai='ros2 launch ffw_bringup ffw_a1_leader_ai.launch.py'" >> ~/.bashrc && \
     echo "alias ffw_f2_follower_ai='ros2 launch ffw_bringup ffw_f2_follower_ai.launch.py'" >> ~/.bashrc && \
     echo "alias ffw_f1_follower_ai='ros2 launch ffw_bringup ffw_f1_follower_ai.launch.py'" >> ~/.bashrc && \
     echo "alias ffw_f2_ai='ros2 launch ffw_bringup ffw_f2_ai.launch.py'" >> ~/.bashrc && \

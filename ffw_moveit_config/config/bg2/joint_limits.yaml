@@ -1,87 +1,86 @@
-# joint_limits.yaml allows the dynamics properties specified in the URDF to be overwritten or augmented as needed
-
-# For beginners, we downscale velocity and acceleration limits.
-# You can always specify higher scaling factors (<= 10.0) in your motion requests.  # Increase the values below to 10.0 to always move at maximum speed.
+# Position bounds are taken directly from the selected URDF.
+# Acceleration limits retain the existing planning configuration.
 default_velocity_scaling_factor: 0.1
 default_acceleration_scaling_factor: 0.1
-
-# Specific joint properties can be changed with the keys [max_position, min_position, max_velocity, max_acceleration]
-# Joint limits can be turned off with [has_velocity_limits, has_acceleration_limits]
 joint_limits:
   arm_l_joint1:
     has_velocity_limits: true
-    max_velocity: 5.0
+    max_velocity: 4.8
     has_acceleration_limits: true
     max_acceleration: 5.0
   arm_l_joint2:
     has_velocity_limits: true
-    max_velocity: 5.0
+    max_velocity: 4.8
     has_acceleration_limits: true
     max_acceleration: 5.0
-    has_position_limits: true
-    min_position: -0.001
-    max_position: 3.14159
   arm_l_joint3:
     has_velocity_limits: true
-    max_velocity: 5.0
+    max_velocity: 4.8
     has_acceleration_limits: true
     max_acceleration: 5.0
   arm_l_joint4:
     has_velocity_limits: true
-    max_velocity: 5.0
+    max_velocity: 4.8
     has_acceleration_limits: true
     max_acceleration: 5.0
   arm_l_joint5:
     has_velocity_limits: true
-    max_velocity: 5.0
+    max_velocity: 4.8
     has_acceleration_limits: true
     max_acceleration: 5.0
   arm_l_joint6:
     has_velocity_limits: true
-    max_velocity: 5.0
+    max_velocity: 4.8
     has_acceleration_limits: true
     max_acceleration: 5.0
   arm_l_joint7:
     has_velocity_limits: true
-    max_velocity: 5.0
+    max_velocity: 4.8
     has_acceleration_limits: true
     max_acceleration: 5.0
   arm_r_joint1:
     has_velocity_limits: true
-    max_velocity: 5.0
+    max_velocity: 4.8
     has_acceleration_limits: true
     max_acceleration: 5.0
   arm_r_joint2:
     has_velocity_limits: true
-    max_velocity: 5.0
+    max_velocity: 4.8
     has_acceleration_limits: true
     max_acceleration: 5.0
-    has_position_limits: true
-    min_position: -3.14159
-    max_position: 0.001
   arm_r_joint3:
     has_velocity_limits: true
-    max_velocity: 5.0
+    max_velocity: 4.8
     has_acceleration_limits: true
     max_acceleration: 5.0
   arm_r_joint4:
     has_velocity_limits: true
-    max_velocity: 5.0
+    max_velocity: 4.8
     has_acceleration_limits: true
     max_acceleration: 5.0
   arm_r_joint5:
     has_velocity_limits: true
-    max_velocity: 5.0
+    max_velocity: 4.8
     has_acceleration_limits: true
     max_acceleration: 5.0
   arm_r_joint6:
     has_velocity_limits: true
-    max_velocity: 5.0
+    max_velocity: 4.8
     has_acceleration_limits: true
     max_acceleration: 5.0
   arm_r_joint7:
     has_velocity_limits: true
-    max_velocity: 5.0
+    max_velocity: 4.8
+    has_acceleration_limits: true
+    max_acceleration: 5.0
+  head_joint1:
+    has_velocity_limits: true
+    max_velocity: 4.8
+    has_acceleration_limits: true
+    max_acceleration: 5.0
+  head_joint2:
+    has_velocity_limits: true
+    max_velocity: 4.8
     has_acceleration_limits: true
     max_acceleration: 5.0
   lift_joint:
@@ -89,13 +88,3 @@ joint_limits:
     max_velocity: 0.5
     has_acceleration_limits: true
     max_acceleration: 0.5
-  head_joint1:
-    has_velocity_limits: true
-    max_velocity: 5.0
-    has_acceleration_limits: true
-    max_acceleration: 5.0
-  head_joint2:
-    has_velocity_limits: true
-    max_velocity: 5.0
-    has_acceleration_limits: true
-    max_acceleration: 5.0
