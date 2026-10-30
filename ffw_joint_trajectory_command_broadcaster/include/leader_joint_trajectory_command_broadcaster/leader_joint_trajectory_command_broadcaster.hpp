@@ -43,6 +43,7 @@
 #include "robotis_interfaces/srv/set_teleoperation.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "std_msgs/msg/string.hpp"
+#include "std_srvs/srv/set_bool.hpp"
 #include "urdf/model.h"
 #include "trajectory_msgs/msg/joint_trajectory.hpp"
 #include "rclcpp/subscription.hpp"
@@ -134,6 +135,10 @@ protected:
   void update_trigger_state(const rclcpp::Time & current_time);
   bool check_trigger_active() const;
   void update_initial_pose_trigger_state(const rclcpp::Time & current_time);
+  void update_default_trigger_state(const rclcpp::Time & current_time);
+  void process_default_trigger();
+  // Caller holds default_start_mutex_; all service work stays outside update().
+  void cancel_default_start();
   bool check_arm_trigger_active(uint8_t arm) const;
   void request_final_initial_pose(uint8_t target_arms);
   void teleoperation_command_callback(
@@ -212,6 +217,17 @@ protected:
   };
   TriggerHoldState left_initial_pose_trigger_;
   TriggerHoldState right_initial_pose_trigger_;
+  TriggerHoldState default_trigger_;
+  std::atomic<bool> default_trigger_pending_{false};
+  std::atomic<bool> controller_active_{false};
+  rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr source_client_;
+  rclcpp::TimerBase::SharedPtr default_trigger_timer_;
+  std::mutex default_start_mutex_;
+  bool default_start_waiting_ = false;
+  bool default_source_accepted_ = false;
+  int64_t default_source_request_id_ = -1;
+  uint64_t default_start_generation_ = 0;
+  std::chrono::steady_clock::time_point default_start_deadline_{};
 
   rclcpp::Subscription<robotis_interfaces::msg::TeleoperationCommand>::SharedPtr
     teleoperation_command_subscriber_;

@@ -2,6 +2,14 @@
 Changelog for package ffw
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.1 (2026-10-26)
+------------------
+* Added selectable default and advanced control styles for A1, A2, and LG2 leaders
+* Updated F1 and F2 robot descriptions and added MuJoCo models
+* Added model-specific MoveIt configurations for BG2, SG2, F1, and F2
+* Updated F-series bringup and BG2 collision-policy configuration
+* Contributors: Yeonguk Kim
+
 2.3.0 (2026-10-19)
 ------------------
 * Added support for A1 and A2 leaders with dedicated controller plugins

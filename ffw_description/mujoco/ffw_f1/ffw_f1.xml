@@ -1,0 +1,310 @@
+<mujoco model="ffw_f1">
+  <compiler angle="radian" meshdir="../../" />
+  <option integrator="implicitfast" cone="elliptic" impratio="10" />
+  <!-- Generated from the F-series URDF. Gains, damping, friction and collision proxies
+       follow the existing BG2/SG2 simulation conventions, not hardware identification. -->
+  <default>
+    <default class="YM080-230-B001-RH">
+      <!-- Approximate ideal linear force. -->
+      <position kp="60000" kv="200" forcerange="-780 780" />
+    </default>
+    <default class="XH540-V150-R">
+      <position kp="400" forcerange="-6.4 6.4" dampratio="1" />
+    </default>
+    <default class="XH430-V210-R">
+      <position kp="300" forcerange="-2.6 2.6" dampratio="1" />
+    </default>
+    <default class="YM080-230-R099-RH">
+      <position kp="3000" kv="80" forcerange="-61.4 61.4" />
+    </default>
+    <default class="YM070-210-R099-RH">
+      <position kp="1800" kv="25" forcerange="-31.7 31.7" />
+    </default>
+    <default class="PH42-020-S300-R">
+      <position kp="400" kv="12" forcerange="-5.1 5.1" />
+    </default>
+    <default class="HX2-D1">
+      <!-- Provisional hinge torque/gains inherited from the legacy gripper simulation. -->
+      <position kp="50" forcerange="-3.5 3.5" dampratio="1" />
+    </default>
+  </default>
+  <asset>
+    <mesh name="base_mobile_assy" file="meshes/common/follower/ffw_f_base/base_mobile_assy.stl" scale="0.001 0.001 0.001" />
+    <mesh name="lift_link" file="meshes/common/follower/ffw_f_base/lift_link.stl" scale="0.001 0.001 0.001" />
+    <mesh name="body_arm_assy" file="meshes/common/follower/ffw_f/body_arm_assy.stl" scale="0.001 0.001 0.001" />
+    <mesh name="head_link1" file="meshes/common/follower/ffw_f/head_link1.stl" scale="0.001 0.001 0.001" />
+    <mesh name="head_link2" file="meshes/common/follower/ffw_f/head_link2.stl" scale="0.001 0.001 0.001" />
+    <mesh name="arm_l_link1" file="meshes/common/follower/ffw_f/arm_l_link1.stl" scale="0.001 0.001 0.001" />
+    <mesh name="arm_l_link2" file="meshes/common/follower/ffw_f/arm_l_link2.stl" scale="0.001 0.001 0.001" />
+    <mesh name="arm_l_link3" file="meshes/common/follower/ffw_f/arm_l_link3.stl" scale="0.001 0.001 0.001" />
+    <mesh name="arm_l_link4" file="meshes/common/follower/ffw_f/arm_l_link4.stl" scale="0.001 0.001 0.001" />
+    <mesh name="arm_l_link5" file="meshes/common/follower/ffw_f/arm_l_link5.stl" scale="0.001 0.001 0.001" />
+    <mesh name="arm_l_link6" file="meshes/common/follower/ffw_f/arm_l_link6.stl" scale="0.001 0.001 0.001" />
+    <mesh name="arm_l_link7" file="meshes/common/follower/ffw_f/arm_l_link7.stl" scale="0.001 0.001 0.001" />
+    <mesh name="wrist_d401_base" file="meshes/common/follower/wrist_d401_base.stl" scale="0.001 0.001 0.001" />
+    <mesh name="base" file="meshes/common/hx2_d1/base.stl" scale="0.001 0.001 0.001" />
+    <mesh name="r1" file="meshes/common/hx2_d1/r1.stl" scale="0.001 0.001 0.001" />
+    <mesh name="r2" file="meshes/common/hx2_d1/r2.stl" scale="0.001 0.001 0.001" />
+    <mesh name="l1" file="meshes/common/hx2_d1/l1.stl" scale="0.001 0.001 0.001" />
+    <mesh name="l2" file="meshes/common/hx2_d1/l2.stl" scale="0.001 0.001 0.001" />
+    <mesh name="arm_r_link1" file="meshes/common/follower/ffw_f/arm_r_link1.stl" scale="0.001 0.001 0.001" />
+    <mesh name="arm_r_link2" file="meshes/common/follower/ffw_f/arm_r_link2.stl" scale="0.001 0.001 0.001" />
+    <mesh name="arm_r_link3" file="meshes/common/follower/ffw_f/arm_r_link3.stl" scale="0.001 0.001 0.001" />
+    <mesh name="arm_r_link4" file="meshes/common/follower/ffw_f/arm_r_link4.stl" scale="0.001 0.001 0.001" />
+    <mesh name="arm_r_link5" file="meshes/common/follower/ffw_f/arm_r_link5.stl" scale="0.001 0.001 0.001" />
+    <mesh name="arm_r_link6" file="meshes/common/follower/ffw_f/arm_r_link6.stl" scale="0.001 0.001 0.001" />
+    <mesh name="arm_r_link7" file="meshes/common/follower/ffw_f/arm_r_link7.stl" scale="0.001 0.001 0.001" />
+  </asset>
+  <worldbody>
+    <body name="base_link">
+      <inertial pos="-8.880608700e-03 -4.758427800e-03 3.886366400e-01" quat="0.63779334348237 -0.006846656896433 0.77017302769494 0.0025063340012608" mass="5.435831600e+01" diaginertia="421648.59801298 1090965.3784278 1216249.8235592" />
+      <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.75 0.75 0.75 1" type="mesh" mesh="base_mobile_assy" />
+      <geom type="box" size="0.2 0.2 0.1" pos="0 0 0.2" group="3" density="0" />
+      <body name="lift_link" pos="0.0 0.0 0.0">
+        <inertial pos="-1.4244239e-01 -1.9465150e-05  7.5969115e-01 " quat="0.69203040561551 0.003246529200454 0.72185295945113 -0.0034179940645223" mass="2.3830693e+01" diaginertia="0.06370740219895 3.750118785631 3.75260961917" />
+        <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.75 0.75 0.75 1" type="mesh" mesh="lift_link" />
+        <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="lift_link" />
+      </body>
+      <body name="arm_base_link" pos="-0.05 0 1.4166">
+        <inertial pos="4.1882462e-02 1.4554650e-03 -2.5285820e-02" quat="0.50097195295232 -0.49738630998664 -0.47414117340678 0.52614076887603" mass="6.4490633e+00" diaginertia="0.046419594204814 0.065429774913983 0.093897939881203" />
+        <joint name="lift_joint" axis="0 0 1" damping="3000" armature="10" frictionloss="5" type="slide" range="-0.5 0.0" actuatorfrcrange="-1000 1000" />
+        <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="1 1 1 1" type="mesh" mesh="body_arm_assy" />
+        <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="body_arm_assy" />
+        <body name="head_link1" pos="0.102729 0 0.116803">
+          <inertial pos="2.7487768e-03 0.000000000e+00 5.4082906e-02" quat="0.6017043857932 -0.6017043857932 -0.37141867497102 -0.37141867497102" mass="9.9838595e-02" diaginertia="3.2245626802666e-05 5.1227573197334e-05 5.4526117e-05" />
+          <joint name="head_joint1" axis="0 1 0" damping="1" armature="0.1" frictionloss="0.1" type="hinge" range="-0.2317 0.6951" actuatorfrcrange="-1000 1000" />
+          <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="head_link1" />
+          <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="head_link1" />
+          <body name="head_link2" pos="0.04 0 0.064">
+            <inertial pos="-7.4491858e-03 1.2053096e-04  -1.5070119e-02" quat="-0.054226041196968 0.70975497008606 0.70040474099562 -0.052350909114358" mass="3.5688298e-01" diaginertia="0.00076010153120327 0.00086320976217135 0.0012529260066254" />
+            <joint name="head_joint2" axis="0 0 1" damping="0.5" armature="0.1" frictionloss="0.1" type="hinge" range="-0.35 0.35" actuatorfrcrange="-1000 1000" />
+            <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="1 1 1 1" type="mesh" mesh="head_link2" />
+            <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="head_link2" />
+            <body name="camera_head_bottom_screw_frame" pos="0.032705 0 -0.0255">
+              <body name="camera_head_link" pos="0.011150000000000002 0.0475 0.0145">
+                <inertial pos="0 0 0" quat="0.5 0.5 0.5 0.5" mass="0.072" diaginertia="0.00049894 0.003879257 0.003881243" />
+                <geom group="2" density="0" pos="-0.00845 -0.0475 0" contype="0" conaffinity="0" rgba="1 1 1 1" type="box" size="0.013 0.062 0.0145" />
+                <geom group="3" density="0" pos="-0.00845 -0.0475 0" type="box" size="0.013 0.062 0.0145" />
+              </body>
+            </body>
+          </body>
+        </body>
+        <body name="arm_l_link1" pos="0.0555 0.11345 0.014">
+          <inertial pos="1.6448037e-02  9.9818309e-02 -4.5551477e-04" quat="0.98105052791096 -0.10067687100509 -0.048882723127997 0.15815975692265" mass="1.2957512e+00" diaginertia="0.0013936425511652 0.001624725393871 0.0016702274549638" />
+          <joint name="arm_l_joint1" axis="0 1 0" damping="17" armature="0.3" frictionloss="5" type="hinge" range="-3.14 3.14" actuatorfrcrange="-1000 1000" />
+          <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="arm_l_link1" />
+          <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="arm_l_link1" />
+          <body name="arm_l_link2" pos="0.01845 0.10305 0">
+            <inertial pos="-5.9392289e-03 3.5195037e-04 -1.5133153e-01" quat="0.56419356550095 -0.54962719901005 -0.44192934314764 -0.42929479197958" mass="1.7167634e+00" diaginertia="0.001836749048886 0.014151555430734 0.01439701902038" />
+            <joint name="arm_l_joint2" axis="1 0 0" damping="17" armature="0.3" frictionloss="5" type="hinge" range="0.0 3.14" actuatorfrcrange="-1000 1000" />
+            <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="arm_l_link2" />
+            <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="arm_l_link2" />
+            <body name="arm_l_link3" pos="-0.01845 0 -0.20795">
+              <inertial pos="3.2294435e-02  4.5752619e-04 -1.0291055e-01" quat="0.93577596927344 -0.037775840129569 0.35000429469696 0.01983216898202" mass="1.3438274e+00" diaginertia="0.0012253417980245 0.0017111807818593 0.0019325026201162" />
+              <joint name="arm_l_joint3" axis="0 0 1" damping="17" armature="0.3" frictionloss="5" type="hinge" range="-3.14 3.14" actuatorfrcrange="-1000 1000" />
+              <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="arm_l_link3" />
+              <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="arm_l_link3" />
+              <body name="arm_l_link4" pos="0.0410041 0.00145 -0.11205">
+                <inertial pos="-3.7954451e-02  4.1746236e-03 -1.2520776e-01" quat="0.5834567524476 0.30747239489265 0.56751638284863 -0.49291388659754" mass="1.4384162e+00" diaginertia="0.0013176191539415 0.0053258738758816 0.0054149347701769" />
+                <joint name="arm_l_joint4" axis="0 1 0" damping="5" armature="0.1" frictionloss="3" type="hinge" range="-2.9361 1.0786" actuatorfrcrange="-1000 1000" />
+                <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="arm_l_link4" />
+                <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="arm_l_link4" />
+                <body name="arm_l_link5" pos="-0.041 -0.00145 -0.14845">
+                  <inertial pos="5.4154219e-04  5.0767999e-04 -9.1696376e-02" quat="0.50451927000397 0.55029607107291 -0.49560204159343 -0.44386164142085" mass="1.1154966e+00" diaginertia="0.00090466312429566 0.0010245551242329 0.0010662686514714" />
+                  <joint name="arm_l_joint5" axis="0 0 1" damping="5" armature="0.1" frictionloss="3" type="hinge" range="-3.14 3.14" actuatorfrcrange="-1000 1000" />
+                  <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="arm_l_link5" />
+                  <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="arm_l_link5" />
+                  <body name="arm_l_link6" pos="0 0.00145 -0.09405">
+                    <inertial pos="-1.0013518e-03  9.5279809e-03 -5.7082715e-02" quat="-0.60706987304863 -0.34080808772095 -0.34848937842553 0.62759156280601" mass="6.0846757e-01" diaginertia="0.00041775964482693 0.00088011649251309 0.00106633240266" />
+                    <joint name="arm_l_joint6" axis="0 1 0" damping="5" armature="0.1" frictionloss="3" type="hinge" range="-1.57 1.57" actuatorfrcrange="-1000 1000" />
+                    <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="arm_l_link6" />
+                    <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="arm_l_link6" />
+                    <body name="arm_l_link7" pos="-0.00025 -0.00145 -0.0775">
+                      <inertial pos="5.1094689e-03  0.0000000e-03 -3.2688561e-02" quat="-0.0074229997784051 -0.0074229997784051 0.70706781787484 -0.70706781787484" mass="1.5224775e-01" diaginertia="8.2064446753514e-05 0.00023278235024649 0.00025115258" />
+                      <joint name="arm_l_joint7" axis="1 0 0" damping="1.5" armature="0.1" frictionloss="0.1" type="hinge" range="-1.5804 1.8201" actuatorfrcrange="-1000 1000" />
+                      <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="arm_l_link7" />
+                      <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="arm_l_link7" />
+                      <body name="camera_left_base_link" pos="0.02675 0.0 -0.084575" quat="0.50000000000245 -0.5 0.5 0.49999999999755">
+                        <inertial pos="-1.1702196e-02 -9.0595024e-04  4.5916978e-04" quat="0.6974595900729 -0.13660147167837 -0.69028623362743 -0.1356284402885" mass="3.6935029e-02" diaginertia="8.6771901468209e-06 1.6776160258748e-05 2.0210247994431e-05" />
+                        <geom group="2" density="0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="wrist_d401_base" />
+                        <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="wrist_d401_base" />
+                        <body name="camera_left_link" pos="0.0126724 -0.02235 0.009" quat="0.98480777475285 0 0 0.17364805436956" />
+                      </body>
+                      <body name="gripper_l_hx2_d1_base" pos="0.00025 0 -0.050" quat="1.0693949408681e-26 -1 -1.0341155355511e-13 -1.0341155355511e-13">
+                        <inertial pos="-6.8484893e-05  0.0000000e+00  3.0231995e-02" quat="0.039472160879455 0.70600421281711 -0.70600421281711 -0.039472160879455" mass="2.1967564e-01" diaginertia="0.00011107191 0.00014899634262688 0.00015622557737312" />
+                        <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="base" />
+                        <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="base" />
+                        <body name="gripper_l_hx2_d1_r1" pos="0.0001 0.008 0.048">
+                          <inertial pos="0.0000000e+00  3.3664697e-02  3.3231280e-03" quat="0.31218317480621 0.63446171308276 0.31218317480621 0.63446171308276" mass="2.1057910e-02" diaginertia="5.1405314597509e-06 9.2056249402491e-06 1.1229445e-05" />
+                          <joint name="gripper_l_joint1" axis="1 0 0" damping="0.7" armature="0.1" frictionloss="0.1" type="hinge" range="0.0 1.1" actuatorfrcrange="-1000 1000" />
+                          <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="r1" />
+                          <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="r1" />
+                          <body name="gripper_l_hx2_d1_r2" pos="0.0 0.0494977 0.0282667">
+                            <inertial pos="0.0000000e+00 6.7070088e-03  1.1261741e-02" quat="0.44350277183626 0.55073159649103 0.55073159649103 -0.44350277183626" mass="9.5399014e-02" diaginertia="7.322187165394e-06 2.1847544e-05 2.5273645934606e-05" />
+                            <joint name="gripper_l_joint2" axis="-1 0 0" damping="0.7" armature="0.1" frictionloss="0.1" type="hinge" range="0.0 1.0" actuatorfrcrange="-1000 1000" />
+                            <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="r2" />
+                            <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="r2" />
+                          </body>
+                        </body>
+                        <body name="gripper_l_hx2_d1_l1" pos="0.0001 -0.008 0.048">
+                          <inertial pos="0.0000000e+00 -3.1948616e-02  1.8581523e-03" quat="0.63254003378788 0.31605870602725 0.63254003378788 0.31605870602725" mass="1.8933866e-02" diaginertia="4.9701426193103e-06 8.0659031806897e-06 1.0233707e-05" />
+                          <joint name="gripper_l_joint3" axis="-1 0 0" damping="0.7" armature="0.1" frictionloss="0.1" type="hinge" range="0.0 1.1" actuatorfrcrange="-1000 1000" />
+                          <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="l1" />
+                          <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="l1" />
+                          <body name="gripper_l_hx2_d1_l2" pos="0.0 -0.0494977 0.0282667">
+                            <inertial pos="0.0000000e+00 -6.7070088e-03  1.1261741e-02" quat="-0.55073159649103 -0.44350277183626 -0.44350277183626 0.55073159649103" mass="9.5399014e-02" diaginertia="7.322187165394e-06 2.1847544e-05 2.5273645934606e-05" />
+                            <joint name="gripper_l_joint4" axis="1 0 0" damping="0.7" armature="0.1" frictionloss="0.1" type="hinge" range="0.0 1.0" actuatorfrcrange="-1000 1000" />
+                            <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="l2" />
+                            <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="l2" />
+                          </body>
+                        </body>
+                      </body>
+                      <body name="end_effector_l_link" pos="0 0 -0.186">
+                        <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="1.0 0.0 0.0 1" type="box" size="0.005 0.005 0.005" />
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+        <body name="arm_r_link1" pos="0.0555 -0.11345 0.014">
+          <inertial pos="1.6448037e-02 -9.9818309e-02  -4.5551476e-04" quat="0.98105052791096 0.10067687100509 -0.048882723127997 -0.15815975692265" mass="1.2957512e+00" diaginertia="0.0013936425511652 0.001624725393871 0.0016702274549638" />
+          <joint name="arm_r_joint1" axis="0 1 0" damping="17" armature="0.3" frictionloss="5" type="hinge" range="-3.14 3.14" actuatorfrcrange="-1000 1000" />
+          <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="arm_r_link1" />
+          <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="arm_r_link1" />
+          <body name="arm_r_link2" pos="0.01845 -0.10305 0">
+            <inertial pos="-5.9392289e-03 -3.5195036e-04 -1.5133153e-01" quat="-0.54962719871658 0.56419356578685 0.42929479178489 0.44192934333676" mass="1.7167634e+00" diaginertia="0.0018367490488887 0.014151555430721 0.014397019020391" />
+            <joint name="arm_r_joint2" axis="1 0 0" damping="17" armature="0.3" frictionloss="5" type="hinge" range="-3.14 0" actuatorfrcrange="-1000 1000" />
+            <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="arm_r_link2" />
+            <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="arm_r_link2" />
+            <body name="arm_r_link3" pos="-0.01845 0 -0.20795">
+              <inertial pos="3.1694998e-02 -4.4338959e-04 -1.0357584e-01" quat="0.93051923202899 -0.041611688243972 0.36377034856208 0.0085766970732094" mass="1.3410672e+00" diaginertia="0.0012240645318919 0.0017057106716065 0.0019245321965016" />
+              <joint name="arm_r_joint3" axis="0 0 1" damping="17" armature="0.3" frictionloss="5" type="hinge" range="-3.14 3.14" actuatorfrcrange="-1000 1000" />
+              <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="arm_r_link3" />
+              <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="arm_r_link3" />
+              <body name="arm_r_link4" pos="0.0410041 -0.00145 -0.11205">
+                <inertial pos="-3.9014457e-02 -4.0055016e-03 -1.2582887e-01" quat="0.28736034159936 0.59647545737422 0.4702599158709 -0.58352092880308" mass="1.4316840e+00" diaginertia="0.001318739005799 0.0051818432878217 0.0052883307063792" />
+                <joint name="arm_r_joint4" axis="0 1 0" damping="5" armature="0.1" frictionloss="3" type="hinge" range="-2.9361 1.0786" actuatorfrcrange="-1000 1000" />
+                <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="arm_r_link4" />
+                <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="arm_r_link4" />
+                <body name="arm_r_link5" pos="-0.041 0.00145 -0.14845">
+                  <inertial pos="5.4154219e-04 -5.0768000e-04 -9.1696376e-02" quat="0.55029607107291 0.50451927000397 0.44386164142085 0.49560204159343" mass="1.1154966e+00" diaginertia="0.00090466312429566 0.0010245551242329 0.0010662686514714" />
+                  <joint name="arm_r_joint5" axis="0 0 1" damping="5" armature="0.1" frictionloss="3" type="hinge" range="-3.14 3.14" actuatorfrcrange="-1000 1000" />
+                  <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="arm_r_link5" />
+                  <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="arm_r_link5" />
+                  <body name="arm_r_link6" pos="0 -0.00145 -0.09405">
+                    <inertial pos="-1.0107158e-03 -9.6306409e-03 -5.7060109e-02" quat="0.62706337081918 -0.34950170029746 -0.34141025207818 -0.60669525318894" mass="6.0283023e-01" diaginertia="0.00041465038047257 0.00087639100007166 0.0010646014894558" />
+                    <joint name="arm_r_joint6" axis="0 1 0" damping="5" armature="0.1" frictionloss="3" type="hinge" range="-1.57 1.57" actuatorfrcrange="-1000 1000" />
+                    <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="arm_r_link6" />
+                    <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="arm_r_link6" />
+                    <body name="arm_r_link7" pos="-0.00025 -0.00145 -0.0775">
+                      <inertial pos="5.1094689e-03  0.0000000e-03 -3.2688561e-02" quat="-0.0074229997784051 -0.0074229997784051 0.70706781787484 -0.70706781787484" mass="1.5224775e-01" diaginertia="8.2064446753514e-05 0.00023278235024649 0.00025115258" />
+                      <joint name="arm_r_joint7" axis="1 0 0" damping="1.5" armature="0.1" frictionloss="0.1" type="hinge" range="-1.8201 1.5804" actuatorfrcrange="-1000 1000" />
+                      <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="arm_r_link7" />
+                      <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="arm_r_link7" />
+                      <body name="camera_right_base_link" pos="0.02675 0.0 -0.08575" quat="0.50000000000245 -0.5 0.5 0.49999999999755">
+                        <inertial pos="-1.1702196e-02 -9.0595024e-04  4.5916978e-04" quat="0.6974595900729 -0.13660147167837 -0.69028623362743 -0.1356284402885" mass="3.6935029e-02" diaginertia="8.6771901468209e-06 1.6776160258748e-05 2.0210247994431e-05" />
+                        <geom group="2" density="0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="wrist_d401_base" />
+                        <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="wrist_d401_base" />
+                        <body name="camera_right_link" pos="0.0126724 -0.02235 0.009" quat="0.98480777475285 0 0 0.17364805436956" />
+                      </body>
+                      <body name="gripper_r_hx2_d1_base" pos="0.00025 0 -0.050" quat="1.0693949408681e-26 -1 -1.0341155355511e-13 -1.0341155355511e-13">
+                        <inertial pos="-6.8484893e-05  0.0000000e+00  3.0231995e-02" quat="0.039472160879455 0.70600421281711 -0.70600421281711 -0.039472160879455" mass="2.1967564e-01" diaginertia="0.00011107191 0.00014899634262688 0.00015622557737312" />
+                        <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="base" />
+                        <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="base" />
+                        <body name="gripper_r_hx2_d1_r1" pos="0.0001 0.008 0.048">
+                          <inertial pos="0.0000000e+00  3.3664697e-02  3.3231280e-03" quat="0.31218317480621 0.63446171308276 0.31218317480621 0.63446171308276" mass="2.1057910e-02" diaginertia="5.1405314597509e-06 9.2056249402491e-06 1.1229445e-05" />
+                          <joint name="gripper_r_joint1" axis="1 0 0" damping="0.7" armature="0.1" frictionloss="0.1" type="hinge" range="0.0 1.1" actuatorfrcrange="-1000 1000" />
+                          <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="r1" />
+                          <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="r1" />
+                          <body name="gripper_r_hx2_d1_r2" pos="0.0 0.0494977 0.0282667">
+                            <inertial pos="0.0000000e+00 6.7070088e-03  1.1261741e-02" quat="0.44350277183626 0.55073159649103 0.55073159649103 -0.44350277183626" mass="9.5399014e-02" diaginertia="7.322187165394e-06 2.1847544e-05 2.5273645934606e-05" />
+                            <joint name="gripper_r_joint2" axis="-1 0 0" damping="0.7" armature="0.1" frictionloss="0.1" type="hinge" range="0.0 1.0" actuatorfrcrange="-1000 1000" />
+                            <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="r2" />
+                            <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="r2" />
+                          </body>
+                        </body>
+                        <body name="gripper_r_hx2_d1_l1" pos="0.0001 -0.008 0.048">
+                          <inertial pos="0.0000000e+00 -3.1948616e-02  1.8581523e-03" quat="0.63254003378788 0.31605870602725 0.63254003378788 0.31605870602725" mass="1.8933866e-02" diaginertia="4.9701426193103e-06 8.0659031806897e-06 1.0233707e-05" />
+                          <joint name="gripper_r_joint3" axis="-1 0 0" damping="0.7" armature="0.1" frictionloss="0.1" type="hinge" range="0.0 1.1" actuatorfrcrange="-1000 1000" />
+                          <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="l1" />
+                          <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="l1" />
+                          <body name="gripper_r_hx2_d1_l2" pos="0.0 -0.0494977 0.0282667">
+                            <inertial pos="0.0000000e+00 -6.7070088e-03  1.1261741e-02" quat="-0.55073159649103 -0.44350277183626 -0.44350277183626 0.55073159649103" mass="9.5399014e-02" diaginertia="7.322187165394e-06 2.1847544e-05 2.5273645934606e-05" />
+                            <joint name="gripper_r_joint4" axis="1 0 0" damping="0.7" armature="0.1" frictionloss="0.1" type="hinge" range="0.0 1.0" actuatorfrcrange="-1000 1000" />
+                            <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="0.2 0.2 0.2 1" type="mesh" mesh="l2" />
+                            <geom group="3" density="0" pos="0 0 0" type="mesh" mesh="l2" />
+                          </body>
+                        </body>
+                      </body>
+                      <body name="end_effector_r_link" pos="0 0 -0.186">
+                        <geom group="2" density="0" pos="0 0 0" contype="0" conaffinity="0" rgba="1.0 0.0 0.0 1" type="box" size="0.005 0.005 0.005" />
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <position name="lift_joint" joint="lift_joint" class="YM080-230-B001-RH" inheritrange="1" />
+    <position name="head_joint1" joint="head_joint1" class="XH540-V150-R" inheritrange="1" />
+    <position name="head_joint2" joint="head_joint2" class="XH430-V210-R" inheritrange="1" />
+    <position name="arm_l_joint1" joint="arm_l_joint1" class="YM080-230-R099-RH" inheritrange="1" />
+    <position name="arm_l_joint2" joint="arm_l_joint2" class="YM080-230-R099-RH" inheritrange="1" />
+    <position name="arm_l_joint3" joint="arm_l_joint3" class="YM080-230-R099-RH" inheritrange="1" />
+    <position name="arm_l_joint4" joint="arm_l_joint4" class="YM070-210-R099-RH" inheritrange="1" />
+    <position name="arm_l_joint5" joint="arm_l_joint5" class="YM070-210-R099-RH" inheritrange="1" />
+    <position name="arm_l_joint6" joint="arm_l_joint6" class="YM070-210-R099-RH" inheritrange="1" />
+    <position name="arm_l_joint7" joint="arm_l_joint7" class="PH42-020-S300-R" inheritrange="1" />
+    <position name="gripper_l_joint1" joint="gripper_l_joint1" class="HX2-D1" inheritrange="1" />
+    <position name="arm_r_joint1" joint="arm_r_joint1" class="YM080-230-R099-RH" inheritrange="1" />
+    <position name="arm_r_joint2" joint="arm_r_joint2" class="YM080-230-R099-RH" inheritrange="1" />
+    <position name="arm_r_joint3" joint="arm_r_joint3" class="YM080-230-R099-RH" inheritrange="1" />
+    <position name="arm_r_joint4" joint="arm_r_joint4" class="YM070-210-R099-RH" inheritrange="1" />
+    <position name="arm_r_joint5" joint="arm_r_joint5" class="YM070-210-R099-RH" inheritrange="1" />
+    <position name="arm_r_joint6" joint="arm_r_joint6" class="YM070-210-R099-RH" inheritrange="1" />
+    <position name="arm_r_joint7" joint="arm_r_joint7" class="PH42-020-S300-R" inheritrange="1" />
+    <position name="gripper_r_joint1" joint="gripper_r_joint1" class="HX2-D1" inheritrange="1" />
+  </actuator>
+  <contact>
+    <!-- Adjacent or overlapping internal collision meshes -->
+    <exclude body1="head_link1" body2="head_link2" />
+    <exclude body1="arm_base_link" body2="head_link1" />
+    <exclude body1="arm_base_link" body2="head_link2" />
+    <exclude body1="arm_base_link" body2="arm_l_link1" />
+    <exclude body1="arm_base_link" body2="arm_r_link1" />
+    <exclude body1="arm_l_link7" body2="gripper_l_hx2_d1_r1" />
+    <exclude body1="arm_l_link7" body2="gripper_l_hx2_d1_l1" />
+    <exclude body1="arm_l_link7" body2="gripper_l_hx2_d1_r2" />
+    <exclude body1="arm_l_link7" body2="gripper_l_hx2_d1_l2" />
+    <exclude body1="gripper_l_hx2_d1_r1" body2="gripper_l_hx2_d1_r2" />
+    <exclude body1="gripper_l_hx2_d1_l1" body2="gripper_l_hx2_d1_l2" />
+    <exclude body1="gripper_l_hx2_d1_r1" body2="gripper_l_hx2_d1_l1" />
+    <exclude body1="gripper_l_hx2_d1_r2" body2="gripper_l_hx2_d1_l2" />
+    <exclude body1="arm_r_link7" body2="gripper_r_hx2_d1_r1" />
+    <exclude body1="arm_r_link7" body2="gripper_r_hx2_d1_l1" />
+    <exclude body1="arm_r_link7" body2="gripper_r_hx2_d1_r2" />
+    <exclude body1="arm_r_link7" body2="gripper_r_hx2_d1_l2" />
+    <exclude body1="gripper_r_hx2_d1_r1" body2="gripper_r_hx2_d1_r2" />
+    <exclude body1="gripper_r_hx2_d1_l1" body2="gripper_r_hx2_d1_l2" />
+    <exclude body1="gripper_r_hx2_d1_r1" body2="gripper_r_hx2_d1_l1" />
+    <exclude body1="gripper_r_hx2_d1_r2" body2="gripper_r_hx2_d1_l2" />
+    <exclude body1="lift_link" body2="arm_base_link" />
+  </contact>
+  <equality>
+    <!-- Mimic joint constraints. -->
+    <joint joint1="gripper_l_joint2" joint2="gripper_l_joint1" polycoef="0 1 0 0 0" />
+    <joint joint1="gripper_l_joint3" joint2="gripper_l_joint1" polycoef="0 1 0 0 0" />
+    <joint joint1="gripper_l_joint4" joint2="gripper_l_joint1" polycoef="0 1 0 0 0" />
+    <joint joint1="gripper_r_joint2" joint2="gripper_r_joint1" polycoef="0 1 0 0 0" />
+    <joint joint1="gripper_r_joint3" joint2="gripper_r_joint1" polycoef="0 1 0 0 0" />
+    <joint joint1="gripper_r_joint4" joint2="gripper_r_joint1" polycoef="0 1 0 0 0" />
+  </equality>
+</mujoco>

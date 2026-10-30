@@ -2,6 +2,13 @@
 Changelog for package ffw_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.1 (2026-10-26)
+------------------
+* Updated F1 and F2 meshes, joint mounting transforms, and upper-body inertial properties
+* Added the F1 lift structure and aligned F2 sensor and wheel mounting positions
+* Added F1 and F2 MuJoCo models and scenes
+* Contributors: Yeonguk Kim
+
 2.3.0 (2026-10-19)
 ------------------
 * Added URDF and ros2_control descriptions for A1 and A2 leaders
