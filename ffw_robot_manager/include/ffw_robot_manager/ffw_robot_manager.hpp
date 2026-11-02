@@ -24,10 +24,12 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <memory>
+#include <mutex>
 
 #include "controller_interface/controller_interface.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_srvs/srv/set_bool.hpp"
+#include "std_msgs/msg/string.hpp"
 #include "dynamixel_hardware_interface/dynamixel_hardware_interface.hpp"
 #include "dynamixel_interfaces/srv/set_data_to_dxl.hpp"
 #include "sensor_msgs/msg/battery_state.hpp"
@@ -125,6 +127,11 @@ protected:
 
   // Service client for LED control
   rclcpp::Client<dynamixel_interfaces::srv::SetDataToDxl>::SharedPtr led_client_;
+
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr source_sub_, joystick_mode_sub_;
+  std::string source_, joystick_mode_, last_mode_led_;
+  std::mutex led_mutex_;
+  void update_mode_led();
 
   // Track if torque has been disabled due to errors
   bool torque_disabled_ = false;

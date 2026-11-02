@@ -79,6 +79,21 @@ controller_interface::CallbackReturn FfwRobotManager::on_configure(
   // Initialize LED to normal state
   reset_led_state();
 
+  source_.clear();
+  joystick_mode_.clear();
+  last_mode_led_.clear();
+  const auto mode_qos = rclcpp::QoS(1).reliable().transient_local();
+  source_sub_ = get_node()->create_subscription<std_msgs::msg::String>(
+    "/source", mode_qos, [this](const std_msgs::msg::String & msg) {
+      source_ = msg.data;
+      update_mode_led();
+    });
+  joystick_mode_sub_ = get_node()->create_subscription<std_msgs::msg::String>(
+    "/reference/joystick/mode", mode_qos, [this](const std_msgs::msg::String & msg) {
+      joystick_mode_ = msg.data;
+      update_mode_led();
+    });
+
   // Setup topic watchdogs
   setup_watchdogs();
 
@@ -225,6 +240,7 @@ void FfwRobotManager::disable_all_torque()
 
 void FfwRobotManager::set_led_error_state()
 {
+  const std::lock_guard<std::mutex> lock(led_mutex_);
   RCLCPP_WARN_STREAM(get_node()->get_logger(), "Setting LED to error state (red color).");
 
   // Set all LED colors to red (255) and mode to RGB_BLINK
@@ -245,6 +261,29 @@ void FfwRobotManager::reset_led_state()
   if (set_led_values(led_values)) {
     led_error_set_ = false;
   }
+}
+
+void FfwRobotManager::update_mode_led()
+{
+  const std::lock_guard<std::mutex> lock(led_mutex_);
+  if (led_error_set_ || (dxl_state_watchdog_ && dxl_state_watchdog_->is_timed_out())) {
+    return;
+  }
+  const std::string mode = source_ == "model_action" ? "model_action" :
+    source_ == "teleop" && (joystick_mode_ == "head_control" || joystick_mode_ == "swerve") ?
+    joystick_mode_ : "";
+  if (mode.empty() || mode == last_mode_led_ || !led_client_->service_is_ready()) {
+    return;
+  }
+  bool sent = false;
+  if (mode == "model_action") {
+    sent = set_led_color(0, 255, 255, LedMode::RGB_BREATHE);
+  } else if (mode == "head_control") {
+    sent = set_led_color(255, 255, 255, LedMode::RGB_BREATHE);
+  } else if (mode == "swerve") {
+    sent = set_led_color(255, 255, 0, LedMode::RGB_BREATHE);
+  }
+  if (sent) {last_mode_led_ = mode;}
 }
 
 bool FfwRobotManager::set_led_values(const std::vector<uint32_t> & values)
@@ -346,7 +385,9 @@ void FfwRobotManager::setup_watchdogs()
     "/ffw_follower/dxl_state",
     std::chrono::milliseconds(500),
     [this]() {
-      // Set LED to red (solid) on timeout
+      const std::lock_guard<std::mutex> lock(led_mutex_);
+      last_mode_led_.clear();  // Restore the selected mode after watchdog recovery.
+      // Set LED to red blinking on timeout.
       set_led_color(255, 0, 0, LedMode::RGB_BLINK);
     }
   );

@@ -11,6 +11,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   hardware_interface
   pluginlib
   std_srvs
+  std_msgs
   dynamixel_hardware_interface
   dynamixel_interfaces
   sensor_msgs
@@ -45,6 +46,7 @@ target_link_libraries(ffw_robot_manager PUBLIC
   rclcpp::rclcpp
   ${dynamixel_hardware_interface_TARGETS}
   ${std_srvs_TARGETS}
+  ${std_msgs_TARGETS}
   ${dynamixel_interfaces_TARGETS}
   ${sensor_msgs_TARGETS}
 )

@@ -622,7 +622,8 @@ controller_interface::CallbackReturn JoystickController::on_configure(
 
   // Create publisher for mode
   mode_pub_ = get_node()->create_publisher<std_msgs::msg::String>(
-    "/leader/joystick_controller_right/joystick_mode", 10);
+    "/leader/joystick_controller_right/joystick_mode",
+    rclcpp::QoS(1).reliable().transient_local());
   prev_tact_switch_ = false;
 
   // Create publisher for right tact switch trigger
@@ -674,6 +675,9 @@ controller_interface::CallbackReturn JoystickController::on_activate(
   }
 
   RCLCPP_INFO(get_node()->get_logger(), "JoystickController activated successfully.");
+  std_msgs::msg::String mode_msg;
+  mode_msg.data = current_mode_;
+  mode_pub_->publish(mode_msg);
   return CallbackReturn::SUCCESS;
 }
 
