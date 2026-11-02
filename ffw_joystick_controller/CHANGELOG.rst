@@ -2,6 +2,10 @@
 Changelog for package ffw_joystick_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.2 (2026-11-02)
+------------------
+* None
+
 2.3.1 (2026-10-26)
 ------------------
 * Added selectable default and advanced leader joystick controls

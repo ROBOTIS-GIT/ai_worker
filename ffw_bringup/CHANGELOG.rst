@@ -2,6 +2,10 @@
 Changelog for package ffw_bringup
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.2 (2026-11-02)
+------------------
+* None
+
 2.3.1 (2026-10-26)
 ------------------
 * Added selectable control styles and Cyclo-based LG2 leader bringup

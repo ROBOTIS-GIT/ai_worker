@@ -2,6 +2,10 @@
 Changelog for package ffw_joint_trajectory_command_broadcaster
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.2 (2026-11-02)
+------------------
+* None
+
 2.3.1 (2026-10-26)
 ------------------
 * Added default-style bilateral trigger control with bounded Cyclo source handoff
