@@ -277,11 +277,11 @@ void FfwRobotManager::update_mode_led()
   }
   bool sent = false;
   if (mode == "model_action") {
-    sent = set_led_color(0, 255, 255, LedMode::RGB);
+    sent = set_led_color(0, 255, 255, LedMode::RGB_BREATHE);
   } else if (mode == "head_control") {
-    sent = set_led_color(255, 255, 255, LedMode::RGB);
+    sent = set_led_color(255, 255, 255, LedMode::RGB_BREATHE);
   } else if (mode == "swerve") {
-    sent = set_led_color(255, 255, 0, LedMode::RGB_BLINK);
+    sent = set_led_color(255, 255, 0, LedMode::RGB_BREATHE);
   }
   if (sent) {last_mode_led_ = mode;}
 }
