@@ -45,10 +45,13 @@ def generate_launch_description():
                               description='Start Gazebo GUI; false runs the server headlessly.'),
         DeclareLaunchArgument('rviz', default_value='true', choices=['true', 'false'],
                               description='Start RViz.'),
+        DeclareLaunchArgument('use_cam', default_value='false',
+                              description='Gz cameras (head, wrists)'),
     ]
 
     model = LaunchConfiguration('model')
     world = LaunchConfiguration('world')
+    use_cam = LaunchConfiguration('use_cam')
 
     ffw_description_path = os.path.join(
         get_package_share_directory('ffw_description'))
@@ -93,6 +96,8 @@ def generate_launch_description():
         'model:=', model,
         ' ',
         'use_sim:=true',
+        ' ',
+        'use_cam:=', use_cam,
     ])
 
     robot_description = {'robot_description': robot_description_content}

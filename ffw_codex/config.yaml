@@ -1,0 +1,142 @@
+model:
+  id: gpt-6-astra
+  reasoning_effort: low
+
+  # Approximate USD per million tokens, based on Astra
+  price_per_million: {input: 10.0, cached_input: 1.0, cache_write: 12.5, output: 50.0}
+
+plan:
+  max_steps: 5
+
+codex:
+  bin: /usr/local/bin/codex
+  home: /root/.codex_robot
+  permission_profile: robot_run
+
+episode:
+  max_actions: 80
+  max_seconds: 1800
+
+  max_total_tokens: 5000000  # null: unlimited
+
+frames:
+  base: base_link
+  ee:
+    right: end_effector_r_link
+    left: end_effector_l_link
+
+cameras:
+  head: /zed/zed_node/rgb/image_rect_color
+  wrist_left: /camera_left/camera_left/color/image_rect_raw
+  wrist_right: /camera_right/camera_right/color/image_rect_raw
+
+cyclo:
+  x_offset_m: 0.0
+  goal_topic:
+    right: /r_goal_move
+    left: /l_goal_move
+  gripper_topic:
+    right: /leader/joint_trajectory_command_broadcaster_right/raw_joint_trajectory
+    left: /leader/joint_trajectory_command_broadcaster_left/raw_joint_trajectory
+  gripper_joint:
+    right: gripper_r_joint1
+    left: gripper_l_joint1
+  move_time_s: 3.0
+
+limits:
+  max_step_m: 0.1
+  max_rotation_rad: 0.35
+  # Limit closure to avoid fingertip overlap
+  gripper_rad: [0.0, 1.0]
+
+  head_joint1_rad: [-0.2317, 0.6951]
+  head_joint2_rad: [-0.35, 0.35]
+  lift_joint_m: [-0.5, 0.0]
+
+observation_guard:
+  max_age_s: 60.0
+  max_image_age_s: 1.0
+  max_state_lag_s: 1.0
+  max_future_stamp_s: 0.1
+
+  position_m: 0.01
+  orientation_deg: 5.0
+  gripper_rad: 0.03
+  head_rad: 0.03
+  lift_m: 0.01
+  base_position_m: 0.05
+  base_yaw_deg: 3.0
+
+reach:
+  frame: arm_base_link
+  z_min: -0.80
+
+body_motion:
+  move_time_s: 3.0
+  head_topic: /leader/joystick_controller_left/joint_trajectory
+  lift_topic: /leader/joystick_controller_right/joint_trajectory
+
+tolerance:
+  position_m: 0.01
+  orientation_deg: 5
+  gripper_rad: 0.02
+  settle_s: 0.5
+  timeout_s: 15.0  # Wall time
+
+  # Stall checks start after motion time + stall_s
+  stall_s: 1.0
+  stall_position_m: 0.002
+  stall_orientation_deg: 0.5
+  stall_gripper_rad: 0.005
+
+run:
+  output_root: runs
+  jpeg_quality: 95
+
+# Observation I/O; timeouts use wall time
+io:
+  ready_timeout_s: 30.0
+  lookup_timeout_s: 2.0
+  image_timeout_s: 5.0
+
+  snapshot_tolerance_s: 0.05
+
+  image_history: 90  # Frames per camera
+  joint_history: 300  # Samples per joint
+  odom_history: 300
+
+# Mobile base control; durations use wall time
+base:
+  cmd_vel_topic: /cmd_vel
+  odom_topic: /odom
+  publish_hz: 20.0
+
+  deadband_mps: 0.1
+  deadband_rps: 0.1
+  max_lin_mps: 0.15  # hypot(vx, vy)
+  max_ang_rps: 0.3
+  max_duration_s: 2.0  # Ramp up + hold + ramp down
+  max_step_m: 0.2  # hypot(vx, vy) * duration_s
+  max_step_rad: 0.4  # |wz| * duration_s
+  ramp_s: 0.3
+
+  path_margin: 1.25  # Odometry path limit multiplier
+  steer_grace_s: 1.0  # Delay before progress checks
+  progress_window_s: 0.5
+  progress_min_m: 0.01
+  progress_min_rad: 0.02
+
+  odom_max_age_s: 0.5
+
+  rest_window_s: 0.5
+  rest_position_m: 0.002
+  rest_yaw_rad: 0.005
+  rest_speed_mps: 0.01
+  rest_speed_rps: 0.02
+  rest_timeout_s: 5.0
+
+  # Base motion posture limits; hand positions use base_link
+  allowed_posture:
+    ee_x_max_m: 0.48
+    ee_abs_y_max_m: 0.30
+    lift_m: [-0.5, 0.0]

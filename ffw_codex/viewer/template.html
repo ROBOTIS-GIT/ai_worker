@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Robot Run · Local Viewer</title>
+<script>
+// Apply the saved theme before rendering; otherwise use the system preference.
+(() => {
+  let saved = null;
+  try { saved = localStorage.getItem('robot-viewer-theme'); } catch {}
+  document.documentElement.dataset.theme =
+    saved === 'light' || saved === 'dark' ? saved :
+    window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+})();
+</script>
+<style>
+:root {
+  color-scheme: dark;
+  --bg:#080e18; --panel:#111c2d; --muted:#93a4b9; --line:#253349;
+  --mint:#6de0cb; --amber:#f1be76; --red:#ff9393; --text:#e5edf7;
+  --glow:#18263b; --control:#19263a; --control-hover:#21354a;
+  --workspace:#0d1624; --shadow:#0004; --primary-text:#062f2b;
+  --active:#203e43; --active-border:#47857b; --heading:#bed0e6;
+  --panel-border:#ffffff05; --fact:#0e1726; --subtle-line:#ffffff07;
+  --scroll:#38516c; --event:#101b2b; --event-active:#15332f;
+  --raw:#0b1421; --raw-text:#b4c7dd; --foot:#788a9f; --input:#0c1523;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg:#f4f7fb; --panel:#ffffff; --muted:#52647a; --line:#d5deea;
+  --mint:#087e70; --amber:#996000; --red:#c33333; --text:#17263b;
+  --glow:#e3edf9; --control:#ffffff; --control-hover:#edf3f9;
+  --workspace:#ffffff; --shadow:#17263b12; --primary-text:#ffffff;
+  --active:#dcf3ec; --active-border:#087e70; --heading:#17263b;
+  --panel-border:#d5deea; --fact:#edf3f9; --subtle-line:#d5deea;
+  --scroll:#a6b7cc; --event:#edf3f9; --event-active:#dcf3ec;
+  --raw:#edf3f9; --raw-text:#17263b; --foot:#52647a; --input:#edf3f9;
+}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 30% 0,var(--glow),transparent 65%),var(--bg);color:var(--text);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,select{font:inherit;color:inherit;background:var(--control);border:1px solid var(--line);border-radius:7px;padding:8px 13px;cursor:pointer}button:hover{border-color:var(--mint);background:var(--control-hover)}button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--mint);outline-offset:3px}button:disabled{opacity:.4;cursor:default}button.primary{color:var(--primary-text);background:var(--mint);border-color:var(--mint);font-weight:650}h1,h2,p{margin:0}h1{font-size:23px;letter-spacing:-.6px}h2{font-size:15px;font-weight:600}small,.muted{color:var(--muted)}.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-variant-numeric:tabular-nums}.eyebrow{font-size:10px;letter-spacing:2px;color:var(--mint);font-weight:600}.shell{max-width:1500px;margin:auto;padding:30px 32px}.topbar,.row{display:flex;align-items:center;gap:12px}.topbar{justify-content:space-between;margin-bottom:24px}.topbar small{display:block;margin-top:5px}.top-actions{display:flex;align-items:center;gap:10px}.local{font-size:11px;color:var(--mint);letter-spacing:1px}.dot{display:inline-block;width:6px;height:6px;background:currentColor;border-radius:50%;margin-right:5px}.workspace{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--workspace);box-shadow:0 25px 70px var(--shadow)}.taskbar{display:flex;align-items:center;gap:18px;padding:20px 23px;border-bottom:1px solid var(--line)}.task{font-size:19px;flex:1}.badge{border:1px solid var(--line);border-radius:5px;padding:4px 8px;font:11px ui-monospace,monospace;white-space:nowrap;color:var(--muted)}.cameras{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;background:var(--line)}.camera{position:relative;border:0;border-radius:0;padding:0;aspect-ratio:16/10;background:#050a12;overflow:hidden;width:100%;display:flex;align-items:center;justify-content:center}.camera:hover{background:#050a12}.camera img{width:100%;height:100%;object-fit:contain}.camera .label{color:#e5edf7;position:absolute;left:12px;top:12px;background:#07111dde;border:1px solid #ffffff20;border-radius:4px;padding:4px 9px;font:11px ui-monospace,monospace;letter-spacing:1px}.camera .stamp{position:absolute;left:12px;bottom:10px;color:#e0e8f1;font:10px ui-monospace,monospace;background:#07111dd9;padding:3px 6px;border-radius:3px}.camera .empty{position:absolute;color:#93a4b9}.camera img:not([src]){display:none}.below{padding:20px}.statusbar{display:flex;align-items:center;gap:18px;margin-bottom:18px;flex-wrap:wrap}.model{color:var(--mint);font-size:15px;font-weight:600}.divider{width:1px;height:18px;background:var(--line)}.statusbar .mode{margin-left:auto;display:flex;gap:4px}.mode button{padding:5px 10px;font-size:12px;background:transparent}.mode button.active{background:var(--active);border-color:var(--active-border);color:var(--mint)}.panels{display:grid;grid-template-columns:1.4fr 1fr;gap:14px}.panel{background:var(--panel);border:1px solid var(--panel-border);border-radius:10px;padding:20px;min-width:0}.panelhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}.panelhead h2{color:var(--heading)}.label-sm{color:var(--muted);font-size:11px;letter-spacing:.8px;margin-bottom:7px}.rationale{font-size:17px;line-height:1.7;min-height:90px;overflow-wrap:anywhere}.source{margin-top:15px;padding-top:13px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}.facts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:19px}.fact{padding:10px 12px;background:var(--fact);border-radius:6px}.fact small{display:block;font-size:10px;margin-bottom:4px}.fact span{font-size:12px}.kv{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid var(--subtle-line);font-size:12px}.kv span:first-child{color:var(--muted)}.kv span:last-child{text-align:right;overflow-wrap:anywhere}.outcome{margin-top:12px;font-size:12px;overflow-wrap:anywhere}.good{color:var(--mint)}.warn{color:var(--amber)}.bad{color:var(--red)}.player{margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}input[type=range]{accent-color:var(--mint);width:100%;cursor:pointer}.player-controls{display:flex;align-items:center;gap:9px;margin-top:8px}.player-controls .time{margin-left:auto;color:var(--muted);font-size:12px}.player-controls button{min-width:42px}.player-controls select{font-size:12px}.notice{font-size:11px;color:var(--muted);margin-top:10px}.history-head{display:flex;align-items:center;justify-content:space-between;margin:26px 0 12px}.history-head small{font-size:11px}.history{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;scrollbar-color:var(--scroll) transparent}.event{flex:0 0 138px;text-align:left;background:var(--event);padding:12px;border-radius:8px}.event.active{border-color:var(--mint);background:var(--event-active)}.event .n{font-size:10px;color:var(--muted)}.event .name{display:block;margin:6px 0 8px;font-size:12px}.event .state{font-size:10px}.summary{display:flex;gap:20px;flex-wrap:wrap;justify-content:space-between;border-top:1px solid var(--line);padding:17px 0;margin-top:5px;font-size:12px;color:var(--muted)}details{margin-top:10px;color:var(--muted);font-size:12px}summary{cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--raw);padding:15px;border-radius:8px;max-height:350px;overflow:auto;color:var(--raw-text)}#error{color:var(--red);margin:10px 0;white-space:pre-wrap}dialog{max-width:95vw;width:1100px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--text);padding:18px}dialog::backdrop{background:#000c}dialog img{width:100%;max-height:78vh;object-fit:contain}dialog .row{justify-content:space-between;margin-bottom:10px}.foot{font-size:11px;color:var(--foot);margin-top:12px}.hidden{display:none!important}@media(min-width:1500px){.shell{padding-top:45px}}@media(max-width:850px){.shell{padding:18px 14px}.panels{grid-template-columns:1fr}.statusbar{gap:10px}.statusbar .mode{margin-left:0}.camera .label{color:#e5edf7;font-size:9px;left:5px;top:5px;padding:3px 5px}.task{font-size:16px}.topbar{align-items:flex-start}.local{display:none}}@media(max-width:540px){.cameras{grid-template-columns:1fr}.camera{aspect-ratio:16/9}.taskbar{flex-wrap:wrap;gap:8px}.task{flex-basis:80%}.below{padding:14px}.top-actions button{font-size:12px}.player-controls{flex-wrap:wrap}.facts{grid-template-columns:1fr}.topbar small{font-size:11px}}
+.live-settings{margin:0 0 18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 18px}.live-settings summary{color:var(--text)}.live-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}.live-fields label{display:flex;flex-direction:column;gap:6px;font-size:11px;color:var(--muted)}.live-fields input,.live-fields select{width:100%;min-width:0;padding:9px;border-radius:6px;border:1px solid var(--line);background:var(--input);color:var(--text);font-size:12px}.camera.expanded{grid-column:1/-1;aspect-ratio:16/8}.live-settings .row{flex-wrap:wrap}#liveError{margin-top:10px;font-size:12px}@media(max-width:850px){.live-fields{grid-template-columns:1fr}.top-actions{flex-wrap:wrap;justify-content:flex-end}.topbar{gap:8px}}
+.follow-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px}.follow-bar label{font-size:12px;color:var(--muted)}.follow-bar input{min-width:185px;width:210px;padding:8px;border-radius:6px;border:1px solid var(--line);background:var(--input);color:var(--text)}.follow-bar button{font-size:12px}.follow-bar #followStatus{font-size:11px;color:var(--muted);flex:1;min-width:220px}.follow-bar [hidden]{display:none}.model-observation{margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}.model-observation-title{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;color:var(--muted);font-size:10px;letter-spacing:.6px;margin-bottom:8px}.model-observation-images{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.model-observation-images button{position:relative;padding:0;overflow:hidden;aspect-ratio:16/10;background:#091321;border-color:var(--line)}.model-observation-images img{width:100%;height:100%;object-fit:contain}.model-observation-images span{position:absolute;left:4px;bottom:3px;background:#07111ddb;color:#e5edf7;font-size:9px;padding:1px 4px}.model-observation-images .missing{grid-column:1/-1;padding:14px;color:var(--muted);font-size:11px;text-align:center}
+.effort{font:12px ui-monospace,monospace;color:var(--amber);border:1px solid var(--line);border-radius:5px;padding:3px 8px;letter-spacing:.5px}.external{display:none}
+body.video{overflow:hidden;background:#000}body.video .shell{position:fixed;left:0;top:0;width:1920px;height:1080px;max-width:none;padding:0;transform-origin:0 0;transform:translate(var(--vx,0px),var(--vy,0px)) scale(var(--vs,1))}body.video .topbar,body.video .follow-bar,body.video #liveSettings,body.video #error,body.video .history-head,body.video .history,body.video .summary,body.video .shell>details,body.video .foot,body.video .panels>.panel:nth-child(2),body.video .player .notice,body.video .statusbar .mode{display:none!important}body.video .workspace{height:1080px;border:0;border-radius:0;box-shadow:none;display:grid;grid-template-columns:754px 1166px;grid-template-rows:64px 360px 656px}body.video .taskbar{grid-column:1/-1;padding:0 28px}body.video .task{font-size:24px}body.video .cameras{grid-column:1/-1}body.video .camera{aspect-ratio:auto;height:360px}body.video .below{padding:18px 22px;overflow:hidden;display:flex;flex-direction:column}body.video .statusbar{margin-bottom:14px;gap:14px}body.video .model{font-size:34px;font-weight:700;letter-spacing:-.5px;line-height:1.1}body.video .effort{font-size:17px;padding:5px 12px}body.video .panels{display:block;flex:1;min-height:0}body.video .panel{height:100%;overflow:hidden;padding:18px 20px}body.video .rationale{font-size:20px;line-height:1.6;min-height:0}body.video .below{position:relative}body.video .player{position:absolute;left:22px;right:22px;bottom:12px;margin:0;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;opacity:0;transition:opacity .2s}body.video .below:hover .player{opacity:1}body.video .external{display:flex;align-items:flex-end;justify-content:flex-end;padding:10px 14px;background:#000;color:#ffffff30;font:11px ui-monospace,monospace}
+.external video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}.external video:not([src]){display:none}body.video .external{position:relative;cursor:pointer}body.video .external span{position:relative}
+.camera video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}.camera video:not([src]){display:none}.camera.has-video .stamp,.camera.has-video .empty,.external.has-video #externalHint{display:none}
+#syncInfo{font-size:11px;color:var(--amber)}body.video.sync-flash .player{opacity:1}
+</style>
+<!-- HTML5 permits the optional head/body closing tags to be omitted.
+     Live Server only injects its reload script at those tags; omitting them
+     keeps active run monitoring and camera streams alive as run files change. -->
+<body>
+<main class="shell">
+<header class="topbar"><div><div class="eyebrow">ROBOT OBSERVATORY</div><h1>Robot run viewer</h1><small>See what the robot observed, decided, and executed.</small></div><div class="top-actions"><span class="local" id="connectionMode"><span class="dot"></span>LOCAL · OFFLINE</span><button id="themeToggle" type="button" aria-label="Switch theme">Switch theme</button><button id="liveSettingsButton">Live cameras</button><button id="videoLayout" type="button">Video layout</button><button id="openFolder">Open local folder</button><input id="folder" type="file" webkitdirectory multiple hidden></div></header>
+<div class="follow-bar"><label for="followRunId">Run folder</label><input id="followRunId" type="text" placeholder="e.g. 20260928_003947" autocomplete="off" spellcheck="false"><button id="followRun" class="primary">Follow run</button><button id="stopFollow" hidden>Stop following</button><button id="followLatest" hidden>Following latest</button><span id="followStatus" role="status">Enter the folder name under ffw_codex/runs to follow new model observations.</span></div>
+<p id="error" role="alert"></p>
+<details id="liveSettings" class="live-settings">
+<summary>Live cameras · Cyclo video bridge</summary>
+<form id="liveForm">
+<div class="live-fields">
+<label>Video bridge URL<input id="streamBase" type="url" value="http://localhost:7085" required spellcheck="false"></label>
+<label>Image transport<select id="streamTransport"><option value="raw">Raw Image → MJPEG</option><option value="compressed">CompressedImage · Cyclo style</option></select></label>
+<label>Topic preset<select id="topicPreset"><option value="robot">Robot · config.yaml</option><option value="gazebo">Gazebo · config_gazebo.yaml</option></select></label>
+<label>HEAD topic<input id="topicHead" value="/zed/zed_node/rgb/image_rect_color" required spellcheck="false"></label>
+<label>LEFT topic<input id="topicLeft" value="/camera_left/camera_left/color/image_rect_raw" required spellcheck="false"></label>
+<label>RIGHT topic<input id="topicRight" value="/camera_right/camera_right/color/image_rect_raw" required spellcheck="false"></label>
+</div>
+<div class="row"><button class="primary" type="submit">Connect / Reconnect</button><button type="button" id="disconnectLive" disabled>Disconnect</button><span id="liveStatus" role="status">Disconnected</span></div>
+<p class="notice">Enter the address of the computer running Cyclo. The page does not need its own server, but the ROS video bridge (web_video_server) must be running. Select Raw if compressed camera topics are unavailable.</p>
+<p id="liveError" class="bad" role="alert"></p>
+</form>
+</details>
+<section class="workspace" aria-label="Run viewer">
+<div class="taskbar"><span class="eyebrow">TASK</span><p class="task" id="task">Loading run…</p><span class="badge" id="runBadge">RECORDED RUN</span></div>
+<div class="cameras">
+<button class="camera" data-camera="wrist_left" aria-label="Expand left wrist camera image"><span class="empty">No saved image</span><img alt="Left wrist observation"><span class="label">LEFT WRIST</span><span class="stamp"></span></button>
+<button class="camera" data-camera="head" aria-label="Expand head camera image"><span class="empty">No saved image</span><img alt="Head observation"><span class="label">HEAD VIEW</span><span class="stamp"></span></button>
+<button class="camera" data-camera="wrist_right" aria-label="Expand right wrist camera image"><span class="empty">No saved image</span><img alt="Right wrist observation"><span class="label">RIGHT WRIST</span><span class="stamp"></span></button>
+</div>
+<div class="below">
+<div class="statusbar"><span class="model" id="model"></span><span class="effort" id="effort"></span><span class="divider"></span><span class="mono" id="step"></span><span class="badge" id="status"></span><div class="mode" role="group" aria-label="Select camera view"><button id="liveView" aria-pressed="false" disabled>Live cameras</button><button id="before" class="active" aria-pressed="true">Decision observation</button><button id="after" aria-pressed="false">After execution</button></div></div>
+<div class="panels">
+<section class="panel"><div class="panelhead"><h2>Model decision rationale</h2><span class="eyebrow">DECISION</span></div><div class="label-sm">RECORDED ACTION REASON</div><p class="rationale" id="reason"></p><p class="source" id="source"></p><div class="model-observation" id="modelObservation"><div class="model-observation-title"><span id="modelObservationTitle">MODEL OBSERVATION</span><span id="modelObservationTime"></span></div><div class="model-observation-images" id="modelObservationImages"></div></div><div class="facts"><div class="fact"><small>Selected action</small><span id="action"></span></div><div class="fact"><small id="observationLabel">Displayed observation</small><span class="mono" id="observation"></span></div></div></section>
+<section class="panel"><div class="panelhead"><h2>Command and execution result</h2><span class="eyebrow">EXECUTION</span></div><div id="command"></div><p class="outcome" id="outcome"></p></section>
+</div>
+<div class="player"><input id="scrubber" type="range" min="0" max="0" value="0" aria-label="Select tool call"><div class="player-controls"><button id="prev" aria-label="Previous call">←</button><button id="play" class="primary">▶ Play</button><button id="next" aria-label="Next call">→</button><select id="speed" aria-label="Playback speed"><option value="1">1× recorded timing</option><option value="4" selected>4× recorded timing</option><option value="8">8× recorded timing</option></select><button id="autoSync" type="button" hidden>Auto sync</button><span class="mono" id="syncInfo" hidden></span><span class="time mono" id="time"></span></div><p class="notice" id="viewNotice">Playback shows images saved at observation times. The rationale is the model’s recorded action reason, not a live feed or its full internal reasoning.</p></div>
+</div><div class="external" id="external" title="Click: load video / play-pause · Double-click: replace"><video id="externalVideo" muted loop playsinline></video><span id="externalHint">EXTERNAL VIDEO · 1166×656 @ 754,424 · click to load a video file</span></div></section>
+<div class="history-head"><h2>Execution timeline</h2><small>Select a call to compare the decision observation and result · ← → move / Space play</small></div><nav class="history" id="history" aria-label="Execution history"></nav>
+<div class="summary"><span id="runId"></span><span id="runSummary"></span></div>
+<details><summary>Raw data for selected call</summary><pre id="raw"></pre></details>
+<p class="foot">Follow a robot run by folder name through this page URL, or open a local run folder for manual replay. Data stays in this browser.</p>
+</main>
+<dialog id="lightbox"><div class="row"><span id="lightboxTitle"></span><button id="closeLightbox">Close ✕</button></div><img id="largeImage" alt="Enlarged observation image"></dialog>
+<script id="run-data" type="application/json">__RUN_FILES__</script>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+
+// Keep the theme independent of playback and camera connections.
+(() => {
+  const button = $('themeToggle');
+  const root = document.documentElement;
+  function updateButton() {
+    const dark = root.dataset.theme === 'dark';
+    button.textContent = dark ? '☀ Light mode' : '☾ Dark mode';
+    button.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+  }
+  button.addEventListener('click', () => {
+    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    try { localStorage.setItem('robot-viewer-theme', root.dataset.theme); } catch {}
+    updateButton();
+  });
+  updateButton();
+})();
+const state={files:{},events:[],index:0,view:'before',timer:null,urls:[]};
+const names={robot_start:'Initial observation',robot_observe:'Observe again',robot_move:'Arm move',robot_head:'Head move',robot_lift:'Lift move',robot_gripper:'Gripper action',task_complete:'Task completed'};
+const statuses={ok:'Observed',arrived:'Target reached',observed:'Observed',stopped:'Stopped short',timeout:'Timed out',rejected:'Rejected',completed:'Task completed',pending:'Result pending'};
+const text=(id,value)=>{$(id).textContent=value??'—'};
+const num=(v,d=3)=>typeof v==='number'&&Number.isFinite(v)?v.toFixed(d):'—';
+const signed=v=>typeof v==='number'&&Number.isFinite(v)?`${v>=0?'+':''}${v.toFixed(1)}`:'—';
+const clock=s=>Number.isFinite(s)?`${Math.floor(Math.max(0,s)/60).toString().padStart(2,'0')}:${Math.floor(Math.max(0,s)%60).toString().padStart(2,'0')}`:'—';
+const color=s=>s==='arrived'||s==='observed'||s==='ok'?'good':s==='timeout'||s==='rejected'?'bad':'warn';
+function parse(files,key,fallback={}){if(!(key in files))return fallback;try{return JSON.parse(files[key])}catch{throw new Error(`Invalid JSON: ${key}`)}}
+function normalize(files){
+ const run=parse(files,'run.json',null);if(!run)throw new Error('Select one run folder containing run.json.');
+ const host=parse(files,'host_result.json');
+ const observations=Object.keys(files).filter(k=>/^public\/observations\/[^/]+\/observation.json$/.test(k)).sort().map(k=>({...parse(files,k),folder:k.slice(0,k.lastIndexOf('/'))}));
+ const byId=new Map(observations.map(o=>[o.observation_id,o]));
+ const histories=(files['public/history.jsonl']||'').split('\n').filter(l=>l.trim()).map((l,i)=>{try{return JSON.parse(l)}catch{throw new Error(`history.jsonl ${i+1} has an incomplete line. Reload the run after recording finishes.`)}});
+ const byRequest=new Map();for(const h of histories){const id=h.action_context?.request_id;if(id&&h.observation)byRequest.set(id,byId.get(h.observation.observation_id)||h.observation)}
+ const requests=Object.keys(files).filter(k=>/^calls\/[^/]+_request.json$/.test(k)).sort().map(k=>parse(files,k));
+ const records=Object.keys(files).filter(k=>/^rollout\/\d+_.*\.json$/.test(k)).sort().map(k=>({index:Number(k.split('/')[1].split('_')[0]),...parse(files,k)}));
+ const events=records.map(r=>{
+  const h=histories.find(h=>h.progress?.call_index===r.index);
+  const req=requests.find(q=>q.index+1===r.index&&q.tool===r.tool);
+  const before=byRequest.get(r.arguments?.request_id)||byId.get(r.result?.data?.accepted_request?.observation_id)||null;
+  const after=byId.get(h?.observation?.observation_id)||null;
+  return {index:r.index,tool:r.tool,args:r.arguments||{},result:r.result||{},before,after,at:r.at,started:req?.started_at,progress:h?.progress,raw:r};
+ });
+ // Requests are written before a tool finishes, so partially recorded runs remain useful.
+ for(const q of requests){if(events.some(e=>e.index===q.index+1))continue;
+ const h=histories.find(h=>h.progress?.call_index===q.index+1);
+ events.push({index:q.index+1,tool:q.tool,args:q.arguments||{},result:h?{status:h.status,reason:h.reason,data:h.result}:{status:'pending'},before:byRequest.get(q.arguments?.request_id)||null,after:byId.get(h?.observation?.observation_id)||null,at:h?.at||q.started_at,started:q.started_at,progress:h?.progress,raw:q});}
+ if(!events.length)for(const h of histories)events.push({index:h.progress?.call_index||events.length+1,tool:h.tool,args:{},result:{status:h.status,reason:h.reason,data:h.result},before:null,after:byId.get(h.observation?.observation_id)||null,at:h.at,progress:h.progress,raw:h});
+ events.sort((a,b)=>a.index-b.index);
+
+ return {run,host,events};
+}
+function load(files, options={}) {
+ const data=normalize(files);
+ const previousCall=state.events[state.index]?.index;
+ const view=options.refresh?state.view:'before';
+ if(!options.refresh){window.disconnectLiveCameras?.();stop()}
+ else if(state.timer!==null)stop();
+ const index=options.followLatest?Math.max(0,data.events.length-1):
+   options.refresh?Math.max(0,data.events.findIndex(e=>e.index===previousCall)):0;
+ Object.assign(state,{files,...data,index,view});
+ $('scrubber').max=Math.max(0,data.events.length-1);
+ text('task',data.run.task);text('model',data.run.model);text('effort',`reasoning effort · ${data.run.effort||'—'}`);text('runId',`RUN ${data.run.run_id||'—'}`);
+ text('runBadge',options.watching?'FOLLOWING RUN':'RECORDED RUN');
+ const r=data.host.rollout||{};
+ text('runSummary',`End: ${data.host.end_reason||'In progress'} · actions executed ${r.actions_executed??data.events.filter(e=>e.result.command_sent).length} · observations ${r.observations??Object.keys(files).filter(k=>k.endsWith('/observation.json')).length} · ${data.host.elapsed_s==null?'—':num(data.host.elapsed_s,1)+'s'}`);
+ $('history').replaceChildren();
+ data.events.forEach((e,i)=>{
+  const b=document.createElement('button');b.className='event';
+  const n=document.createElement('span');n.className='n mono';n.textContent=`CALL ${String(e.index).padStart(2,'0')}`;
+  const name=document.createElement('span');name.className='name';name.textContent=names[e.tool]||e.tool;
+  const status=document.createElement('span');status.className=`state ${color(e.result.status)}`;
+  status.textContent=statuses[e.result.status]||e.result.status||'Not recorded';
+  b.append(n,name,status);b.onclick=()=>select(i);$('history').append(b);
+ });
+ text('error','');
+ if(data.events.length)render();else renderEmpty();
+}
+function renderEmpty(){
+ text('step','Waiting for first call');text('status','Waiting');text('reason','Waiting for the model’s first tool call.');
+ text('source','');text('action','—');text('observation','—');text('outcome','');text('time','—');text('raw','');
+ $('command').replaceChildren();$('modelObservationImages').replaceChildren();
+ text('modelObservationTitle','MODEL OBSERVATION');text('modelObservationTime','Waiting for an observation');
+ $('prev').disabled=true;$('next').disabled=true;$('scrubber').value=0;
+ if(state.view!=='live')document.querySelectorAll('.camera').forEach(el=>{el.querySelector('img').removeAttribute('src');el.querySelector('.empty').hidden=false;el.querySelector('.stamp').textContent='NO SAVED FRAME'});
+}
+function kv(label,value){const row=document.createElement('div');row.className='kv';const a=document.createElement('span'),b=document.createElement('span');a.textContent=label;b.textContent=value;row.append(a,b);$('command').append(row)}
+function render(){
+ const e=state.events[state.index];if(!e)return;const a=e.args,d=e.result.data||{},arrival=d.arrival||{};
+ const o=state.view==='before'?e.before:e.after;
+ // A start/observe call has no prior evidence image, so show its captured observation explicitly.
+ const shown=o||(['robot_start','robot_observe'].includes(e.tool)?e.after:null);
+ text('step',`Call ${String(e.index).padStart(2,'0')} / ${state.events.length}`);text('status',statuses[e.result.status]||e.result.status||'Not recorded');$('status').className=`badge ${color(e.result.status)}`;
+ text('reason',a.reason||'The model did not record a rationale for this call.');text('source',e.before?`Evidence: observation #${String(e.before.observation_number).padStart(3,'0')} · original arguments.reason`:'No linked evidence observation · based on saved records');
+ text('action',`${names[e.tool]||e.tool}${a.arm?' · '+a.arm.toUpperCase():''}`);text('observation',shown?`#${String(shown.observation_number).padStart(3,'0')} · ROS ${num(shown.stamp_s)}s`:'No saved observation for this point');
+ if(state.view!=='live')document.querySelectorAll('.camera').forEach(el=>{const key=shown?.folder?`${shown.folder}/${el.dataset.camera}.jpg`:'';const src=state.files[key];const img=el.querySelector('img');img.onload=()=>{el.querySelector('.empty').hidden=true};img.onerror=()=>{img.removeAttribute('src');el.querySelector('.empty').hidden=false};if(src){img.src=src;el.querySelector('.empty').hidden=true}else{img.removeAttribute('src');el.querySelector('.empty').hidden=false}el.querySelector('.stamp').textContent=shown?`OBS ${String(shown.observation_number).padStart(3,'0')} · SNAPSHOT`:'NO SAVED FRAME'});
+ renderModelObservation(e);
+ if(state.view==='live')window.updateLiveLabels?.();
+ for(const view of ['before','after']){$(view).classList.toggle('active',state.view===view);$(view).setAttribute('aria-pressed',String(state.view===view))}
+ $('liveView').classList.toggle('active',state.view==='live');$('liveView').setAttribute('aria-pressed',String(state.view==='live'));
+ $('command').replaceChildren();kv('Tool',e.tool);kv('Command sent',e.result.command_sent===true?'Sent':e.result.command_sent===false?'Not sent':'Not recorded');
+ if(e.tool==='robot_move'){kv('Target XYZ · m',['x','y','z'].map(k=>num(a[k],4)).join(' / '));const xyz=e.before?.arms?.[a.arm]?.xyz;if(xyz)kv('Requested ΔXYZ · cm',['x','y','z'].map((k,i)=>signed((a[k]-xyz[i])*100)).join(' / '));const actual=arrival.pose;if(actual)kv('Measured XYZ · m',['x','y','z'].map(k=>num(actual[k],4)).join(' / '));kv('Position / rotation error',`${num(arrival.position_error_m==null?null:arrival.position_error_m*1000,1)} mm / ${num(arrival.orientation_error_deg,2)}°`)}
+ if(e.tool==='robot_gripper'){kv('Arm',a.arm||'—');kv('Gripper target',`${num(a.value,2)} · 0 open / 1 closed`)}
+ if(e.tool==='robot_head')kv('Head target · rad',`${num(a.head_joint1)} / ${num(a.head_joint2)}`);
+ if(e.tool==='robot_lift'){kv('Lift target',`${num(a.position_m,4)} m`);kv('Lift measured',`${num(arrival.joints?.lift_joint?.position,4)} m`);kv('Lift error',`${num(arrival.errors?.lift_joint==null?null:arrival.errors.lift_joint*1000,1)} mm`)}
+ kv('Arrival',arrival.arrived===true?'Reached':arrival.arrived===false?'Not confirmed':'N/A / not recorded');kv('Action duration',`${num(arrival.elapsed_s,2)} s`);text('outcome',e.result.reason||'Execution result has not been recorded yet.');$('outcome').className=`outcome ${color(e.result.status)}`;
+ $('scrubber').value=state.index;$('prev').disabled=state.index===0;$('next').disabled=state.index===state.events.length-1;
+ const start=Date.parse(state.run.created_at||state.events[0].started||state.events[0].at);text('time',`${clock((Date.parse(e.at)-start)/1000)} / ${clock((Date.parse(state.events.at(-1).at)-start)/1000)} · recorded call time`);
+ Array.from($('history').children).forEach((b,i)=>{b.classList.toggle('active',i===state.index);b.setAttribute('aria-current',i===state.index?'step':'false')});text('raw',JSON.stringify(e.raw,null,2));
+}
+function renderModelObservation(e){
+ const obs=e.after||e.before;
+ const container=$('modelObservationImages');container.replaceChildren();
+ text('modelObservationTitle',obs?`MODEL OBSERVATION · #${String(obs.observation_number).padStart(3,'0')}`:'MODEL OBSERVATION');
+ text('modelObservationTime',obs?(e.after?'After this action · available for the next decision':'Input for this decision'):'Not captured yet');
+ if(!obs?.folder){const message=document.createElement('div');message.className='missing';message.textContent='No model observation saved yet.';container.append(message);return}
+ for(const camera of ['wrist_left','head','wrist_right']){
+  const src=state.files[`${obs.folder}/${camera}.jpg`];
+  const button=document.createElement('button');button.type='button';button.setAttribute('aria-label',`Expand ${camera} model observation`);
+  if(src){const img=document.createElement('img');img.src=src;img.alt=`${camera} model observation`;button.append(img);
+   button.onclick=()=>{if($('lightbox').open)$('lightbox').close();$('largeImage').src=src;text('lightboxTitle',`MODEL OBSERVATION #${String(obs.observation_number).padStart(3,'0')} · ${camera}`);$('lightbox').showModal()}}
+  const label=document.createElement('span');label.textContent=camera.replace('wrist_','').toUpperCase();button.append(label);container.append(button);
+ }
+}
+function scrollHistory(){const h=$('history'),b=h.children[state.index];if(b)h.scrollTo({left:b.offsetLeft-h.offsetLeft-h.clientWidth/2+b.clientWidth/2,behavior:'smooth'})}
+function stop(){clearTimeout(state.timer);state.timer=null;text('play','▶ Play')}
+function select(i){window.pauseRunFollowLatest?.();stop();state.index=Math.max(0,Math.min(i,state.events.length-1));render();scrollHistory();window.seekVideosToCall?.()}
+function schedule(){if(state.index>=state.events.length-1){stop();return}const current=state.events[state.index],next=state.events[state.index+1];const gap=(Date.parse(next.at)-Date.parse(current.at))/Number($('speed').value);state.timer=setTimeout(()=>{state.index++;render();scrollHistory();schedule()},Number.isFinite(gap)?Math.max(200,gap):1000)}
+function togglePlay(){window.pauseRunFollowLatest?.();if(window.videoSyncPlay?.())return;if(state.timer!==null){stop();return}if(!state.events.length)return;if(state.index===state.events.length-1){state.index=0;render()}text('play','Ⅱ Pause');schedule()}
+$('prev').onclick=()=>select(state.index-1);$('next').onclick=()=>select(state.index+1);$('play').onclick=togglePlay;$('scrubber').oninput=e=>select(Number(e.target.value));$('speed').onchange=()=>{if(state.timer!==null){clearTimeout(state.timer);schedule()}};
+for(const view of ['before','after'])$(view).onclick=()=>{window.disconnectLiveCameras?.();state.view=view;render()};
+document.addEventListener('keydown',e=>{if(['INPUT','SELECT','BUTTON','SUMMARY'].includes(document.activeElement.tagName)||$('lightbox').open)return;if(e.key==='ArrowLeft'){e.preventDefault();select(state.index-1)}if(e.key==='ArrowRight'){e.preventDefault();select(state.index+1)}if(e.code==='Space'){e.preventDefault();togglePlay()}});
+document.querySelectorAll('.camera').forEach(el=>el.onclick=()=>{const src=el.querySelector('img').getAttribute('src');if(!src)return;$('largeImage').src=src;text('lightboxTitle',`${el.querySelector('.label').textContent} · ${el.querySelector('.stamp').textContent}`);$('lightbox').showModal()});$('closeLightbox').onclick=()=>$('lightbox').close();
+$('openFolder').onclick=()=>$('folder').click();
+$('folder').onchange=async event=>{
+ window.stopRunFollow?.();const files={},urls=[];stop();$('openFolder').disabled=true;
+ try{for(const f of event.target.files){const key=f.webkitRelativePath.split('/').slice(1).join('/');if(/^(run|host_result|result)\.json$|^public\/history\.jsonl$|^rollout\/[^/]+\.json$|^calls\/[^/]+_request\.json$|^public\/observations\/[^/]+\/observation\.json$/.test(key))files[key]=await f.text();else if(/^public\/observations\/[^/]+\/[^/]+\.jpg$/.test(key)){files[key]=URL.createObjectURL(f);urls.push(files[key])}}load(files);state.urls.forEach(u=>URL.revokeObjectURL(u));state.urls=urls}catch(e){urls.forEach(u=>URL.revokeObjectURL(u));text('error',e.message)}finally{$('openFolder').disabled=false;event.target.value=''}
+};
+// Video layout: fixed 1920x1080 stage for screen recording; toggle with V, the button, or ?video
+(() => {
+  const shell=document.querySelector('.shell');
+  const fit=()=>{const s=Math.min(innerWidth/1920,innerHeight/1080);shell.style.setProperty('--vs',s);shell.style.setProperty('--vx',`${(innerWidth-1920*s)/2}px`);shell.style.setProperty('--vy',`${(innerHeight-1080*s)/2}px`)};
+  const set=on=>{document.body.classList.toggle('video',on);document.activeElement?.blur();fit()};
+  addEventListener('resize',fit);
+  document.addEventListener('keydown',e=>{if(e.key.toLowerCase()!=='v'||e.ctrlKey||e.metaKey||['INPUT','SELECT'].includes(document.activeElement.tagName))return;set(!document.body.classList.contains('video'))});
+  // Drop focus after using the overlay controls so ← → / Space keep working.
+  for(const type of ['click','change'])document.querySelector('.player').addEventListener(type,e=>{if(document.body.classList.contains('video')&&!(type==='click'&&e.target.tagName==='SELECT'))document.activeElement?.blur()});
+  $('videoLayout').onclick=()=>set(true);
+  // In video layout, each camera panel and the external slot accept a local video file.
+  // Click: load / play-pause · Double-click: replace. Outside video layout, cameras keep their usual click.
+  const slot=box=>{
+    let video=box.querySelector('video');
+    if(!video){video=document.createElement('video');video.muted=true;video.loop=true;video.playsInline=true;box.prepend(video)}
+    const file=document.createElement('input');file.type='file';file.accept='video/*';
+    file.onchange=()=>{const f=file.files[0];if(!f)return;if(video.src)URL.revokeObjectURL(video.src);video.src=URL.createObjectURL(f);box.classList.add('has-video');alignNewVideo(video);file.value=''};
+    box.addEventListener('click',e=>{if(!document.body.classList.contains('video'))return;e.stopImmediatePropagation();e.preventDefault();box.blur();if(!video.getAttribute('src'))file.click();else window.videoSyncPlay()},true);
+    box.addEventListener('dblclick',e=>{if(!document.body.classList.contains('video'))return;e.stopImmediatePropagation();file.click()},true);
+  };
+  document.querySelectorAll('.camera').forEach(slot);slot($('external'));
+  // Video clock: once a video is loaded, its time picks the call instead of the Play timer.
+  // run seconds = video time − offset; the shown call is the last one whose request had started by then,
+  // so a reason appears when its motion begins. S anchors the first robot motion to the current frame;
+  // [ / ] shift reasons 0.2 s earlier / later. The offset is kept per run (or set with ?offset=).
+  const params=new URLSearchParams(location.search);
+  let offset=Number(params.get('offset'))||0,offsetRun=null,flashTimer=null;
+  const offsetKey=()=>`robot-viewer-offset:${state.run?.run_id||''}`;
+  const loadOffset=()=>{if(offsetRun===state.run?.run_id)return;offsetRun=state.run?.run_id;if(params.has('offset'))return;try{offset=Number(localStorage.getItem(offsetKey()))||0}catch{}};
+  const saveOffset=()=>{try{localStorage.setItem(offsetKey(),String(offset))}catch{}};
+  const allVideos=()=>[...document.querySelectorAll('.camera video[src],.external video[src]')];
+  const master=()=>['#external','[data-camera="head"]','[data-camera="wrist_left"]','[data-camera="wrist_right"]'].map(q=>document.querySelector(`${q} video[src]`)).find(Boolean);
+  const runStart=()=>Date.parse(state.run.created_at||state.events[0]?.started||state.events[0]?.at);
+  const callStart=e=>(Date.parse(e.started||e.at)-runStart())/1000;
+  const playVideos=on=>allVideos().forEach(v=>on?v.play():v.pause());
+  // A newly loaded video joins the others at their current time and play state.
+  const alignNewVideo=video=>{const other=allVideos().find(v=>v!==video);if(!other){video.play();return}video.currentTime=other.currentTime;if(!other.paused)video.play()};
+  window.videoSyncPlay=()=>{const m=master();if(!m)return false;playVideos(m.paused);return true};
+  window.seekVideosToCall=()=>{const e=state.events[state.index];if(!master()||!e)return;loadOffset();const t=Math.max(0,callStart(e)+offset+0.05);allVideos().forEach(v=>{v.currentTime=t})};
+  let message=null,messageTimer=null,syncing=false;
+  const flash=ms=>{document.body.classList.add('sync-flash');clearTimeout(flashTimer);if(ms)flashTimer=setTimeout(()=>document.body.classList.remove('sync-flash'),ms)};
+  const say=(text,ms)=>{message=text;$('syncInfo').hidden=false;$('syncInfo').textContent=text;clearTimeout(messageTimer);if(ms)messageTimer=setTimeout(()=>{message=null},ms);flash(ms)};
+  setInterval(()=>{
+    const m=master();$('syncInfo').hidden=!m&&!message;$('autoSync').hidden=!m;if(!m||!state.events.length||syncing)return;loadOffset();
+    text('syncInfo',message||`VIDEO SYNC · offset ${offset.toFixed(1)}s · A auto · S anchor · [ ] ±0.2s`);
+    text('play',m.paused?'▶ Play':'Ⅱ Pause');
+    const t=m.currentTime-offset;let i=0;state.events.forEach((e,k)=>{if(callStart(e)<=t)i=k});
+    if(i!==state.index){state.index=i;render();scrollHistory()}
+  },100);
+  document.addEventListener('keydown',e=>{
+    if(e.ctrlKey||e.metaKey||e.altKey||['INPUT','SELECT'].includes(document.activeElement.tagName))return;
+    const m=master();if(!m||!state.events.length)return;
+    if(e.key==='a'||e.key==='A'){e.preventDefault();autoSync();return}
+    if(e.key==='s'||e.key==='S'){const first=state.events.find(x=>!['robot_start','robot_observe','task_complete'].includes(x.tool))||state.events[0];offset=m.currentTime-callStart(first)}
+    else if(e.key==='['||e.key===']')offset+=e.key===']'?0.2:-0.2;
+    else return;
+    e.preventDefault();saveOffset();message=null;flash(1500);
+  });
+  // Auto sync: compare the loaded robot-camera videos with the saved observation JPEGs, whose capture
+  // times (stamp_s) are on the run clock, and pick the offset where frames and snapshots look most alike.
+  // A coarse 0.5 s scan of the whole video is refined in 0.1 s steps around the best match.
+  const W=32,H=18,canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  // Small grayscale thumbnail, normalized so exposure and compression differences matter less.
+  const signature=source=>{ctx.drawImage(source,0,0,W,H);const d=ctx.getImageData(0,0,W,H).data,g=new Float32Array(W*H);let mean=0;for(let i=0;i<g.length;i++){g[i]=d[i*4]*.299+d[i*4+1]*.587+d[i*4+2]*.114;mean+=g[i]}mean/=g.length;let norm=0;for(let i=0;i<g.length;i++){g[i]-=mean;norm+=g[i]*g[i]}norm=Math.sqrt(norm)||1;for(let i=0;i<g.length;i++)g[i]/=norm;return g};
+  const similarity=(a,b)=>{let s=0;for(let i=0;i<a.length;i++)s+=a[i]*b[i];return s};
+  const frameAt=(video,t)=>new Promise(resolve=>{video.addEventListener('seeked',()=>resolve(signature(video)),{once:true});video.currentTime=t});
+  const loadImage=src=>new Promise(resolve=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>resolve(null);img.src=src});
+  async function autoSync(){
+    if(syncing||!state.events.length)return;
+    const videos=['head','wrist_left','wrist_right'].map(camera=>({camera,video:document.querySelector(`[data-camera="${camera}"] video[src]`)})).filter(x=>x.video);
+    if(!videos.length){say('AUTO SYNC · load a HEAD or WRIST camera video first',4000);return}
+    syncing=true;playVideos(false);flash(0);
+    try{
+      say('AUTO SYNC · reading saved observations…');
+      const start=runStart()/1000,refs=[];let pairs=0;
+      for(const key of Object.keys(state.files).filter(k=>/^public\/observations\/[^/]+\/observation\.json$/.test(k))){
+        let o;try{o=JSON.parse(state.files[key])}catch{continue}
+        if(typeof o.stamp_s!=='number')continue;
+        const folder=key.slice(0,key.lastIndexOf('/')),sigs={};
+        for(const {camera} of videos){const src=state.files[`${folder}/${camera}.jpg`];const img=src&&await loadImage(src);if(img){sigs[camera]=signature(img);pairs++}}
+        if(Object.keys(sigs).length)refs.push({t:o.stamp_s-start,sigs});
+      }
+      if(refs.length<3)throw new Error('fewer than 3 saved observations with camera images');
+      const duration=Math.min(...videos.map(x=>x.video.duration));
+      if(!Number.isFinite(duration))throw new Error('video length is unknown');
+      const score=frames=>{let sum=0,n=0;refs.forEach((r,i)=>{const f=frames(r,i);if(f)for(const c in r.sigs)if(f[c]){sum+=similarity(f[c],r.sigs[c]);n++}});return n>=Math.max(3,pairs*0.5)?sum/n:-Infinity};
+      const grab=async t=>{const sig={};for(const x of videos)sig[x.camera]=await frameAt(x.video,t);return sig};
+      const step=0.5,scan=[];
+      for(let i=0;i*step<duration;i++){scan.push(await grab(i*step));if(i%10===0)say(`AUTO SYNC · scanning video ${Math.round(i*step)}/${Math.round(duration)}s`)}
+      // The robot stands still while the model thinks after each observation, so offsets just after
+      // the true one match almost as well, while earlier ones catch the arm still moving. Take the
+      // left edge of the best-scoring plateau rather than the single highest score.
+      const TOLERANCE=0.015;
+      const leftEdge=list=>{let b=0;list.forEach((x,i)=>{if(x.s>list[b].s)b=i});let i=b;while(i>0&&list[i-1].s>=list[b].s-TOLERANCE)i--;return {off:list[i].off,s:list[b].s,valid:Number.isFinite(list[b].s)}};
+      const maxT=Math.max(...refs.map(r=>r.t)),coarseList=[];
+      for(let k=Math.floor(-maxT/step);k*step<=duration;k++){const off=k*step;coarseList.push({off,s:score(r=>scan[Math.round((r.t+off)/step)])})}
+      const coarse=leftEdge(coarseList);
+      if(!coarse.valid)throw new Error('no offset keeps enough observations inside the video');
+      const fineList=[];
+      for(let k=-5;k<=2;k++){
+        const off=coarse.off+k*0.1;say(`AUTO SYNC · refining ${off.toFixed(1)}s`);
+        const frames=[];for(const r of refs){const t=r.t+off;frames.push(t>=0&&t<duration?await grab(t):null)}
+        fineList.push({off,s:score((r,i)=>frames[i])});
+      }
+      const fine=leftEdge(fineList),best=fine.valid?fine.off:coarse.off,bestScore=fine.valid?fine.s:coarse.s;
+      offset=Math.round(best*10)/10;saveOffset();
+      say(`AUTO SYNC · offset ${offset.toFixed(1)}s · match ${Math.round(bestScore*100)}% · ${refs.length} observations`,6000);
+    }catch(error){say(`AUTO SYNC failed · ${error.message}`,6000)}
+    finally{syncing=false;window.seekVideosToCall()}
+  }
+  $('autoSync').onclick=autoSync;
+  set(new URLSearchParams(location.search).has('video'));
+})();
+try{load(JSON.parse($('run-data').textContent))}catch(e){text('error',e.message)}
+</script>
+<script>
+__LIVE_SCRIPT__
+</script>
+<script>
+__FOLLOW_SCRIPT__
+</script>
+</html>

@@ -43,10 +43,13 @@ def generate_launch_description():
                               description='Gz sim World'),
         DeclareLaunchArgument('gui', default_value='true', choices=['true', 'false']),
         DeclareLaunchArgument('rviz', default_value='true', choices=['true', 'false']),
+        DeclareLaunchArgument('use_cam', default_value='false',
+                              description='Gz cameras (head, wrists)'),    
     ]
 
     model = LaunchConfiguration('model')
     world = LaunchConfiguration('world')
+    use_cam = LaunchConfiguration('use_cam')
 
     ffw_description_path = os.path.join(
         get_package_share_directory('ffw_description'))
@@ -90,6 +93,8 @@ def generate_launch_description():
         'model:=', model,
         ' ',
         'use_sim:=true',
+        ' ',
+        'use_cam:=true',
     ])
 
     robot_description = {'robot_description': robot_description_content}
@@ -148,10 +153,18 @@ def generate_launch_description():
         parameters=[robot_description],
     )
 
+    gz_bridge_params_path = os.path.join(
+        ffw_bringup_path,
+        'config',
+        'common',
+        'gz_bridge.yaml'
+    )
+    
     bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
-        arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
+        arguments=['--ros-args', '-p', f'config_file:={gz_bridge_params_path}'],
+        parameters=[{'use_sim_time': True}],
         output='screen'
     )
 

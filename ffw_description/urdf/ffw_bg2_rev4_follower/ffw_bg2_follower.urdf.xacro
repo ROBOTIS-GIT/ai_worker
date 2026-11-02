@@ -8,6 +8,7 @@
   <xacro:arg name="prefix" default="" />
   <xacro:arg name="model" default="ffw_bg2_rev4_follower" />
   <xacro:arg name="ros2_control_type" default="ffw_bg2_follower" />
+  <xacro:arg name="use_cam" default="false" />
 
   <xacro:include filename="$(find ffw_description)/urdf/common/follower/ffw_follower_body.xacro" />
 
@@ -108,5 +109,9 @@
         <parameters>$(find ffw_bringup)/config/$(arg model)/ffw_bg2_follower_ai_hardware_controller.yaml</parameters>
       </plugin>
   </gazebo>
+
+  <xacro:if value="${'$(arg use_sim)' == 'true' and '$(arg use_cam)' == 'true'}">
+    <xacro:ffw_bg2_follower_gazebo_cameras/>
+  </xacro:if>
 
 </robot>
