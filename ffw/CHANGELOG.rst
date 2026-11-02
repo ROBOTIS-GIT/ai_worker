@@ -2,6 +2,12 @@
 Changelog for package ffw
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.2 (2026-11-02)
+------------------
+* Prepared Docker image 2.3.2 to incorporate updates to Cyclo Control and DYNAMIXEL Hardware Interface
+* Kept AI Worker application code unchanged
+* Contributors: Yeonguk Kim
+
 2.3.1 (2026-10-26)
 ------------------
 * Added selectable default and advanced control styles for A1, A2, and LG2 leaders

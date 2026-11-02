@@ -2,6 +2,10 @@
 Changelog for package ffw_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.2 (2026-11-02)
+------------------
+* None
+
 2.3.1 (2026-10-26)
 ------------------
 * Updated F1 and F2 meshes, joint mounting transforms, and upper-body inertial properties
