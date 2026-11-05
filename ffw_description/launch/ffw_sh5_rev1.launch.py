@@ -32,6 +32,7 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     use_gui = LaunchConfiguration('use_gui')
     model = LaunchConfiguration('model')
+    rviz_fixed_frame = LaunchConfiguration('rviz_fixed_frame')
 
     urdf_file = Command(
         [
@@ -70,6 +71,11 @@ def generate_launch_description():
             default_value='ffw_sh5_rev1_follower',
             description='Robot model name.'),
 
+        DeclareLaunchArgument(
+            'rviz_fixed_frame',
+            default_value='base_link',
+            description='Fixed frame used by RViz.'),
+
         Node(
             package='robot_state_publisher',
             executable='robot_state_publisher',
@@ -79,7 +85,10 @@ def generate_launch_description():
         Node(
             package='rviz2',
             executable='rviz2',
-            arguments=['-d', rviz_config_file],
+            arguments=[
+                '-d', rviz_config_file,
+                '--fixed-frame', rviz_fixed_frame,
+            ],
             output='screen'),
 
         Node(

@@ -131,6 +131,7 @@
     <origin xyz="0 0 -0.078" rpy="0 3.14159265359 1.5708"/>
   </joint>
 
+  <xacro:ffw_sh5_follower_gazebo />
   <xacro:hx5_d20_left prefix="$(arg prefix)" />
 
   <joint name="$(arg prefix)hx5_d20_right_joint" type="fixed">
