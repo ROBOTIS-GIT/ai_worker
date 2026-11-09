@@ -1,0 +1,20 @@
+name: Notify Discord
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Existing published release tag
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  discord-notify:
+    uses: ROBOTIS-GIT/github_workflows/.github/workflows/discord-notify.yml@main
+    with:
+      version: ${{ inputs.version }}
+    secrets:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
