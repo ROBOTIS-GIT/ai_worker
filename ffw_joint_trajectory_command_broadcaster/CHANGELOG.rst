@@ -2,6 +2,13 @@
 Changelog for package ffw_joint_trajectory_command_broadcaster
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.3 (2026-11-11)
+------------------
+* Release teleoperation ownership on default-style trigger stop for LG2, A1, and A2
+* Publish update-driven leader heartbeats for follower disconnect detection
+* Publish gripper actions in both joint and EEF teleoperation modes
+* Contributors: Yeonguk Kim
+
 2.3.2 (2026-11-02)
 ------------------
 * None
