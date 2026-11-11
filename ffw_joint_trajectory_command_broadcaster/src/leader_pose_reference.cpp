@@ -258,6 +258,22 @@ private:
       });
   }
 
+  void publishGripperReference(const size_t i)
+  {
+    const auto & arm = arms_[i];
+    if (grippers_[i].empty()) {return;}
+    const auto found = std::find(arm.raw->joint_names.begin(), arm.raw->joint_names.end(),
+        grippers_[i]);
+    if (found == arm.raw->joint_names.end()) {return;}
+    const auto index = static_cast<size_t>(std::distance(arm.raw->joint_names.begin(), found));
+    if (index >= arm.raw->points.front().positions.size()) {return;}
+    Trajectory gripper;
+    gripper.joint_names = {grippers_[i]};
+    gripper.points.resize(1);
+    gripper.points[0].positions = {arm.raw->points.front().positions[index]};
+    arm.gripper_publisher->publish(gripper);
+  }
+
   void update()
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -268,7 +284,6 @@ private:
       return;
     }
     if (!metadata_ready_) {requestMetadata(); return;}
-    if (!pose_mode_) {return;}
     for (size_t i = 0; i < arms_.size(); ++i) {
       auto & arm = arms_[i];
       const std::string side = i == 0 ? "left" : "right";
@@ -281,8 +296,16 @@ private:
       {
         arm.anchored = false; arm.hold_valid = false; continue;
       }
-      if (!arm.raw || !arm.state || arm.raw->points.empty() ||
-        std::chrono::duration<double>(Clock::now() - arm.raw_received).count() > 0.5 ||
+      if (!arm.raw || arm.raw->points.empty() ||
+        std::chrono::duration<double>(Clock::now() - arm.raw_received).count() > 0.5)
+      {
+        arm.anchored = false; arm.hold_valid = false; continue;
+      }
+      if (!pose_mode_) {
+        publishGripperReference(i);
+        continue;
+      }
+      if (!arm.state ||
         std::chrono::duration<double>(Clock::now() - arm.state_received).count() > 0.5)
       {
         arm.anchored = false; arm.hold_valid = false; continue;
@@ -361,19 +384,7 @@ private:
         action.pose.orientation.x = rotation.x(); action.pose.orientation.y = rotation.y();
         action.pose.orientation.z = rotation.z(); action.pose.orientation.w = rotation.w();
         arm.pose_publisher->publish(action);
-        if (!grippers_[i].empty()) {
-          const auto found = std::find(arm.raw->joint_names.begin(), arm.raw->joint_names.end(),
-              grippers_[i]);
-          if (found != arm.raw->joint_names.end()) {
-            const auto index = static_cast<size_t>(std::distance(arm.raw->joint_names.begin(),
-                found));
-            Trajectory gripper;
-            gripper.joint_names = {grippers_[i]};
-            gripper.points.resize(1);
-            gripper.points[0].positions = {arm.raw->points.front().positions.at(index)};
-            arm.gripper_publisher->publish(gripper);
-          }
-        }
+        publishGripperReference(i);
       } catch (const std::exception & error) {
         RCLCPP_WARN_THROTTLE(node_->get_logger(), *node_->get_clock(), 2000,
           "Leader %s EEF action paused: %s", side.c_str(), error.what());

@@ -1,4 +1,10 @@
 leader_joint_trajectory_command_broadcaster:
+  heartbeat_topic: {
+    type: string,
+    default_value: "/leader/heartbeat",
+    description: "Controller update heartbeat monitored by the follower for source handoff.",
+    read_only: true,
+  }
   map_interface_to_joint_state:
     position: {
       type: string,
