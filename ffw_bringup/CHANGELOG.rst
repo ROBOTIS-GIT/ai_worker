@@ -4,7 +4,8 @@ Changelog for package ffw_bringup
 
 2.3.3 (2026-11-11)
 ------------------
-* Expose leader heartbeat timeout for all Cyclo-enabled followers and clarify default-style source switching
+* Add a leader heartbeat timeout setting for Cyclo-enabled followers
+* Clarify default-style start and stop instructions
 * Contributors: Yeonguk Kim
 
 2.3.2 (2026-11-02)

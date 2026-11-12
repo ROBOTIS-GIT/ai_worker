@@ -4,9 +4,10 @@ Changelog for package ffw
 
 2.3.3 (2026-11-11)
 ------------------
-* Return control to external when default-style teleoperation stops
-* Add leader update heartbeats and configurable follower disconnect timeouts
-* Publish gripper actions in both joint and EEF teleoperation modes
+* Return to external control when default-style teleoperation stops
+* Detect leader disconnections with configurable heartbeat timeouts
+* Publish gripper actions in both joint and EEF modes
+* Wait for initial poses to finish before starting default-style teleoperation
 * Contributors: Yeonguk Kim
 
 2.3.2 (2026-11-02)
