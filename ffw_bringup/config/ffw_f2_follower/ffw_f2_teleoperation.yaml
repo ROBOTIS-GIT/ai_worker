@@ -39,6 +39,7 @@ cyclo_teleoperation:
     control_frequency: 100.0
     joint_state_timeout: 0.5
     leader_command_timeout: 0.5
+    leader_heartbeat_timeout: 1.0
 
     # Disabled-arm hold
     hold:

@@ -289,6 +289,10 @@ controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on
       previous_requested_arms_rt_ = 0;
       left_initial_pose_trigger_ = TriggerHoldState{};
       right_initial_pose_trigger_ = TriggerHoldState{};
+      heartbeat_publisher_ =
+        std::make_shared<realtime_tools::RealtimePublisher<std_msgs::msg::Empty>>(
+        get_node()->create_publisher<std_msgs::msg::Empty>(
+          params_.heartbeat_topic, rclcpp::QoS(1).best_effort()));
       if (params_.style == "default") {
         source_client_ = get_node()->create_client<std_srvs::srv::SetBool>(
           params_.set_source_service);
@@ -408,6 +412,7 @@ controller_interface::CallbackReturn LeaderJointTrajectoryCommandBroadcaster::on
   default_trigger_ = TriggerHoldState{};
   default_trigger_pending_.store(false);
   controller_active_.store(true);
+  last_heartbeat_ = std::chrono::steady_clock::time_point{};
 
   if (params_.enable_teleoperation) {
     publish_control_command();
@@ -767,6 +772,7 @@ void LeaderJointTrajectoryCommandBroadcaster::cancel_default_start()
   default_source_request_id_ = -1;
   default_start_waiting_ = false;
   default_source_accepted_ = false;
+  default_source_transition_seen_ = false;
   ++default_start_generation_;
 }
 
@@ -782,18 +788,24 @@ void LeaderJointTrajectoryCommandBroadcaster::process_default_trigger()
   const bool triggered = default_trigger_pending_.exchange(false);
   const auto now = std::chrono::steady_clock::now();
   if (default_start_waiting_) {
-    if (triggered || now >= default_start_deadline_ ||
+    if (triggered || (!default_source_accepted_ && now >= default_start_deadline_) ||
       now - source_last_seen_ > std::chrono::milliseconds(500))
     {
       cancel_default_start();
       RCLCPP_WARN(get_node()->get_logger(),
-        "Both-arm start cancelled: another trigger request or control source timeout");
+        "Both-trigger source change cancelled: another trigger request or timeout");
       return;
     }
-    if (!default_source_accepted_ || !leader_action_enabled_rt_.load()) {
+    if (!default_source_accepted_ || !(default_request_teleop_ ?
+      leader_action_enabled_rt_.load() : external_source_ready_))
+    {
       return;
     }
     cancel_default_start();
+    if (!default_request_teleop_) {
+      RCLCPP_INFO(get_node()->get_logger(), "Both-trigger stop completed; source: external");
+      return;
+    }
     auto command = std::make_shared<robotis_interfaces::msg::TeleoperationCommand>();
     command->target_arm = "both";
     command->command = robotis_interfaces::msg::TeleoperationCommand::COMMAND_ENABLE;
@@ -804,31 +816,26 @@ void LeaderJointTrajectoryCommandBroadcaster::process_default_trigger()
   if (!triggered) {
     return;
   }
-  if (leader_action_enabled_rt_.load()) {
-    // A partial enable must stop both arms, not swap the enabled arm via XOR.
+  default_request_teleop_ = !leader_action_enabled_rt_.load();
+  if (!default_request_teleop_) {
     auto command = std::make_shared<robotis_interfaces::msg::TeleoperationCommand>();
     command->target_arm = "both";
-    command->command = requested_arms_rt_.load() != 0 ?
-      robotis_interfaces::msg::TeleoperationCommand::COMMAND_DISABLE :
-      robotis_interfaces::msg::TeleoperationCommand::COMMAND_ENABLE;
+    command->command = robotis_interfaces::msg::TeleoperationCommand::COMMAND_DISABLE;
     teleoperation_command_callback(command);
-    RCLCPP_INFO(get_node()->get_logger(), "Both-trigger teleoperation %s requested",
-      command->command == robotis_interfaces::msg::TeleoperationCommand::COMMAND_ENABLE ?
-      "start" : "pause");
-    return;
   }
   if (!source_client_->service_is_ready()) {
     RCLCPP_WARN(get_node()->get_logger(),
-      "Both-arm start not sent: service '%s' is unavailable", source_client_->get_service_name());
+      "Both-trigger source change not sent: service '%s' is unavailable; arms remain disabled",
+      source_client_->get_service_name());
     return;
   }
   default_start_waiting_ = true;
   default_source_accepted_ = false;
-  // Bound the complete handoff, not just the service response; never enable much later.
+  // Pose preparation has its own timeout in Cyclo; bound only the service response here.
   default_start_deadline_ = now + std::chrono::seconds(10);
   const auto generation = ++default_start_generation_;
   auto request = std::make_shared<std_srvs::srv::SetBool::Request>();
-  request->data = true;
+  request->data = default_request_teleop_;
   try {
     const auto pending = source_client_->async_send_request(request,
         [this, generation](rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture future) {
@@ -842,7 +849,7 @@ void LeaderJointTrajectoryCommandBroadcaster::process_default_trigger()
           const auto response = future.get();
           if (!response->success) {
             cancel_default_start();
-            RCLCPP_WARN(get_node()->get_logger(), "Both-arm start rejected: %s",
+            RCLCPP_WARN(get_node()->get_logger(), "Both-trigger source change rejected: %s",
               response->message.c_str());
             return;
           }
@@ -850,10 +857,12 @@ void LeaderJointTrajectoryCommandBroadcaster::process_default_trigger()
         });
     default_source_request_id_ = pending.request_id;
     RCLCPP_INFO(get_node()->get_logger(),
-      "Both-trigger start requested; waiting for teleop control source");
+      "Both-trigger %s requested; waiting for %s control source",
+      default_request_teleop_ ? "start" : "stop",
+      default_request_teleop_ ? "teleop" : "external");
   } catch (const std::exception & error) {
     cancel_default_start();
-    RCLCPP_WARN(get_node()->get_logger(), "Both-arm start failed: %s", error.what());
+    RCLCPP_WARN(get_node()->get_logger(), "Both-trigger source change failed: %s", error.what());
   }
 }
 
@@ -1049,12 +1058,20 @@ void LeaderJointTrajectoryCommandBroadcaster::command_source_state_callback(
     return;
   }
   const bool enabled = msg->data == "teleop";
-  if (msg->data == "none" || msg->data == "starting") {
+  external_source_ready_ = msg->data == "model_action";
+  {
     std::lock_guard<std::mutex> lock(default_start_mutex_);
-    if (default_start_waiting_) {
+    if (default_start_waiting_ && msg->data == "switching") {
+      default_source_transition_seen_ = true;
+    }
+    const bool interrupted = default_source_transition_seen_ &&
+      (default_request_teleop_ ? msg->data == "model_action" : enabled);
+    if (default_start_waiting_ &&
+      (msg->data == "none" || msg->data == "starting" || interrupted))
+    {
       cancel_default_start();
       RCLCPP_WARN(get_node()->get_logger(),
-          "Both-arm start cancelled: control source is not ready");
+        "Both-trigger source change cancelled: control source is unavailable or changed");
     }
   }
   source_last_seen_ = std::chrono::steady_clock::now();
@@ -1271,6 +1288,15 @@ controller_interface::return_type LeaderJointTrajectoryCommandBroadcaster::updat
     auto value = state_interface.get_optional();
     if (value) {
       name_if_value_mapping_[state_interface.get_prefix_name()][interface_name] = *value;
+    }
+  }
+
+  const auto heartbeat_now = std::chrono::steady_clock::now();
+  if (heartbeat_publisher_ && controller_active_.load() &&
+    heartbeat_now - last_heartbeat_ >= std::chrono::milliseconds(100))
+  {
+    if (heartbeat_publisher_->try_publish(std_msgs::msg::Empty{})) {
+      last_heartbeat_ = heartbeat_now;
     }
   }
 

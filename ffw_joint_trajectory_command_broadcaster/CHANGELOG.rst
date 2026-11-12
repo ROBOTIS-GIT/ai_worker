@@ -2,6 +2,15 @@
 Changelog for package ffw_joint_trajectory_command_broadcaster
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.3 (2026-11-11)
+------------------
+* Return to external control when triggers stop default-style teleoperation
+* Send heartbeats while the leader controller is running
+* Publish gripper actions in both joint and EEF modes
+* Allow initial poses to finish after a default-style start request is accepted
+* Cancel pending starts if the source change is interrupted
+* Contributors: Yeonguk Kim
+
 2.3.2 (2026-11-02)
 ------------------
 * None

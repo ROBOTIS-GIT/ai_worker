@@ -2,6 +2,14 @@
 Changelog for package ffw
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.3 (2026-11-11)
+------------------
+* Return to external control when default-style teleoperation stops
+* Detect leader disconnections with configurable heartbeat timeouts
+* Publish gripper actions in both joint and EEF modes
+* Wait for initial poses to finish before starting default-style teleoperation
+* Contributors: Yeonguk Kim
+
 2.3.2 (2026-11-02)
 ------------------
 * Prepared Docker image 2.3.2 to incorporate updates to Cyclo Control and DYNAMIXEL Hardware Interface
