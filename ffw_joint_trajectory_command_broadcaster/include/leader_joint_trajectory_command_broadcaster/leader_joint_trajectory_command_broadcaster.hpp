@@ -226,6 +226,7 @@ protected:
   std::mutex default_start_mutex_;
   bool default_start_waiting_ = false;
   bool default_source_accepted_ = false;
+  bool default_source_transition_seen_ = false;
   bool default_request_teleop_ = true;
   bool external_source_ready_ = false;
   int64_t default_source_request_id_ = -1;

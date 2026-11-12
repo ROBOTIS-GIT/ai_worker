@@ -772,6 +772,7 @@ void LeaderJointTrajectoryCommandBroadcaster::cancel_default_start()
   default_source_request_id_ = -1;
   default_start_waiting_ = false;
   default_source_accepted_ = false;
+  default_source_transition_seen_ = false;
   ++default_start_generation_;
 }
 
@@ -787,7 +788,7 @@ void LeaderJointTrajectoryCommandBroadcaster::process_default_trigger()
   const bool triggered = default_trigger_pending_.exchange(false);
   const auto now = std::chrono::steady_clock::now();
   if (default_start_waiting_) {
-    if (triggered || now >= default_start_deadline_ ||
+    if (triggered || (!default_source_accepted_ && now >= default_start_deadline_) ||
       now - source_last_seen_ > std::chrono::milliseconds(500))
     {
       cancel_default_start();
@@ -830,7 +831,7 @@ void LeaderJointTrajectoryCommandBroadcaster::process_default_trigger()
   }
   default_start_waiting_ = true;
   default_source_accepted_ = false;
-  // Bound the complete handoff, not just the service response; never enable much later.
+  // Pose preparation has its own timeout in Cyclo; bound only the service response here.
   default_start_deadline_ = now + std::chrono::seconds(10);
   const auto generation = ++default_start_generation_;
   auto request = std::make_shared<std_srvs::srv::SetBool::Request>();
@@ -1058,12 +1059,19 @@ void LeaderJointTrajectoryCommandBroadcaster::command_source_state_callback(
   }
   const bool enabled = msg->data == "teleop";
   external_source_ready_ = msg->data == "model_action";
-  if (msg->data == "none" || msg->data == "starting") {
+  {
     std::lock_guard<std::mutex> lock(default_start_mutex_);
-    if (default_start_waiting_) {
+    if (default_start_waiting_ && msg->data == "switching") {
+      default_source_transition_seen_ = true;
+    }
+    const bool interrupted = default_source_transition_seen_ &&
+      (default_request_teleop_ ? msg->data == "model_action" : enabled);
+    if (default_start_waiting_ &&
+      (msg->data == "none" || msg->data == "starting" || interrupted))
+    {
       cancel_default_start();
       RCLCPP_WARN(get_node()->get_logger(),
-          "Both-arm start cancelled: control source is not ready");
+        "Both-trigger source change cancelled: control source is unavailable or changed");
     }
   }
   source_last_seen_ = std::chrono::steady_clock::now();
