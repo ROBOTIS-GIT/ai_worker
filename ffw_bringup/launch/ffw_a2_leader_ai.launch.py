@@ -48,7 +48,7 @@ def generate_launch_description():
     declared_arguments = [
         DeclareLaunchArgument(
             'style', default_value='default', choices=['default', 'advanced'],
-            description='Default: both triggers start/pause teleop. Advanced: joystick buttons.',
+            description='Default: both triggers start/stop teleop. Advanced: joystick buttons.',
         ),
         DeclareLaunchArgument(
             'description_file',

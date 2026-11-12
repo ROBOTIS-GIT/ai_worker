@@ -42,6 +42,7 @@
 #include "robotis_interfaces/srv/set_preset.hpp"
 #include "robotis_interfaces/srv/set_teleoperation.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
+#include "std_msgs/msg/empty.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "std_srvs/srv/set_bool.hpp"
 #include "urdf/model.h"
@@ -225,6 +226,9 @@ protected:
   std::mutex default_start_mutex_;
   bool default_start_waiting_ = false;
   bool default_source_accepted_ = false;
+  bool default_source_transition_seen_ = false;
+  bool default_request_teleop_ = true;
+  bool external_source_ready_ = false;
   int64_t default_source_request_id_ = -1;
   uint64_t default_start_generation_ = 0;
   std::chrono::steady_clock::time_point default_start_deadline_{};
@@ -235,6 +239,8 @@ protected:
     control_status_subscriber_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr command_source_state_subscriber_;
   rclcpp::TimerBase::SharedPtr source_watchdog_;
+  std::shared_ptr<realtime_tools::RealtimePublisher<std_msgs::msg::Empty>> heartbeat_publisher_;
+  std::chrono::steady_clock::time_point last_heartbeat_{};
   std::chrono::steady_clock::time_point source_last_seen_{};
   rclcpp::Publisher<robotis_interfaces::msg::ControlModeCommand>::SharedPtr
     control_command_publisher_;
