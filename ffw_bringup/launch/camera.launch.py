@@ -58,7 +58,7 @@ def generate_launch_description():
             default_value='zed',
             choices=['zed', 'realsense'],
             description='Head camera type. zed for sg2/bg2/sh5/bh5 (zed mini head + 2 d405 '
-                        'wrists). realsense for f2 (d455 head + 2 d405 wrists).'
+                        'wrists). realsense for w2 (d455 head + 2 d405 wrists).'
         ),
         DeclareLaunchArgument(
             'auto_assign_cameras',

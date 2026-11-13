@@ -91,11 +91,11 @@ private:
   std::shared_ptr<BatteryModel> battery_model_;
 };
 
-class FfwF2RobotType : public RobotType
+class W2RobotType : public RobotType
 {
 public:
-  FfwF2RobotType();
-  ~FfwF2RobotType() override = default;
+  W2RobotType();
+  ~W2RobotType() override = default;
 
   std::string get_type_name() const override;
   bool is_battery_monitoring_enabled() const override;

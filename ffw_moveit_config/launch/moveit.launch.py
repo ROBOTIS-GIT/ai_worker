@@ -32,8 +32,8 @@ import yaml
 MODEL_DIRECTORIES = {
     'bg2': 'ffw_bg2_rev4_follower',
     'sg2': 'ffw_sg2_rev1_follower',
-    'f1': 'ffw_f1_follower',
-    'f2': 'ffw_f2_follower',
+    'w1': 'w1_follower',
+    'w2': 'w2_follower',
 }
 
 
@@ -42,12 +42,13 @@ def launch_setup(context):
     description_share = Path(get_package_share_directory('ffw_description'))
     config_share = Path(get_package_share_directory('ffw_moveit_config'))
     model_config = Path('config') / model
+    robot_name = f'{model}_follower' if model in ('w1', 'w2') else f'ffw_{model}_follower'
     urdf = (description_share / 'urdf' / MODEL_DIRECTORIES[model]
-            / f'ffw_{model}_follower.urdf.xacro')
+            / f'{robot_name}.urdf.xacro')
     use_sim = LaunchConfiguration('use_sim')
 
     moveit_config = (
-        MoveItConfigsBuilder(robot_name=f'ffw_{model}_follower',
+        MoveItConfigsBuilder(robot_name=robot_name,
                              package_name='ffw_moveit_config')
         .robot_description(file_path=urdf, mappings={'use_sim': use_sim.perform(context)})
         .robot_description_semantic(file_path=model_config / 'robot.srdf')

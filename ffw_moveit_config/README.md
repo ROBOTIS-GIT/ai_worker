@@ -5,8 +5,8 @@ Start the matching Follower bringup, then select the same model for MoveIt:
 ```bash
 ros2 launch ffw_moveit_config moveit.launch.py model:=bg2
 ros2 launch ffw_moveit_config moveit.launch.py model:=sg2
-ros2 launch ffw_moveit_config moveit.launch.py model:=f1
-ros2 launch ffw_moveit_config moveit.launch.py model:=f2
+ros2 launch ffw_moveit_config moveit.launch.py model:=w1
+ros2 launch ffw_moveit_config moveit.launch.py model:=w2
 ```
 
 Run only the command for your robot. The default model is `bg2`.

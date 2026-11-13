@@ -10,7 +10,7 @@
     leader_urdf_path: "$(find-pkg-share cyclo_motion_controller_models)/models/ai_worker/leader/ffw_a1_leader.urdf"
     # Relative to /leader: FK always reads measured positions, even during mode changes.
     leader_joint_states_topic: "joint_states"
-    # Track the physical A1 hand motion for every follower, including F1/F2.
+    # Track the physical A1 hand motion for every follower, including W1/W2.
     leader_use_follower_reference_model: false
     leader_base_frame: "arm_base_link"
     # A1 tool frames coincide with the seventh arm links until TCP calibration.

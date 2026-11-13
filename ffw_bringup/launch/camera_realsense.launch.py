@@ -500,7 +500,7 @@ def generate_launch_description():
                 default_value='false',
                 choices=['true', 'false'],
                 description='Launch the d455 head camera in addition to the two d405 wrist '
-                            'cameras. Set to true on f2 (3-camera setup), false on '
+                            'cameras. Set to true on w2 (3-camera setup), false on '
                             'sg2/bg2/sh5/bh5 (2-camera setup with zed head).'
             ),
         ] +
