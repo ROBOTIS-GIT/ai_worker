@@ -2,6 +2,12 @@
 Changelog for package ffw_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.4 (2026-11-16)
+------------------
+* Renamed F1 and F2 descriptions, simulation models, and viewers to W1 and W2
+* Renamed shared F-series mesh and body paths to W-series paths
+* Contributors: Yeonguk Kim
+
 2.3.3 (2026-11-11)
 ------------------
 * None

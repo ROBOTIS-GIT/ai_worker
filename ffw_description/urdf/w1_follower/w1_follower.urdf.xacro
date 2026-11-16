@@ -1,0 +1,144 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="w1_follower">
+  <xacro:property name="meshes_file_direction" value="package://ffw_description/meshes/$(arg model)" />
+  <xacro:property name="base_meshes_dir" value="package://ffw_description/meshes/common/follower/w_base" />
+  <xacro:arg name="use_sim" default="false" />
+  <xacro:arg name="use_mock_hardware" default="false" />
+  <xacro:arg name="mock_sensor_commands" default="false" />
+  <xacro:arg name="prefix" default="" />
+  <xacro:arg name="model" default="w1_follower" />
+  <xacro:arg name="ros2_control_type" default="w1_follower" />
+
+  <xacro:include filename="$(find ffw_description)/urdf/common/follower/w_follower_body.xacro" />
+
+  <xacro:include filename="$(find ffw_description)/urdf/common/hx2_d1/hx2_d1.urdf.xacro" />
+
+  <xacro:include filename="$(find ffw_description)/ros2_control/$(arg model)/$(arg ros2_control_type).ros2_control.xacro" />
+
+  <xacro:include filename="$(find ffw_description)/gazebo/$(arg model)/w1_follower.gazebo.xacro" />
+
+  <link name="world"/>
+
+  <joint name="$(arg prefix)world_fixed" type="fixed">
+    <parent link="world"/>
+    <child link="$(arg prefix)base_link"/>
+    <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="$(arg prefix)base_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="${base_meshes_dir}/base_mobile_assy.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="silver">
+        <color rgba="0.75 0.75 0.75 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="${base_meshes_dir}/base_mobile_assy.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="-8.880608700e-03 -4.758427800e-03 3.886366400e-01" />
+      <mass value="5.435831600e+01" />
+      <inertia ixx="1.188633900e+06" ixy="6.334393100e+02" ixz="-1.454811600e+05"
+      iyy="1.090949100e+06" iyz="-5.126785200e+03"
+      izz="4.492808000e+05" />
+    </inertial>
+  </link>
+
+  <link name="$(arg prefix)lift_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="${base_meshes_dir}/lift_link.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="silver">
+        <color rgba="0.75 0.75 0.75 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="${base_meshes_dir}/lift_link.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+    <inertial>
+       <origin xyz="-1.4244239e-01 -1.9465150e-05  7.5969115e-01 " />
+       <mass value="2.3830693e+01" />
+       <inertia ixx="3.7460504e+00" ixy="-3.0251097e-05" ixz="-1.5541068e-01"
+                iyy="3.7501190e+00" iyz="-1.5988249e-04"
+                izz="7.0266407e-02" />
+    </inertial>
+  </link>
+  <joint name="$(arg prefix)lift_fixed_joint" type="fixed">
+    <parent link="$(arg prefix)base_link"/>
+    <child link="$(arg prefix)lift_link"/>
+    <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+  </joint>
+
+  <xacro:w_follower_body parent="$(arg prefix)base_link" prefix="$(arg prefix)">
+    <origin xyz="-0.05 0 1.4166" rpy="0 0 0" />
+  </xacro:w_follower_body>
+
+  <xacro:hx2_d1 parent="$(arg prefix)arm_l_link7" prefix="$(arg prefix)gripper_l_">
+    <origin xyz="0.00025 0 -0.050" rpy="0 3.14159265359 3.14159265359"/>
+  </xacro:hx2_d1>
+
+  <joint name="$(arg prefix)end_effector_l_joint" type="fixed">
+    <parent link="$(arg prefix)arm_l_link7"/>
+    <child link="$(arg prefix)end_effector_l_link"/>
+    <origin xyz="0 0 -0.186" rpy="0 0 0"/>
+  </joint>
+
+  <link name="$(arg prefix)end_effector_l_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.01 0.01" />
+      </geometry>
+      <material name="red">
+        <color rgba="1.0 0.0 0.0 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <xacro:hx2_d1 parent="$(arg prefix)arm_r_link7" prefix="$(arg prefix)gripper_r_">
+    <origin xyz="0.00025 0 -0.050" rpy="0 3.14159265359 3.14159265359"/>
+  </xacro:hx2_d1>
+
+  <joint name="$(arg prefix)end_effector_r_joint" type="fixed">
+    <parent link="$(arg prefix)arm_r_link7"/>
+    <child link="$(arg prefix)end_effector_r_link"/>
+    <origin xyz="0 0 -0.186" rpy="0 0 0"/>
+  </joint>
+
+  <link name="$(arg prefix)end_effector_r_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.01 0.01" />
+      </geometry>
+      <material name="red">
+        <color rgba="1.0 0.0 0.0 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <xacro:w1_follower_system
+    use_sim="$(arg use_sim)"
+    use_mock_hardware="$(arg use_mock_hardware)"
+    mock_sensor_commands="$(arg mock_sensor_commands)"/>
+
+  <xacro:w1_follower_gazebo />
+
+  <gazebo>
+      <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+        <parameters>$(find ffw_bringup)/config/$(arg model)/w1_follower_ai_hardware_controller.yaml</parameters>
+      </plugin>
+  </gazebo>
+
+</robot>

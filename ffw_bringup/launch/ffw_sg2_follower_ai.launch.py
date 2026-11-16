@@ -52,7 +52,7 @@ def generate_launch_description():
         DeclareLaunchArgument('head_camera_type', default_value='zed',
                               choices=['zed', 'realsense'],
                               description='Head camera type. zed for sg2/bg2/sh5/bh5, '
-                                          'realsense for f2.'),
+                                          'realsense for w2.'),
         DeclareLaunchArgument('auto_assign_cameras', default_value='false',
                               choices=['true', 'false'],
                               description='Use the manual camera YAML or automatic assignment.'),

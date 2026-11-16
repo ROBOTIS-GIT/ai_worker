@@ -35,6 +35,10 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
+    robot_type = LaunchConfiguration('robot_type')
+    model_prefix = PythonExpression([
+        "'' if '", robot_type, "' == 'w2' else 'ffw_'",
+    ])
     declared_arguments = [
         DeclareLaunchArgument('start_rviz', default_value='false',
                               description='Whether to execute rviz2'),
@@ -50,13 +54,13 @@ def generate_launch_description():
                               description='Whether to launch lidar.'),
         DeclareLaunchArgument('init_position', default_value='true',
                               description='Whether to launch the init_position node.'),
-        DeclareLaunchArgument('robot_type', default_value='sg2', choices=['sg2', 'f2'],
-                              description='Select SG2 or F2 controller and initial poses.'),
+        DeclareLaunchArgument('robot_type', default_value='sg2', choices=['sg2', 'w2'],
+                              description='Select SG2 or W2 controller and initial poses.'),
         DeclareLaunchArgument('model', default_value='ffw_sg2_rev1_follower',
                               description='Shared mobile-base description model.'),
         DeclareLaunchArgument(
             'init_position_file',
-            default_value=['ffw_', LaunchConfiguration('robot_type'),
+            default_value=[model_prefix, robot_type,
                            '_follower_initial_positions.yaml'],
             description='Initial position file.'),
     ]
@@ -69,11 +73,10 @@ def generate_launch_description():
     launch_lidar = LaunchConfiguration('launch_lidar')
     init_position = LaunchConfiguration('init_position')
     model = LaunchConfiguration('model')
-    robot_type = LaunchConfiguration('robot_type')
     init_position_file = LaunchConfiguration('init_position_file')
     # Keep the shared base description; select the matching controller/pose YAMLs.
     config_model = PythonExpression([
-        "'ffw_f2_follower' if '", robot_type, "' == 'f2' else '", model, "'",
+        "'w2_follower' if '", robot_type, "' == 'w2' else '", model, "'",
     ])
 
     robot_description_content = Command([
@@ -97,7 +100,7 @@ def generate_launch_description():
 
     controller_manager_config = PathJoinSubstitution([
         FindPackageShare('ffw_bringup'), 'config', config_model,
-        ['ffw_', robot_type, '_follower_ai_hardware_controller.yaml']
+        [model_prefix, robot_type, '_follower_ai_hardware_controller.yaml']
     ])
     rviz_config_file = PathJoinSubstitution([
         FindPackageShare('ffw_description'), 'rviz', 'ffw_sg2.rviz'
