@@ -2,6 +2,12 @@
 Changelog for package ffw_bringup
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.4 (2026-11-16)
+------------------
+* Renamed F1 and F2 launch files and configurations to W1 and W2
+* Updated packing, mobile-base, and Cyclo model paths to use the new names
+* Contributors: Yeonguk Kim
+
 2.3.3 (2026-11-11)
 ------------------
 * Add a leader heartbeat timeout setting for Cyclo-enabled followers

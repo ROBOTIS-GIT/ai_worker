@@ -2,6 +2,10 @@
 Changelog for package ffw_joint_trajectory_command_broadcaster
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.4 (2026-11-16)
+------------------
+* None
+
 2.3.3 (2026-11-11)
 ------------------
 * Return to external control when triggers stop default-style teleoperation
