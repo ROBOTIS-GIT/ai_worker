@@ -2,6 +2,11 @@
 Changelog for package ffw_moveit_config
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.4 (2026-11-16)
+------------------
+* Renamed F1 and F2 MoveIt configurations and model choices to W1 and W2
+* Contributors: Yeonguk Kim
+
 2.3.3 (2026-11-11)
 ------------------
 * None

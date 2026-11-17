@@ -22,20 +22,23 @@ from launch.actions import DeclareLaunchArgument
 from launch.actions import IncludeLaunchDescription
 from launch.actions import LogInfo
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PythonExpression
 
 
-VALID_ROBOT_TYPES = ['sg2', 'bg2', 'sh5', 'bh5', 'f1', 'f2']
+VALID_ROBOT_TYPES = ['sg2', 'bg2', 'sh5', 'bh5', 'w1', 'w2']
 
 
 def generate_launch_description():
     pkg_share = get_package_share_directory('ffw_bringup')
 
     robot_type = LaunchConfiguration('type')
+    model_prefix = PythonExpression([
+        "'' if '", robot_type, "' in ('w1', 'w2') else 'ffw_'",
+    ])
 
     pack_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
-            pkg_share, '/launch/ffw_', robot_type, '_follower_ai.launch.py'
+            pkg_share, '/launch/', model_prefix, robot_type, '_follower_ai.launch.py'
         ]),
         launch_arguments={
             'init_position': 'true',
@@ -48,6 +51,6 @@ def generate_launch_description():
             'type',
             description=f'Robot type to launch pack position. One of: {VALID_ROBOT_TYPES}',
         ),
-        LogInfo(msg=['Starting FFW ', robot_type, ' packing...']),
+        LogInfo(msg=['Starting ', robot_type, ' packing...']),
         pack_launch,
     ])

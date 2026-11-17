@@ -67,28 +67,28 @@ std::vector<BatteryInfo> FfwSg2Rev1RobotType::get_battery_configurations() const
   return batteries;
 }
 
-FfwF2RobotType::FfwF2RobotType()
+W2RobotType::W2RobotType()
 {
-  // Hard-code ubetter battery model for ffw_f2
+  // Hard-code ubetter battery model for w2
   battery_model_ = std::make_shared<UbetterBatteryModel>();
 }
 
-std::string FfwF2RobotType::get_type_name() const
+std::string W2RobotType::get_type_name() const
 {
-  return "ffw_f2";
+  return "w2";
 }
 
-bool FfwF2RobotType::is_battery_monitoring_enabled() const
+bool W2RobotType::is_battery_monitoring_enabled() const
 {
   return true;
 }
 
-std::shared_ptr<BatteryModel> FfwF2RobotType::get_battery_model() const
+std::shared_ptr<BatteryModel> W2RobotType::get_battery_model() const
 {
   return battery_model_;
 }
 
-std::vector<BatteryInfo> FfwF2RobotType::get_battery_configurations() const
+std::vector<BatteryInfo> W2RobotType::get_battery_configurations() const
 {
   std::vector<BatteryInfo> batteries;
 
@@ -165,8 +165,8 @@ std::shared_ptr<RobotType> create_robot_type(const std::string & type_name)
     return std::make_shared<FfwSg2Rev1RobotType>();
   } else if (type_name == "ffw_sh5_rev1") {
     return std::make_shared<FfwSh5Rev1RobotType>();
-  } else if (type_name == "ffw_f2") {
-    return std::make_shared<FfwF2RobotType>();
+  } else if (type_name == "w2") {
+    return std::make_shared<W2RobotType>();
   }
 
   return nullptr;  // Type not found

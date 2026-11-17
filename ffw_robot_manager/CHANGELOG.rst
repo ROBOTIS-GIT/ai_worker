@@ -2,6 +2,11 @@
 Changelog for package ffw_robot_manager
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.4 (2026-11-16)
+------------------
+* Renamed the F2 robot type to W2 while preserving its battery configuration
+* Contributors: Yeonguk Kim
+
 2.3.3 (2026-11-11)
 ------------------
 * None
