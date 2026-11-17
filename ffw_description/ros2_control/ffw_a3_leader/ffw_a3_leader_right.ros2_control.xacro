@@ -1,0 +1,248 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="a3_right_system" params="name prefix port_name:=^|/dev/ttyACM0 use_sim:=^|false use_mock_hardware:=^|false mock_sensor_commands:=^|false">
+    <ros2_control name="${name}" type="system" is_async="true">
+      <xacro:if value="${use_sim}">
+        <hardware>
+          <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+        </hardware>
+      </xacro:if>
+      <xacro:unless value="${use_sim}">
+        <hardware>
+          <xacro:if value="${use_mock_hardware}">
+            <plugin>mock_components/GenericSystem</plugin>
+            <param name="mock_sensor_commands">${mock_sensor_commands}</param>
+            <param name="state_following_offset">0.0</param>
+          </xacro:if>
+          <xacro:unless value="${use_mock_hardware}">
+            <plugin>dynamixel_hardware_interface/DynamixelHardware</plugin>
+            <param name="port_name">${port_name}</param>
+            <param name="baud_rate">4000000</param>
+            <param name="error_timeout_ms">500</param>
+            <param name="dynamixel_model_folder">/param/dxl_model</param>
+            <param name="number_of_joints">20</param>
+            <param name="number_of_transmissions">20</param>
+            <param name="disable_torque_at_init">true</param>
+            <param name="dynamixel_state_pub_msg_name">dynamixel_hardware_interface/dxl_state</param>
+            <param name="get_dynamixel_data_srv_name">dynamixel_hardware_interface/get_dxl_data</param>
+            <param name="set_dynamixel_data_srv_name">dynamixel_hardware_interface/set_dxl_data</param>
+            <param name="reboot_dxl_srv_name">dynamixel_hardware_interface/reboot_dxl</param>
+            <param name="set_dxl_torque_srv_name">dynamixel_hardware_interface/set_dxl_torque</param>
+          </xacro:unless>
+        </hardware>
+      </xacro:unless>
+
+      <joint name="${prefix}finger_r_joint1">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}finger_r_joint2">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}finger_r_joint3">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}finger_r_joint4">
+        <state_interface name="position"/>
+      </joint>
+
+      <joint name="${prefix}finger_r_joint5">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}finger_r_joint6">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}finger_r_joint7">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}finger_r_joint8">
+        <state_interface name="position"/>
+      </joint>
+
+      <joint name="${prefix}finger_r_joint9">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}finger_r_joint10">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}finger_r_joint11">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}finger_r_joint12">
+        <state_interface name="position"/>
+      </joint>
+
+      <joint name="${prefix}finger_r_joint13">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}finger_r_joint14">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}finger_r_joint15">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}finger_r_joint16">
+        <state_interface name="position"/>
+      </joint>
+
+      <joint name="${prefix}finger_r_joint17">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}finger_r_joint18">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}finger_r_joint19">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}finger_r_joint20">
+        <state_interface name="position"/>
+      </joint>
+
+      <!-- Thumb: joint IDs 111-114; ID 115 reserved for vibration motor. -->
+      <gpio name="dxl111">
+        <param name="type">dxl</param>
+        <param name="ID">111</param>
+        <state_interface name="Present Position"/>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl112">
+        <param name="type">dxl</param>
+        <param name="ID">112</param>
+        <state_interface name="Present Position"/>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl113">
+        <param name="type">dxl</param>
+        <param name="ID">113</param>
+        <state_interface name="Present Position"/>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl114">
+        <param name="type">dxl</param>
+        <param name="ID">114</param>
+        <state_interface name="Present Position"/>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <!-- Index: joint IDs 116-119; ID 120 reserved for vibration motor. -->
+      <gpio name="dxl116">
+        <param name="type">dxl</param>
+        <param name="ID">116</param>
+        <state_interface name="Present Position"/>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl117">
+        <param name="type">dxl</param>
+        <param name="ID">117</param>
+        <state_interface name="Present Position"/>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl118">
+        <param name="type">dxl</param>
+        <param name="ID">118</param>
+        <state_interface name="Present Position"/>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl119">
+        <param name="type">dxl</param>
+        <param name="ID">119</param>
+        <state_interface name="Present Position"/>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <!-- Middle: joint IDs 121-124; ID 125 reserved for vibration motor. -->
+      <gpio name="dxl121">
+        <param name="type">dxl</param>
+        <param name="ID">121</param>
+        <state_interface name="Present Position"/>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl122">
+        <param name="type">dxl</param>
+        <param name="ID">122</param>
+        <state_interface name="Present Position"/>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl123">
+        <param name="type">dxl</param>
+        <param name="ID">123</param>
+        <state_interface name="Present Position"/>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl124">
+        <param name="type">dxl</param>
+        <param name="ID">124</param>
+        <state_interface name="Present Position"/>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <!-- Ring: joint IDs 126-129; ID 130 reserved for vibration motor. -->
+      <gpio name="dxl126">
+        <param name="type">dxl</param>
+        <param name="ID">126</param>
+        <state_interface name="Present Position"/>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl127">
+        <param name="type">dxl</param>
+        <param name="ID">127</param>
+        <state_interface name="Present Position"/>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl128">
+        <param name="type">dxl</param>
+        <param name="ID">128</param>
+        <state_interface name="Present Position"/>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl129">
+        <param name="type">dxl</param>
+        <param name="ID">129</param>
+        <state_interface name="Present Position"/>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <!-- Pinky: joint IDs 131-134; ID 135 reserved for vibration motor. -->
+      <gpio name="dxl131">
+        <param name="type">dxl</param>
+        <param name="ID">131</param>
+        <state_interface name="Present Position"/>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl132">
+        <param name="type">dxl</param>
+        <param name="ID">132</param>
+        <state_interface name="Present Position"/>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl133">
+        <param name="type">dxl</param>
+        <param name="ID">133</param>
+        <state_interface name="Present Position"/>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl134">
+        <param name="type">dxl</param>
+        <param name="ID">134</param>
+        <state_interface name="Present Position"/>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+
+    </ros2_control>
+  </xacro:macro>
+</robot>

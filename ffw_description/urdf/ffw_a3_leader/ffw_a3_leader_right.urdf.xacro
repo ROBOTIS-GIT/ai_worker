@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+   <xacro:macro name="a3_right" params="prefix">
+
+      <link name="${prefix}a3_right_base" />
+
+      <!-- Thumb -->
+      <joint name="${prefix}finger_r_joint1" type="revolute">
+         <parent link="${prefix}a3_right_base" />
+         <child link="${prefix}finger_r_link1" />
+         <origin xyz="0.06 0.0662 -0.00656" rpy="-0.96 0 0" />
+         <axis xyz="0 1 0" />
+         <limit velocity="4.8" effort="1000" lower="-1.57" upper="1.57" />
+         <dynamics damping="0.05" />
+      </joint>
+      <link name="${prefix}finger_r_link1" />
+      <joint name="${prefix}finger_r_joint2" type="revolute">
+         <parent link="${prefix}finger_r_link1" />
+         <child link="${prefix}finger_r_link2" />
+         <origin xyz="0.0 0.0 0.02425" rpy="0.96 0 0" />
+         <axis xyz="1 0 0" />
+         <limit velocity="4.8" effort="1000" lower="-1.57" upper="0.6" />
+         <dynamics damping="0.05" />
+      </joint>
+      <link name="${prefix}finger_r_link2" />
+      <joint name="${prefix}finger_r_joint3" type="revolute">
+         <parent link="${prefix}finger_r_link2" />
+         <child link="${prefix}finger_r_link3" />
+         <origin xyz="0.0 0.0 0.065" rpy="0 0 0" />
+         <axis xyz="1 0 0" />
+         <limit velocity="4.8" effort="1000" lower="-1.57" upper="1.57" />
+         <dynamics damping="0.05" />
+      </joint>
+      <link name="${prefix}finger_r_link3" />
+      <joint name="${prefix}finger_r_joint4" type="revolute">
+         <parent link="${prefix}finger_r_link3" />
+         <child link="${prefix}finger_r_link4" />
+         <origin xyz="0.0 0.0 0.1" rpy="0 0 0" />
+         <axis xyz="1 0 0" />
+         <limit velocity="4.8" effort="1000" lower="-1.57" upper="1.57" />
+         <dynamics damping="0.05" />
+      </joint>
+      <link name="${prefix}finger_r_link4" />
+      <joint name="${prefix}finger_end_r_joint1" type="fixed">
+         <parent link="${prefix}finger_r_link4" />
+         <child link="${prefix}finger_end_r_link1" />
+         <origin xyz="0.0 -0.0335 0.0" rpy="0 0 0" />
+      </joint>
+      <link name="${prefix}finger_end_r_link1" />
+
+      <!-- Index -->
+      <joint name="${prefix}finger_r_joint5" type="revolute">
+         <parent link="${prefix}a3_right_base" />
+         <child link="${prefix}finger_r_link5" />
+         <origin xyz="-0.0065 0.034 0.062" rpy="0 0 0" />
+         <axis xyz="1 0 0" />
+         <limit velocity="4.8" effort="1000" lower="-0.6" upper="0.6" />
+         <dynamics damping="0.05" />
+      </joint>
+      <link name="${prefix}finger_r_link5" />
+      <joint name="${prefix}finger_r_joint6" type="revolute">
+         <parent link="${prefix}finger_r_link5" />
+         <child link="${prefix}finger_r_link6" />
+         <origin xyz="0.0 0.0 0.02425" rpy="0 0 0" />
+         <axis xyz="0 1 0" />
+         <limit velocity="4.8" effort="1000" lower="-1.57" upper="1.57" />
+         <dynamics damping="0.05" />
+      </joint>
+      <link name="${prefix}finger_r_link6" />
+      <joint name="${prefix}finger_r_joint7" type="revolute">
+         <parent link="${prefix}finger_r_link6" />
+         <child link="${prefix}finger_r_link7" />
+         <origin xyz="0.0 0.0 0.065" rpy="0 0 0" />
+         <axis xyz="0 1 0" />
+         <limit velocity="4.8" effort="1000" lower="-1.57" upper="1.57" />
+         <dynamics damping="0.05" />
+      </joint>
+      <link name="${prefix}finger_r_link7" />
+      <joint name="${prefix}finger_r_joint8" type="revolute">
+         <parent link="${prefix}finger_r_link7" />
+         <child link="${prefix}finger_r_link8" />
+         <origin xyz="0.0 0.0 0.1" rpy="0 0 0" />
+         <axis xyz="0 1 0" />
+         <limit velocity="4.8" effort="1000" lower="-1.57" upper="1.57" />
+         <dynamics damping="0.05" />
+      </joint>
+      <link name="${prefix}finger_r_link8" />
+      <joint name="${prefix}finger_end_r_joint2" type="fixed">
+         <parent link="${prefix}finger_r_link8" />
+         <child link="${prefix}finger_end_r_link2" />
+         <origin xyz="0.0335 0.0 0.0" rpy="0 0 0" />
+      </joint>
+      <link name="${prefix}finger_end_r_link2" />
+
+      <!-- Middle -->
+      <joint name="${prefix}finger_r_joint9" type="revolute">
+         <parent link="${prefix}a3_right_base" />
+         <child link="${prefix}finger_r_link9" />
+         <origin xyz="-0.0065 0.011 0.067" rpy="0 0 0" />
+         <axis xyz="1 0 0" />
+         <limit velocity="4.8" effort="1000" lower="-0.6" upper="0.6" />
+         <dynamics damping="0.05" />
+      </joint>
+      <link name="${prefix}finger_r_link9" />
+      <joint name="${prefix}finger_r_joint10" type="revolute">
+         <parent link="${prefix}finger_r_link9" />
+         <child link="${prefix}finger_r_link10" />
+         <origin xyz="0.0 0.0 0.02425" rpy="0 0 0" />
+         <axis xyz="0 1 0" />
+         <limit velocity="4.8" effort="1000" lower="-1.57" upper="1.57" />
+         <dynamics damping="0.05" />
+      </joint>
+      <link name="${prefix}finger_r_link10" />
+      <joint name="${prefix}finger_r_joint11" type="revolute">
+         <parent link="${prefix}finger_r_link10" />
+         <child link="${prefix}finger_r_link11" />
+         <origin xyz="0.0 0.0 0.065" rpy="0 0 0" />
+         <axis xyz="0 1 0" />
+         <limit velocity="4.8" effort="1000" lower="-1.57" upper="1.57" />
+         <dynamics damping="0.05" />
+      </joint>
+      <link name="${prefix}finger_r_link11" />
+      <joint name="${prefix}finger_r_joint12" type="revolute">
+         <parent link="${prefix}finger_r_link11" />
+         <child link="${prefix}finger_r_link12" />
+         <origin xyz="0.0 0.0 0.1" rpy="0 0 0" />
+         <axis xyz="0 1 0" />
+         <limit velocity="4.8" effort="1000" lower="-1.57" upper="1.57" />
+         <dynamics damping="0.05" />
+      </joint>
+      <link name="${prefix}finger_r_link12" />
+      <joint name="${prefix}finger_end_r_joint3" type="fixed">
+         <parent link="${prefix}finger_r_link12" />
+         <child link="${prefix}finger_end_r_link3" />
+         <origin xyz="0.0335 0.0 0.0" rpy="0 0 0" />
+      </joint>
+      <link name="${prefix}finger_end_r_link3" />
+
+      <!-- Ring -->
+      <joint name="${prefix}finger_r_joint13" type="revolute">
+         <parent link="${prefix}a3_right_base" />
+         <child link="${prefix}finger_r_link13" />
+         <origin xyz="-0.0065 -0.012 0.062" rpy="0 0 0" />
+         <axis xyz="1 0 0" />
+         <limit velocity="4.8" effort="1000" lower="-0.6" upper="0.6" />
+         <dynamics damping="0.05" />
+      </joint>
+      <link name="${prefix}finger_r_link13" />
+      <joint name="${prefix}finger_r_joint14" type="revolute">
+         <parent link="${prefix}finger_r_link13" />
+         <child link="${prefix}finger_r_link14" />
+         <origin xyz="0.0 0.0 0.02425" rpy="0 0 0" />
+         <axis xyz="0 1 0" />
+         <limit velocity="4.8" effort="1000" lower="-1.57" upper="1.57" />
+         <dynamics damping="0.05" />
+      </joint>
+      <link name="${prefix}finger_r_link14" />
+      <joint name="${prefix}finger_r_joint15" type="revolute">
+         <parent link="${prefix}finger_r_link14" />
+         <child link="${prefix}finger_r_link15" />
+         <origin xyz="0.0 0.0 0.065" rpy="0 0 0" />
+         <axis xyz="0 1 0" />
+         <limit velocity="4.8" effort="1000" lower="-1.57" upper="1.57" />
+         <dynamics damping="0.05" />
+      </joint>
+      <link name="${prefix}finger_r_link15" />
+      <joint name="${prefix}finger_r_joint16" type="revolute">
+         <parent link="${prefix}finger_r_link15" />
+         <child link="${prefix}finger_r_link16" />
+         <origin xyz="0.0 0.0 0.1" rpy="0 0 0" />
+         <axis xyz="0 1 0" />
+         <limit velocity="4.8" effort="1000" lower="-1.57" upper="1.57" />
+         <dynamics damping="0.05" />
+      </joint>
+      <link name="${prefix}finger_r_link16" />
+      <joint name="${prefix}finger_end_r_joint4" type="fixed">
+         <parent link="${prefix}finger_r_link16" />
+         <child link="${prefix}finger_end_r_link4" />
+         <origin xyz="0.0335 0.0 0.0" rpy="0 0 0" />
+      </joint>
+      <link name="${prefix}finger_end_r_link4" />
+
+      <!-- Pinky -->
+      <joint name="${prefix}finger_r_joint17" type="revolute">
+         <parent link="${prefix}a3_right_base" />
+         <child link="${prefix}finger_r_link17" />
+         <origin xyz="-0.0065 -0.034 0.057" rpy="0 0 0" />
+         <axis xyz="1 0 0" />
+         <limit velocity="4.8" effort="1000" lower="-0.6" upper="0.6" />
+         <dynamics damping="0.05" />
+      </joint>
+      <link name="${prefix}finger_r_link17" />
+      <joint name="${prefix}finger_r_joint18" type="revolute">
+         <parent link="${prefix}finger_r_link17" />
+         <child link="${prefix}finger_r_link18" />
+         <origin xyz="0.0 0.0 0.02425" rpy="0 0 0" />
+         <axis xyz="0 1 0" />
+         <limit velocity="4.8" effort="1000" lower="-1.57" upper="1.57" />
+         <dynamics damping="0.05" />
+      </joint>
+      <link name="${prefix}finger_r_link18" />
+      <joint name="${prefix}finger_r_joint19" type="revolute">
+         <parent link="${prefix}finger_r_link18" />
+         <child link="${prefix}finger_r_link19" />
+         <origin xyz="0.0 0.0 0.065" rpy="0 0 0" />
+         <axis xyz="0 1 0" />
+         <limit velocity="4.8" effort="1000" lower="-1.57" upper="1.57" />
+         <dynamics damping="0.05" />
+      </joint>
+      <link name="${prefix}finger_r_link19" />
+      <joint name="${prefix}finger_r_joint20" type="revolute">
+         <parent link="${prefix}finger_r_link19" />
+         <child link="${prefix}finger_r_link20" />
+         <origin xyz="0.0 0.0 0.09" rpy="0 0 0" />
+         <axis xyz="0 1 0" />
+         <limit velocity="4.8" effort="1000" lower="-1.57" upper="1.57" />
+         <dynamics damping="0.05" />
+      </joint>
+      <link name="${prefix}finger_r_link20" />
+      <joint name="${prefix}finger_end_r_joint5" type="fixed">
+         <parent link="${prefix}finger_r_link20" />
+         <child link="${prefix}finger_end_r_link5" />
+         <origin xyz="0.0335 0.0 0.0" rpy="0 0 0" />
+      </joint>
+      <link name="${prefix}finger_end_r_link5" />
+
+   </xacro:macro>
+</robot>
