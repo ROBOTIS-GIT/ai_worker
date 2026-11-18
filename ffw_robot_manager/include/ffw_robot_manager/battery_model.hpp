@@ -17,6 +17,7 @@
 #ifndef FFW_ROBOT_MANAGER__BATTERY_MODEL_HPP_
 #define FFW_ROBOT_MANAGER__BATTERY_MODEL_HPP_
 
+#include <cstdint>
 #include <string>
 #include <memory>
 #include <utility>

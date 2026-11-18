@@ -17,6 +17,7 @@
 #ifndef FFW_ROBOT_MANAGER__UBETTER_BATTERY_MODEL_HPP_
 #define FFW_ROBOT_MANAGER__UBETTER_BATTERY_MODEL_HPP_
 
+#include <cstdint>
 #include <string>
 #include <utility>
 #include "ffw_robot_manager/battery_model.hpp"
