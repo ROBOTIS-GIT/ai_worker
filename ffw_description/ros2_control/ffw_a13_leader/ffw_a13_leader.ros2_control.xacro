@@ -1,0 +1,265 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="a13_encoder" params="joint id">
+    <joint name="${joint}">
+      <state_interface name="position"/>
+    </joint>
+    <gpio name="dxl${id}">
+      <param name="type">dxl</param>
+      <param name="ID">${id}</param>
+      <state_interface name="Present Position"/>
+      <param name="[unit info]">Present Position,0.00038349519697141030,rad,signed,0.0</param>
+      <param name="Return Delay Time">0</param>
+      <param name="Torque Enable">0</param>
+    </gpio>
+  </xacro:macro>
+
+  <xacro:macro name="ffw_a13_leader_system" params="prefix port_name baud_rate:=2000000 use_sim:=^|false use_mock_hardware:=^|false mock_sensor_commands:=^|false">
+
+    <ros2_control name="ffw_a13_leader" type="system" is_async="true">
+
+      <xacro:if value="${use_sim}">
+        <hardware>
+          <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+        </hardware>
+      </xacro:if>
+      <xacro:unless value="${use_sim}">
+        <hardware>
+          <xacro:if value="${use_mock_hardware}">
+            <plugin>mock_components/GenericSystem</plugin>
+            <param name="mock_sensor_commands">${mock_sensor_commands}</param>
+            <param name="state_following_offset">0.0</param>
+          </xacro:if>
+          <xacro:unless value="${use_mock_hardware}">
+            <plugin>dynamixel_hardware_interface/DynamixelHardware</plugin>
+            <param name="port_name">${port_name}</param>
+            <param name="baud_rate">${baud_rate}</param>
+            <param name="dynamixel_model_folder">/param/dxl_model</param>
+            <param name="number_of_joints">54</param>
+            <param name="number_of_transmissions">54</param>
+            <param name="disable_torque_at_init">true</param>
+            <param name="dynamixel_state_pub_msg_name">dynamixel_hardware_interface/dxl_state</param>
+            <param name="get_dynamixel_data_srv_name">dynamixel_hardware_interface/get_dxl_data</param>
+            <param name="set_dynamixel_data_srv_name">dynamixel_hardware_interface/set_dxl_data</param>
+            <param name="reboot_dxl_srv_name">dynamixel_hardware_interface/reboot_dxl</param>
+            <param name="set_dxl_torque_srv_name">dynamixel_hardware_interface/set_dxl_torque</param>
+          </xacro:unless>
+        </hardware>
+      </xacro:unless>
+
+      <!-- Joint and GPIO order must agree: the driver defaults to identity mapping. -->
+      <joint name="${prefix}arm_l_joint1">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}arm_l_joint2">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}arm_l_joint3">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}arm_l_joint4">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}arm_l_joint5">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}arm_l_joint6">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}arm_l_joint7">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}arm_r_joint1">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}arm_r_joint2">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}arm_r_joint3">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}arm_r_joint4">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}arm_r_joint5">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}arm_r_joint6">
+        <state_interface name="position"/>
+      </joint>
+      <joint name="${prefix}arm_r_joint7">
+        <state_interface name="position"/>
+      </joint>
+      <gpio name="dxl31">
+        <param name="type">dxl</param>
+        <param name="ID">31</param>
+        <state_interface name="Present Position"/>
+        <param name="Drive Mode">0</param>
+        <param name="Homing Offset">0</param>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl32">
+        <param name="type">dxl</param>
+        <param name="ID">32</param>
+        <state_interface name="Present Position"/>
+        <param name="Drive Mode">1</param>
+        <param name="Homing Offset">1366</param>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl33">
+        <param name="type">dxl</param>
+        <param name="ID">33</param>
+        <state_interface name="Present Position"/>
+        <param name="Drive Mode">1</param>
+        <param name="Homing Offset">0</param>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl34">
+        <param name="type">dxl</param>
+        <param name="ID">34</param>
+        <state_interface name="Present Position"/>
+        <param name="Return Delay Time">0</param>
+        <param name="Drive Mode">1</param>
+        <param name="Homing Offset">-4096</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl35">
+        <param name="type">dxl</param>
+        <param name="ID">35</param>
+        <state_interface name="Present Position"/>
+        <param name="Return Delay Time">0</param>
+        <param name="Drive Mode">1</param>
+        <param name="Homing Offset">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl36">
+        <param name="type">dxl</param>
+        <param name="ID">36</param>
+        <state_interface name="Present Position"/>
+        <param name="Return Delay Time">0</param>
+        <param name="Drive Mode">1</param>
+        <param name="Homing Offset">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl37">
+        <param name="type">dxl</param>
+        <param name="ID">37</param>
+        <state_interface name="Present Position"/>
+        <param name="Drive Mode">1</param>
+        <param name="Homing Offset">0</param>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl1">
+        <param name="type">dxl</param>
+        <param name="ID">1</param>
+        <state_interface name="Present Position"/>
+        <param name="Drive Mode">0</param>
+        <param name="Homing Offset">0</param>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl2">
+        <param name="type">dxl</param>
+        <param name="ID">2</param>
+        <state_interface name="Present Position"/>
+        <param name="Drive Mode">0</param>
+        <param name="Homing Offset">1366</param>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl3">
+        <param name="type">dxl</param>
+        <param name="ID">3</param>
+        <state_interface name="Present Position"/>
+        <param name="Drive Mode">1</param>
+        <param name="Homing Offset">0</param>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl4">
+        <param name="type">dxl</param>
+        <param name="ID">4</param>
+        <state_interface name="Present Position"/>
+        <param name="Drive Mode">0</param>
+        <param name="Homing Offset">-4096</param>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl5">
+        <param name="type">dxl</param>
+        <param name="ID">5</param>
+        <state_interface name="Present Position"/>
+        <param name="Drive Mode">1</param>
+        <param name="Homing Offset">0</param>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl6">
+        <param name="type">dxl</param>
+        <param name="ID">6</param>
+        <state_interface name="Present Position"/>
+        <param name="Drive Mode">0</param>
+        <param name="Homing Offset">0</param>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+      <gpio name="dxl7">
+        <param name="type">dxl</param>
+        <param name="ID">7</param>
+        <state_interface name="Present Position"/>
+        <param name="Drive Mode">1</param>
+        <param name="Homing Offset">0</param>
+        <param name="Return Delay Time">0</param>
+        <param name="Torque Enable">0</param>
+      </gpio>
+
+      <!-- A3 calibration uses zero-offset radians, independent of the driver model default. -->
+      <xacro:a13_encoder joint="${prefix}finger_l_joint1" id="141" />
+      <xacro:a13_encoder joint="${prefix}finger_l_joint2" id="142" />
+      <xacro:a13_encoder joint="${prefix}finger_l_joint3" id="143" />
+      <xacro:a13_encoder joint="${prefix}finger_l_joint4" id="144" />
+      <xacro:a13_encoder joint="${prefix}finger_l_joint5" id="146" />
+      <xacro:a13_encoder joint="${prefix}finger_l_joint6" id="147" />
+      <xacro:a13_encoder joint="${prefix}finger_l_joint7" id="148" />
+      <xacro:a13_encoder joint="${prefix}finger_l_joint8" id="149" />
+      <xacro:a13_encoder joint="${prefix}finger_l_joint9" id="151" />
+      <xacro:a13_encoder joint="${prefix}finger_l_joint10" id="152" />
+      <xacro:a13_encoder joint="${prefix}finger_l_joint11" id="153" />
+      <xacro:a13_encoder joint="${prefix}finger_l_joint12" id="154" />
+      <xacro:a13_encoder joint="${prefix}finger_l_joint13" id="156" />
+      <xacro:a13_encoder joint="${prefix}finger_l_joint14" id="157" />
+      <xacro:a13_encoder joint="${prefix}finger_l_joint15" id="158" />
+      <xacro:a13_encoder joint="${prefix}finger_l_joint16" id="159" />
+      <xacro:a13_encoder joint="${prefix}finger_l_joint17" id="161" />
+      <xacro:a13_encoder joint="${prefix}finger_l_joint18" id="162" />
+      <xacro:a13_encoder joint="${prefix}finger_l_joint19" id="163" />
+      <xacro:a13_encoder joint="${prefix}finger_l_joint20" id="164" />
+      <xacro:a13_encoder joint="${prefix}finger_r_joint1" id="111" />
+      <xacro:a13_encoder joint="${prefix}finger_r_joint2" id="112" />
+      <xacro:a13_encoder joint="${prefix}finger_r_joint3" id="113" />
+      <xacro:a13_encoder joint="${prefix}finger_r_joint4" id="114" />
+      <xacro:a13_encoder joint="${prefix}finger_r_joint5" id="116" />
+      <xacro:a13_encoder joint="${prefix}finger_r_joint6" id="117" />
+      <xacro:a13_encoder joint="${prefix}finger_r_joint7" id="118" />
+      <xacro:a13_encoder joint="${prefix}finger_r_joint8" id="119" />
+      <xacro:a13_encoder joint="${prefix}finger_r_joint9" id="121" />
+      <xacro:a13_encoder joint="${prefix}finger_r_joint10" id="122" />
+      <xacro:a13_encoder joint="${prefix}finger_r_joint11" id="123" />
+      <xacro:a13_encoder joint="${prefix}finger_r_joint12" id="124" />
+      <xacro:a13_encoder joint="${prefix}finger_r_joint13" id="126" />
+      <xacro:a13_encoder joint="${prefix}finger_r_joint14" id="127" />
+      <xacro:a13_encoder joint="${prefix}finger_r_joint15" id="128" />
+      <xacro:a13_encoder joint="${prefix}finger_r_joint16" id="129" />
+      <xacro:a13_encoder joint="${prefix}finger_r_joint17" id="131" />
+      <xacro:a13_encoder joint="${prefix}finger_r_joint18" id="132" />
+      <xacro:a13_encoder joint="${prefix}finger_r_joint19" id="133" />
+      <xacro:a13_encoder joint="${prefix}finger_r_joint20" id="134" />
+    </ros2_control>
+  </xacro:macro>
+</robot>

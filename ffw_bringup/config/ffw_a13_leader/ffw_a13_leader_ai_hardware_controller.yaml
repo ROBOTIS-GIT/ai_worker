@@ -1,0 +1,101 @@
+# Aggregate states for TF; separate arm and hand streams for downstream consumers.
+/**:
+  controller_manager:
+    ros__parameters:
+      # 60 Hz sustained all 54-device reads at 2 Mbps in the hardware frequency sweep.
+      update_rate: 60
+      use_sim_time: false
+      joint_state_broadcaster:
+        type: joint_state_broadcaster/JointStateBroadcaster
+      arm_l_state_broadcaster:
+        type: joint_state_broadcaster/JointStateBroadcaster
+      arm_r_state_broadcaster:
+        type: joint_state_broadcaster/JointStateBroadcaster
+      hand_l_state_broadcaster:
+        type: joint_state_broadcaster/JointStateBroadcaster
+      hand_r_state_broadcaster:
+        type: joint_state_broadcaster/JointStateBroadcaster
+  joint_state_broadcaster:
+    ros__parameters:
+      # A1 base height is manually set, with no bus encoder; publish its zero pose for TF.
+      extra_joints: [joint]
+      interfaces:
+      - position
+  arm_l_state_broadcaster:
+    ros__parameters:
+      use_local_topics: true
+      joints:
+      - arm_l_joint1
+      - arm_l_joint2
+      - arm_l_joint3
+      - arm_l_joint4
+      - arm_l_joint5
+      - arm_l_joint6
+      - arm_l_joint7
+      interfaces:
+      - position
+  arm_r_state_broadcaster:
+    ros__parameters:
+      use_local_topics: true
+      joints:
+      - arm_r_joint1
+      - arm_r_joint2
+      - arm_r_joint3
+      - arm_r_joint4
+      - arm_r_joint5
+      - arm_r_joint6
+      - arm_r_joint7
+      interfaces:
+      - position
+  hand_l_state_broadcaster:
+    ros__parameters:
+      use_local_topics: true
+      joints:
+      - finger_l_joint1
+      - finger_l_joint2
+      - finger_l_joint3
+      - finger_l_joint4
+      - finger_l_joint5
+      - finger_l_joint6
+      - finger_l_joint7
+      - finger_l_joint8
+      - finger_l_joint9
+      - finger_l_joint10
+      - finger_l_joint11
+      - finger_l_joint12
+      - finger_l_joint13
+      - finger_l_joint14
+      - finger_l_joint15
+      - finger_l_joint16
+      - finger_l_joint17
+      - finger_l_joint18
+      - finger_l_joint19
+      - finger_l_joint20
+      interfaces:
+      - position
+  hand_r_state_broadcaster:
+    ros__parameters:
+      use_local_topics: true
+      joints:
+      - finger_r_joint1
+      - finger_r_joint2
+      - finger_r_joint3
+      - finger_r_joint4
+      - finger_r_joint5
+      - finger_r_joint6
+      - finger_r_joint7
+      - finger_r_joint8
+      - finger_r_joint9
+      - finger_r_joint10
+      - finger_r_joint11
+      - finger_r_joint12
+      - finger_r_joint13
+      - finger_r_joint14
+      - finger_r_joint15
+      - finger_r_joint16
+      - finger_r_joint17
+      - finger_r_joint18
+      - finger_r_joint19
+      - finger_r_joint20
+      interfaces:
+      - position

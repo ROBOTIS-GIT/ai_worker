@@ -1,0 +1,186 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ffw_a13_leader">
+  <xacro:arg name="use_sim" default="false" />
+  <xacro:arg name="use_mock_hardware" default="false" />
+  <xacro:arg name="mock_sensor_commands" default="false" />
+  <xacro:arg name="baud_rate" default="2000000" />
+  <xacro:arg name="port_name" default="/dev/ttyACM0" />
+  <xacro:arg name="prefix" default="" />
+
+  <xacro:include filename="$(find ffw_description)/ros2_control/ffw_a13_leader/ffw_a13_leader.ros2_control.xacro" />
+
+  <xacro:include filename="$(find ffw_description)/urdf/ffw_a3_leader/ffw_a3_leader_left.urdf.xacro" />
+  <xacro:include filename="$(find ffw_description)/urdf/ffw_a3_leader/ffw_a3_leader_right.urdf.xacro" />
+
+  <link name="$(arg prefix)world"/>
+
+  <joint name="$(arg prefix)joint" type="prismatic">
+    <parent link="$(arg prefix)world"/>
+    <child link="$(arg prefix)arm_base_link" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <axis xyz="0 0 1" />
+    <limit velocity="4.8" effort="1000" lower="0.0" upper="0.25" />
+    <dynamics damping="0.1" />
+  </joint>
+
+  <link name="$(arg prefix)arm_base_link"/>
+
+  <joint name="$(arg prefix)arm_l_joint1" type="revolute">
+    <parent link="$(arg prefix)arm_base_link" />
+    <child link="$(arg prefix)arm_l_link1" />
+    <origin xyz="0 0.1912 0" rpy="0 0 0" />
+    <axis xyz="1 0 0" />
+    <limit velocity="4.8" effort="1000" lower="-6.28" upper="6.28" />
+    <dynamics damping="0.1" />
+  </joint>
+  <link name="$(arg prefix)arm_l_link1"/>
+  <joint name="$(arg prefix)arm_l_joint2" type="revolute">
+    <parent link="$(arg prefix)arm_l_link1" />
+    <child link="$(arg prefix)arm_l_link2" />
+    <origin xyz="0.120795 0.0795 -0.000151884" rpy="0 0 0" />
+    <axis xyz="0 1 0" />
+    <limit velocity="4.8" effort="1000" lower="-6.28" upper="6.28" />
+    <dynamics damping="0.1" />
+  </joint>
+  <link name="$(arg prefix)arm_l_link2"/>
+  <joint name="$(arg prefix)arm_l_joint3" type="revolute">
+    <parent link="$(arg prefix)arm_l_link2" />
+    <child link="$(arg prefix)arm_l_link3" />
+    <origin xyz="-0.00005 0 -0.2295" rpy="0 0 0" />
+    <axis xyz="0 0 1" />
+    <limit velocity="4.8" effort="1000" lower="-6.28" upper="6.28" />
+    <dynamics damping="0.1" />
+  </joint>
+  <link name="$(arg prefix)arm_l_link3"/>
+  <joint name="$(arg prefix)arm_l_joint4" type="revolute">
+    <parent link="$(arg prefix)arm_l_link3" />
+    <child link="$(arg prefix)arm_l_link4" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <axis xyz="0 1 0" />
+    <limit velocity="4.8" effort="1000" lower="-6.28" upper="6.28" />
+    <dynamics damping="0.1" />
+  </joint>
+  <link name="$(arg prefix)arm_l_link4"/>
+  <joint name="$(arg prefix)arm_l_joint5" type="revolute">
+    <parent link="$(arg prefix)arm_l_link4" />
+    <child link="$(arg prefix)arm_l_link5" />
+    <origin xyz="-0.036 0 -0.21345" rpy="0 0 0" />
+    <axis xyz="0 0 1" />
+    <limit velocity="4.8" effort="1000" lower="-6.28" upper="6.28" />
+    <dynamics damping="0.1" />
+  </joint>
+  <link name="$(arg prefix)arm_l_link5"/>
+  <joint name="$(arg prefix)arm_l_joint6" type="revolute">
+    <parent link="$(arg prefix)arm_l_link5" />
+    <child link="$(arg prefix)arm_l_link6" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <axis xyz="0 1 0" />
+    <limit velocity="4.8" effort="1000" lower="-6.28" upper="6.28" />
+    <dynamics damping="0.1" />
+  </joint>
+  <link name="$(arg prefix)arm_l_link6"/>
+  <joint name="$(arg prefix)arm_l_joint7" type="revolute">
+    <parent link="$(arg prefix)arm_l_link6" />
+    <child link="$(arg prefix)arm_l_link7" />
+    <!-- Joint 7 is 42 mm below joint 6, with aligned zero-pose frames.
+         Rotate about X so the downward hand swings sideways in the YZ plane. -->
+    <origin xyz="0 0 -0.042" rpy="0 0 0" />
+    <axis xyz="1 0 0" />
+    <limit velocity="4.8" effort="1000" lower="-6.28" upper="6.28" />
+    <dynamics damping="0.1" />
+  </joint>
+  <link name="$(arg prefix)arm_l_link7"/>
+
+  <joint name="$(arg prefix)arm_r_joint1" type="revolute">
+    <parent link="$(arg prefix)arm_base_link" />
+    <child link="$(arg prefix)arm_r_link1" />
+    <origin xyz="0 -0.1912 0" rpy="0 0 0" />
+    <axis xyz="1 0 0" />
+    <limit velocity="4.8" effort="1000" lower="-6.28" upper="6.28" />
+    <dynamics damping="0.1" />
+  </joint>
+  <link name="$(arg prefix)arm_r_link1"/>
+  <joint name="$(arg prefix)arm_r_joint2" type="revolute">
+    <parent link="$(arg prefix)arm_r_link1" />
+    <child link="$(arg prefix)arm_r_link2" />
+    <origin xyz="0.120795198 -0.0795 -0.000251884" rpy="0 0 0" />
+    <axis xyz="0 1 0" />
+    <limit velocity="4.8" effort="1000" lower="-6.28" upper="6.28" />
+    <dynamics damping="0.1" />
+  </joint>
+  <link name="$(arg prefix)arm_r_link2"/>
+  <joint name="$(arg prefix)arm_r_joint3" type="revolute">
+    <parent link="$(arg prefix)arm_r_link2" />
+    <child link="$(arg prefix)arm_r_link3" />
+    <origin xyz="-0.00005 0 -0.2295" rpy="0 0 0" />
+    <axis xyz="0 0 1" />
+    <limit velocity="4.8" effort="1000" lower="-6.28" upper="6.28" />
+    <dynamics damping="0.1" />
+  </joint>
+  <link name="$(arg prefix)arm_r_link3"/>
+  <joint name="$(arg prefix)arm_r_joint4" type="revolute">
+    <parent link="$(arg prefix)arm_r_link3" />
+    <child link="$(arg prefix)arm_r_link4" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <axis xyz="0 1 0" />
+    <limit velocity="4.8" effort="1000" lower="-6.28" upper="6.28" />
+    <dynamics damping="0.1" />
+  </joint>
+  <link name="$(arg prefix)arm_r_link4"/>
+  <joint name="$(arg prefix)arm_r_joint5" type="revolute">
+    <parent link="$(arg prefix)arm_r_link4" />
+    <child link="$(arg prefix)arm_r_link5" />
+    <origin xyz="-0.036 0 -0.21355" rpy="0 0 0" />
+    <axis xyz="0 0 1" />
+    <limit velocity="4.8" effort="1000" lower="-6.28" upper="6.28" />
+    <dynamics damping="0.1" />
+  </joint>
+  <link name="$(arg prefix)arm_r_link5"/>
+  <joint name="$(arg prefix)arm_r_joint6" type="revolute">
+    <parent link="$(arg prefix)arm_r_link5" />
+    <child link="$(arg prefix)arm_r_link6" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <axis xyz="0 1 0" />
+    <limit velocity="4.8" effort="1000" lower="-6.28" upper="6.28" />
+    <dynamics damping="0.1" />
+  </joint>
+  <link name="$(arg prefix)arm_r_link6"/>
+  <joint name="$(arg prefix)arm_r_joint7" type="revolute">
+    <parent link="$(arg prefix)arm_r_link6" />
+    <child link="$(arg prefix)arm_r_link7" />
+    <!-- Joint 7 is 42 mm below joint 6, with aligned zero-pose frames.
+         Rotate about X so the downward hand swings sideways in the YZ plane. -->
+    <origin xyz="0 0 -0.042" rpy="0 0 0" />
+    <axis xyz="1 0 0" />
+    <limit velocity="4.8" effort="1000" lower="-6.28" upper="6.28" />
+    <dynamics damping="0.1" />
+  </joint>
+  <link name="$(arg prefix)arm_r_link7"/>
+
+  <!-- Mount position is in the seventh arm-link frame (metres).
+       Whole offset rotated about Y: previous +X becomes -Z.
+       RPY (pi, 0, -pi/2): fingers hang down (-Z), palm faces inward (-Y). -->
+  <joint name="$(arg prefix)a3_left_mount_joint" type="fixed">
+    <parent link="$(arg prefix)arm_l_link7" />
+    <child link="$(arg prefix)a3_left_base" />
+    <origin xyz="-0.0148853 -0.00957761 -0.025" rpy="${pi} 0 ${-pi/2}" />
+  </joint>
+  <xacro:a3_left prefix="$(arg prefix)" />
+
+  <!-- Mount position is in the seventh arm-link frame (metres).
+       Whole offset rotated about Y: previous +X becomes -Z.
+       RPY (pi, 0, pi/2): fingers hang down (-Z), palm faces inward (+Y). -->
+  <joint name="$(arg prefix)a3_right_mount_joint" type="fixed">
+    <parent link="$(arg prefix)arm_r_link7" />
+    <child link="$(arg prefix)a3_right_base" />
+    <origin xyz="-0.0148853 0.00957761 -0.025" rpy="${pi} 0 ${pi/2}" />
+  </joint>
+  <xacro:a3_right prefix="$(arg prefix)" />
+
+  <xacro:ffw_a13_leader_system
+      prefix="$(arg prefix)" port_name="$(arg port_name)" baud_rate="$(arg baud_rate)"
+      use_sim="$(arg use_sim)"
+      use_mock_hardware="$(arg use_mock_hardware)"
+      mock_sensor_commands="$(arg mock_sensor_commands)" />
+
+</robot>
