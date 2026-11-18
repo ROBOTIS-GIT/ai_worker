@@ -14,12 +14,11 @@
 
   <link name="$(arg prefix)world"/>
 
-  <joint name="$(arg prefix)joint" type="prismatic">
+  <joint name="$(arg prefix)joint" type="fixed">
     <parent link="$(arg prefix)world"/>
     <child link="$(arg prefix)arm_base_link" />
     <origin xyz="0 0 0" rpy="0 0 0" />
     <axis xyz="0 0 1" />
-    <limit velocity="4.8" effort="1000" lower="0.0" upper="0.25" />
     <dynamics damping="0.1" />
   </joint>
 

@@ -3,12 +3,11 @@
 
    <xacro:macro name="ffw_leader_body" params="prefix parent *origin">
 
-      <joint name="${prefix}joint" type="prismatic">
+      <joint name="${prefix}joint" type="fixed">
          <parent link="${parent}"/>
          <child link="${prefix}arm_base_link" />
          <xacro:insert_block name="origin" />
          <axis xyz="0 0 1" />
-         <limit velocity="4.8" effort="1000" lower="0.0" upper="0.25" />
          <dynamics damping="0.1" />
       </joint>
 
