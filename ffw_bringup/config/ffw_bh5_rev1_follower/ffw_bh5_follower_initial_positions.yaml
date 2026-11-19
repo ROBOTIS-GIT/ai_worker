@@ -97,7 +97,8 @@
             0.0, 0.0, 0.0, 0.0,
             0.0, 0.0, 0.0, 0.0]
       duration: 5.0
-      epsilon: 0.2
+      position_tolerance: 0.5
+      velocity_tolerance: 0.3
       action_topic: '/hand_r_controller/follow_joint_trajectory'
       joint_states_topic: '/joint_states'
 
@@ -132,6 +133,7 @@
           0.0, 0.0, 0.0, 0.0,
           0.0, 0.0, 0.0, 0.0]
       duration: 5.0
-      epsilon: 0.2
+      position_tolerance: 0.5
+      velocity_tolerance: 0.3
       action_topic: '/hand_l_controller/follow_joint_trajectory'
       joint_states_topic: '/joint_states'
