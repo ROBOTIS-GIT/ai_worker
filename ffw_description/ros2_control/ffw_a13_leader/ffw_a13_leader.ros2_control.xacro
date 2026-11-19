@@ -16,7 +16,7 @@
     </gpio>
   </xacro:macro>
 
-  <xacro:macro name="ffw_a13_leader_system" params="prefix port_name baud_rate:=2000000 use_sim:=^|false use_mock_hardware:=^|false mock_sensor_commands:=^|false">
+  <xacro:macro name="ffw_a13_leader_system" params="prefix use_sim:=^|false use_mock_hardware:=^|false mock_sensor_commands:=^|false">
 
     <ros2_control name="ffw_a13_leader" type="system" is_async="true">
 
@@ -34,8 +34,8 @@
           </xacro:if>
           <xacro:unless value="${use_mock_hardware}">
             <plugin>dynamixel_hardware_interface/DynamixelHardware</plugin>
-            <param name="port_name">${port_name}</param>
-            <param name="baud_rate">${baud_rate}</param>
+            <param name="port_name">/dev/serial/by-role/leader_a1</param>
+            <param name="baud_rate">2000000</param>
             <param name="dynamixel_model_folder">/param/dxl_model</param>
             <param name="number_of_joints">54</param>
             <param name="number_of_transmissions">54</param>

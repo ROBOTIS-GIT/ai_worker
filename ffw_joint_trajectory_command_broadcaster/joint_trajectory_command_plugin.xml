@@ -34,4 +34,11 @@
       </description>
     </class>
   </library>
+  <library path="a13_joint_trajectory_command_broadcaster">
+    <class name="a13_joint_trajectory_command_broadcaster/A13JointTrajectoryCommandBroadcaster" type="a13_joint_trajectory_command_broadcaster::A13JointTrajectoryCommandBroadcaster" base_class_type="controller_interface::ControllerInterface">
+      <description>
+        A13 arm-only leader broadcaster with A1 joint mapping and independent hand states.
+      </description>
+    </class>
+  </library>
 </class_libraries>

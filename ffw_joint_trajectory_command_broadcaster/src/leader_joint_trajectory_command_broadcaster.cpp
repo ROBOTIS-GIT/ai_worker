@@ -869,6 +869,9 @@ void LeaderJointTrajectoryCommandBroadcaster::process_default_trigger()
 bool LeaderJointTrajectoryCommandBroadcaster::check_arm_trigger_active(const uint8_t arm) const
 {
   const char * joint_name = arm == kLeftArm ? "gripper_l_joint1" : "gripper_r_joint1";
+  if (name_if_value_mapping_.find(joint_name) == name_if_value_mapping_.end()) {
+    return false;
+  }
   const double position = get_value(name_if_value_mapping_, joint_name, HW_IF_POSITION);
   return !std::isnan(position) &&
          position * params_.trigger_sign >=

@@ -128,6 +128,15 @@ target_link_libraries(lg2_joint_trajectory_command_broadcaster PUBLIC
 target_compile_definitions(lg2_joint_trajectory_command_broadcaster PRIVATE
   "LG2_JOINT_TRAJECTORY_COMMAND_BROADCASTER_BUILDING_DLL"
 )
+add_library(a13_joint_trajectory_command_broadcaster SHARED
+  src/a13_joint_trajectory_command_broadcaster.cpp
+)
+target_link_libraries(a13_joint_trajectory_command_broadcaster PUBLIC
+  a1_joint_trajectory_command_broadcaster
+)
+target_compile_definitions(a13_joint_trajectory_command_broadcaster PRIVATE
+  "A13_JOINT_TRAJECTORY_COMMAND_BROADCASTER_BUILDING_DLL"
+)
 pluginlib_export_plugin_description_file(controller_interface joint_trajectory_command_plugin.xml)
 
 ################################################################################
@@ -144,6 +153,7 @@ install(
     leader_joint_trajectory_command_broadcaster
     a2_joint_trajectory_command_broadcaster
     a1_joint_trajectory_command_broadcaster
+    a13_joint_trajectory_command_broadcaster
     lg2_joint_trajectory_command_broadcaster
     joint_trajectory_command_broadcaster_parameters
     leader_joint_trajectory_command_broadcaster_parameters

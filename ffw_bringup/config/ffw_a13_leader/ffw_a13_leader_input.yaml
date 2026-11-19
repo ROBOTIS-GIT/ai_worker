@@ -1,0 +1,14 @@
+# A13 FK ends at joint7; the hand skeleton is handled by a separate application.
+/**/joint_trajectory_command_broadcaster:
+  ros__parameters:
+    leader_pose_reference_enabled: true
+    cartesian_scaling:
+      left_translation_gain: 1.0
+      right_translation_gain: 1.0
+    leader_urdf_path: "$(find-pkg-share cyclo_motion_controller_models)/models/ai_worker/leader/ffw_a13_leader.urdf"
+    leader_joint_states_topic: joint_states
+    leader_use_follower_reference_model: false
+    leader_base_frame: arm_base_link
+    leader_left_eef: arm_l_link7
+    leader_right_eef: arm_r_link7
+    follower_control_node: /cyclo_teleoperation

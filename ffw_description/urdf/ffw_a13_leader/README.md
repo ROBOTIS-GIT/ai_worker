@@ -14,7 +14,7 @@ The original A1 and standalone A3 models are unchanged.
   At zero joint angles, all four non-thumb finger shafts hang downward (-Z),
   with palms facing each other (left toward -Y, right toward +Y).
 - No triggers, joystick sensors, or vibration motors are included.
-- One hardware system reads 54 positions at 2 Mbaud on `/dev/ttyACM0`.
+- One hardware system reads 54 positions at 2 Mbaud on `/dev/serial/by-role/leader_a1`.
   The default update rate is 60 Hz. All joints are torque-disabled.
 - Arm IDs are 31–37 (left) and 1–7 (right), retaining A1 drive modes and homing offsets.
 - Finger IDs are 141–164 (left) and 111–134 (right), skipping every fifth vibration-motor ID.
@@ -29,11 +29,12 @@ ros2 launch ffw_description ffw_a13.launch.py
 # Complete bringup with mock hardware
 ros2 launch ffw_bringup ffw_a13_leader_ai.launch.py use_mock_hardware:=true start_rviz:=true
 
-# Hardware bringup; select the actual shared USB device
-ros2 launch ffw_bringup ffw_a13_leader_ai.launch.py port_name:=/dev/ttyACM0 start_rviz:=true
+# Hardware bringup; uses the same serial role as A1
+ros2 launch ffw_bringup ffw_a13_leader_ai.launch.py start_rviz:=true
 ```
 
-The launch accepts `port_name`, `baud_rate`, and `update_rate` overrides.
+The A13 port and baud rate are fixed in its ros2_control Xacro.
+The launch accepts an `update_rate` override; pedal connection settings remain independent.
 
 The hardware launch uses the `leader` namespace by default (`namespace:=...` overrides it).
 The following topics carry `sensor_msgs/msg/JointState`, in radians:

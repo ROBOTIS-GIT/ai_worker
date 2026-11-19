@@ -7,6 +7,8 @@
       use_sim_time: false
       joint_state_broadcaster:
         type: joint_state_broadcaster/JointStateBroadcaster
+      joint_trajectory_command_broadcaster:
+        type: a13_joint_trajectory_command_broadcaster/A13JointTrajectoryCommandBroadcaster
       arm_l_state_broadcaster:
         type: joint_state_broadcaster/JointStateBroadcaster
       arm_r_state_broadcaster:
@@ -15,6 +17,41 @@
         type: joint_state_broadcaster/JointStateBroadcaster
       hand_r_state_broadcaster:
         type: joint_state_broadcaster/JointStateBroadcaster
+  joint_trajectory_command_broadcaster:
+    ros__parameters:
+      enable_teleoperation: true
+      style: default
+      output_topic_suffix: raw_joint_trajectory
+      follower_joint_states_topic: /joint_states
+      command_source_state_topic: /source
+      joystick_command_topic: /control/teleoperation
+      control_command_topic: /control/command
+      control_status_topic: /control/status
+      set_mode_service: /set_control_mode
+      set_teleoperation_service: /set_enabled
+      set_preset_service: /set_preset
+      joint6_scaling:
+        gain: 1.0
+      joint7_scaling:
+        gain: 1.0
+      left_joints:
+      - arm_l_joint1
+      - arm_l_joint2
+      - arm_l_joint3
+      - arm_l_joint4
+      - arm_l_joint5
+      - arm_l_joint6
+      - arm_l_joint7
+      right_joints:
+      - arm_r_joint1
+      - arm_r_joint2
+      - arm_r_joint3
+      - arm_r_joint4
+      - arm_r_joint5
+      - arm_r_joint6
+      - arm_r_joint7
+      left_offsets: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      right_offsets: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
   joint_state_broadcaster:
     ros__parameters:
       # A1 base height is manually set, with no bus encoder; publish its zero pose for TF.
