@@ -59,6 +59,8 @@ def generate_launch_description():
             FindPackageShare('ffw_description'), 'urdf', 'ffw_a3_leader',
             LaunchConfiguration('description_file'),
         ]),
+        # Match robotis_hand_private joint names across URDF, hardware and TF.
+        ' prefix:=a3_',
         ' port_name:=', LaunchConfiguration('port_name'),
         ' use_mock_hardware:=', LaunchConfiguration('use_mock_hardware'),
         ' mock_sensor_commands:=', LaunchConfiguration('mock_sensor_commands'),

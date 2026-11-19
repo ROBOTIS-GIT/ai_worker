@@ -3,6 +3,7 @@
   <xacro:arg name="use_sim" default="false" />
   <xacro:arg name="use_mock_hardware" default="false" />
   <xacro:arg name="mock_sensor_commands" default="false" />
+  <xacro:arg name="port_name" default="/dev/serial/by-role/leader_a1" />
   <xacro:arg name="prefix" default="" />
 
   <xacro:include filename="$(find ffw_description)/ros2_control/ffw_a13_leader/ffw_a13_leader.ros2_control.xacro" />
@@ -175,7 +176,7 @@
   <xacro:a3_right prefix="$(arg prefix)" />
 
   <xacro:ffw_a13_leader_system
-      prefix="$(arg prefix)"
+      prefix="$(arg prefix)" port_name="$(arg port_name)"
       use_sim="$(arg use_sim)"
       use_mock_hardware="$(arg use_mock_hardware)"
       mock_sensor_commands="$(arg mock_sensor_commands)" />

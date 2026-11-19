@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
   <xacro:macro name="a3_left" params="prefix">
-    <!-- Left A3: mesh-free XZ-plane mirror of the right A3. -->
-    <!-- Axes are reflected as axial vectors so equal joint values produce mirrored poses. -->
+    <!-- Left A3: link origins mirrored across the XZ plane from the right A3.
+         Joint coordinates use positive local axes, with no encoder sign inversions. -->
     <link name="${prefix}a3_left_base" />
     <joint name="${prefix}finger_l_joint1" type="revolute">
       <parent link="${prefix}a3_left_base" />
@@ -17,8 +17,9 @@
       <parent link="${prefix}finger_l_link1" />
       <child link="${prefix}finger_l_link2" />
       <origin xyz="0 0 0.02425" rpy="-0.96 0 0" />
-      <axis xyz="-1 0 0" />
-      <limit velocity="4.8" effort="1000" lower="-1.57" upper="0.6" />
+      <axis xyz="1 0 0" />
+      <!-- Positive local X reverses the mirrored coordinate: [-upper, -lower]. -->
+      <limit velocity="4.8" effort="1000" lower="-0.6" upper="1.57" />
       <dynamics damping="0.05" />
     </joint>
     <link name="${prefix}finger_l_link2" />
@@ -26,7 +27,7 @@
       <parent link="${prefix}finger_l_link2" />
       <child link="${prefix}finger_l_link3" />
       <origin xyz="0 0 0.065" rpy="0 0 0" />
-      <axis xyz="-1 0 0" />
+      <axis xyz="1 0 0" />
       <limit velocity="4.8" effort="1000" lower="-1.57" upper="1.57" />
       <dynamics damping="0.05" />
     </joint>
@@ -35,7 +36,7 @@
       <parent link="${prefix}finger_l_link3" />
       <child link="${prefix}finger_l_link4" />
       <origin xyz="0 0 0.1" rpy="0 0 0" />
-      <axis xyz="-1 0 0" />
+      <axis xyz="1 0 0" />
       <limit velocity="4.8" effort="1000" lower="-1.57" upper="1.57" />
       <dynamics damping="0.05" />
     </joint>
@@ -50,7 +51,7 @@
       <parent link="${prefix}a3_left_base" />
       <child link="${prefix}finger_l_link5" />
       <origin xyz="-0.0065 -0.034 0.062" rpy="0 0 0" />
-      <axis xyz="-1 0 0" />
+      <axis xyz="1 0 0" />
       <limit velocity="4.8" effort="1000" lower="-0.6" upper="0.6" />
       <dynamics damping="0.05" />
     </joint>
@@ -92,7 +93,7 @@
       <parent link="${prefix}a3_left_base" />
       <child link="${prefix}finger_l_link9" />
       <origin xyz="-0.0065 -0.011 0.067" rpy="0 0 0" />
-      <axis xyz="-1 0 0" />
+      <axis xyz="1 0 0" />
       <limit velocity="4.8" effort="1000" lower="-0.6" upper="0.6" />
       <dynamics damping="0.05" />
     </joint>
@@ -134,7 +135,7 @@
       <parent link="${prefix}a3_left_base" />
       <child link="${prefix}finger_l_link13" />
       <origin xyz="-0.0065 0.012 0.062" rpy="0 0 0" />
-      <axis xyz="-1 0 0" />
+      <axis xyz="1 0 0" />
       <limit velocity="4.8" effort="1000" lower="-0.6" upper="0.6" />
       <dynamics damping="0.05" />
     </joint>
@@ -176,7 +177,7 @@
       <parent link="${prefix}a3_left_base" />
       <child link="${prefix}finger_l_link17" />
       <origin xyz="-0.0065 0.034 0.057" rpy="0 0 0" />
-      <axis xyz="-1 0 0" />
+      <axis xyz="1 0 0" />
       <limit velocity="4.8" effort="1000" lower="-0.6" upper="0.6" />
       <dynamics damping="0.05" />
     </joint>

@@ -97,6 +97,8 @@
         <state_interface name="position"/>
       </joint>
 
+      <!-- Use the driver model conversion: calibrated encoder 180 degrees is joint zero.
+           All 20 encoders increase along the positive local URDF joint axes. -->
       <!-- Thumb: joint IDs 141-144; ID 145 reserved for vibration motor. -->
       <gpio name="dxl141">
         <param name="type">dxl</param>

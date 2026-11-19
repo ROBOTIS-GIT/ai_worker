@@ -10,13 +10,12 @@
       <param name="type">dxl</param>
       <param name="ID">${id}</param>
       <state_interface name="Present Position"/>
-      <param name="[unit info]">Present Position,0.00038349519697141030,rad,signed,0.0</param>
       <param name="Return Delay Time">0</param>
       <param name="Torque Enable">0</param>
     </gpio>
   </xacro:macro>
 
-  <xacro:macro name="ffw_a13_leader_system" params="prefix use_sim:=^|false use_mock_hardware:=^|false mock_sensor_commands:=^|false">
+  <xacro:macro name="ffw_a13_leader_system" params="prefix port_name:=/dev/serial/by-role/leader_a1 use_sim:=^|false use_mock_hardware:=^|false mock_sensor_commands:=^|false">
 
     <ros2_control name="ffw_a13_leader" type="system" is_async="true">
 
@@ -34,7 +33,7 @@
           </xacro:if>
           <xacro:unless value="${use_mock_hardware}">
             <plugin>dynamixel_hardware_interface/DynamixelHardware</plugin>
-            <param name="port_name">/dev/serial/by-role/leader_a1</param>
+            <param name="port_name">${port_name}</param>
             <param name="baud_rate">2000000</param>
             <param name="dynamixel_model_folder">/param/dxl_model</param>
             <param name="number_of_joints">54</param>
@@ -219,7 +218,8 @@
         <param name="Torque Enable">0</param>
       </gpio>
 
-      <!-- A3 calibration uses zero-offset radians, independent of the driver model default. -->
+      <!-- Use the driver model conversion: calibrated encoder 180 degrees is joint zero.
+           Both hands use positive encoder scales and positive local joint axes. -->
       <xacro:a13_encoder joint="${prefix}finger_l_joint1" id="141" />
       <xacro:a13_encoder joint="${prefix}finger_l_joint2" id="142" />
       <xacro:a13_encoder joint="${prefix}finger_l_joint3" id="143" />

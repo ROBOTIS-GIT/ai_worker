@@ -18,7 +18,9 @@ The original A1 and standalone A3 models are unchanged.
   The default update rate is 60 Hz. All joints are torque-disabled.
 - Arm IDs are 31–37 (left) and 1–7 (right), retaining A1 drive modes and homing offsets.
 - Finger IDs are 141–164 (left) and 111–134 (right), skipping every fifth vibration-motor ID.
-- Both hands explicitly use zero-offset encoder conversion.
+- Both hands use the driver model conversion, including its −π offset, for all
+  20 joints. The calibrated encoder reading of 180° becomes joint position 0 rad.
+  Left A3 link origins remain mirrored, but all joint axes are positive local X or Y; no fingertip sign inversions are applied.
 
 After building and sourcing the workspace:
 
@@ -31,29 +33,34 @@ ros2 launch ffw_bringup ffw_a13_leader_ai.launch.py use_mock_hardware:=true star
 
 # Hardware bringup; uses the same serial role as A1
 ros2 launch ffw_bringup ffw_a13_leader_ai.launch.py start_rviz:=true
+
+# Laptop testing without a pedal
+ros2 launch ffw_bringup ffw_a13_leader_ai.launch.py port_name:=/dev/ttyACM0 launch_pedal:=false start_rviz:=true
 ```
 
-The A13 port and baud rate are fixed in its ros2_control Xacro.
-The launch accepts an `update_rate` override; pedal connection settings remain independent.
+The A13 bus defaults to `/dev/serial/by-role/leader_a1` at 2 Mbps.
+The launch accepts `port_name` and `update_rate` overrides; pedal connection settings remain independent.
 
 The hardware launch uses the `leader` namespace by default (`namespace:=...` overrides it).
 The following topics carry `sensor_msgs/msg/JointState`, in radians:
 
 - `/leader/arm_l_state_broadcaster/joint_states`: `arm_l_joint1` through `arm_l_joint7`.
 - `/leader/arm_r_state_broadcaster/joint_states`: `arm_r_joint1` through `arm_r_joint7`.
-- `/leader/hand_l_state_broadcaster/joint_states`: `finger_l_joint1` through `finger_l_joint20`.
-- `/leader/hand_r_state_broadcaster/joint_states`: `finger_r_joint1` through `finger_r_joint20`.
+- `/a3_left/joint_states`: `finger_l_joint1` through `finger_l_joint20`.
+- `/a3_right/joint_states`: `finger_r_joint1` through `finger_r_joint20`.
 - `/leader/joint_states`: all 54 measured joints, plus the unencoded base-height `joint` at zero for TF.
 
+The hand topic names are absolute and match standalone A3 bringup defaults.
 Connect the separate hand retargeting node to the two hand state topics. Match positions
 by joint name; no `a3_` joint prefix is added. The retargeter owns the follower trajectories:
 `/leader/joint_trajectory_command_broadcaster_left_hand/joint_trajectory` and
 `/leader/joint_trajectory_command_broadcaster_right_hand/joint_trajectory` (SH5 inputs).
-This bringup does not publish arm or hand command trajectories or launch teleoperation.
+The arm trajectory broadcaster and pedal support are launched by default;
+use `launch_pedal:=false` to omit the pedal. Hand retargeting remains separate.
 
 RViz displays the existing mesh-free link frames. TF frame names have the `leader_` prefix;
-the root is `leader_world`. The description-only preview exposes the manual base-height
-joint in its GUI; the hardware launch assumes zero height.
+the root is `leader_world`. The base joint is fixed at zero height in both
+the description preview and hardware bringup.
 
 Validation (inside a sourced ROS workspace):
 

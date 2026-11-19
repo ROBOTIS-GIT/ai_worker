@@ -97,15 +97,12 @@
         <state_interface name="position"/>
       </joint>
 
-      <!-- A3 encoders use zero-offset radians, matching robotis_hand_private's
-           dxl_enc.model. Override the MRE16 model default (-pi) per encoder;
-           this is a software unit conversion, not an EEPROM homing offset. -->
+      <!-- Use the driver model conversion: calibrated encoder 180 degrees is joint zero. -->
       <!-- Thumb: joint IDs 111-114; ID 115 reserved for vibration motor. -->
       <gpio name="dxl111">
         <param name="type">dxl</param>
         <param name="ID">111</param>
         <state_interface name="Present Position"/>
-        <param name="[unit info]">Present Position,0.00038349519697141030,rad,signed,0.0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -113,7 +110,6 @@
         <param name="type">dxl</param>
         <param name="ID">112</param>
         <state_interface name="Present Position"/>
-        <param name="[unit info]">Present Position,0.00038349519697141030,rad,signed,0.0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -121,7 +117,6 @@
         <param name="type">dxl</param>
         <param name="ID">113</param>
         <state_interface name="Present Position"/>
-        <param name="[unit info]">Present Position,0.00038349519697141030,rad,signed,0.0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -129,7 +124,6 @@
         <param name="type">dxl</param>
         <param name="ID">114</param>
         <state_interface name="Present Position"/>
-        <param name="[unit info]">Present Position,0.00038349519697141030,rad,signed,0.0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -138,7 +132,6 @@
         <param name="type">dxl</param>
         <param name="ID">116</param>
         <state_interface name="Present Position"/>
-        <param name="[unit info]">Present Position,0.00038349519697141030,rad,signed,0.0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -146,7 +139,6 @@
         <param name="type">dxl</param>
         <param name="ID">117</param>
         <state_interface name="Present Position"/>
-        <param name="[unit info]">Present Position,0.00038349519697141030,rad,signed,0.0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -154,7 +146,6 @@
         <param name="type">dxl</param>
         <param name="ID">118</param>
         <state_interface name="Present Position"/>
-        <param name="[unit info]">Present Position,0.00038349519697141030,rad,signed,0.0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -162,7 +153,6 @@
         <param name="type">dxl</param>
         <param name="ID">119</param>
         <state_interface name="Present Position"/>
-        <param name="[unit info]">Present Position,0.00038349519697141030,rad,signed,0.0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -171,7 +161,6 @@
         <param name="type">dxl</param>
         <param name="ID">121</param>
         <state_interface name="Present Position"/>
-        <param name="[unit info]">Present Position,0.00038349519697141030,rad,signed,0.0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -179,7 +168,6 @@
         <param name="type">dxl</param>
         <param name="ID">122</param>
         <state_interface name="Present Position"/>
-        <param name="[unit info]">Present Position,0.00038349519697141030,rad,signed,0.0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -187,7 +175,6 @@
         <param name="type">dxl</param>
         <param name="ID">123</param>
         <state_interface name="Present Position"/>
-        <param name="[unit info]">Present Position,0.00038349519697141030,rad,signed,0.0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -195,7 +182,6 @@
         <param name="type">dxl</param>
         <param name="ID">124</param>
         <state_interface name="Present Position"/>
-        <param name="[unit info]">Present Position,0.00038349519697141030,rad,signed,0.0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -204,7 +190,6 @@
         <param name="type">dxl</param>
         <param name="ID">126</param>
         <state_interface name="Present Position"/>
-        <param name="[unit info]">Present Position,0.00038349519697141030,rad,signed,0.0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -212,7 +197,6 @@
         <param name="type">dxl</param>
         <param name="ID">127</param>
         <state_interface name="Present Position"/>
-        <param name="[unit info]">Present Position,0.00038349519697141030,rad,signed,0.0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -220,7 +204,6 @@
         <param name="type">dxl</param>
         <param name="ID">128</param>
         <state_interface name="Present Position"/>
-        <param name="[unit info]">Present Position,0.00038349519697141030,rad,signed,0.0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -228,7 +211,6 @@
         <param name="type">dxl</param>
         <param name="ID">129</param>
         <state_interface name="Present Position"/>
-        <param name="[unit info]">Present Position,0.00038349519697141030,rad,signed,0.0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -237,7 +219,6 @@
         <param name="type">dxl</param>
         <param name="ID">131</param>
         <state_interface name="Present Position"/>
-        <param name="[unit info]">Present Position,0.00038349519697141030,rad,signed,0.0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -245,7 +226,6 @@
         <param name="type">dxl</param>
         <param name="ID">132</param>
         <state_interface name="Present Position"/>
-        <param name="[unit info]">Present Position,0.00038349519697141030,rad,signed,0.0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -253,7 +233,6 @@
         <param name="type">dxl</param>
         <param name="ID">133</param>
         <state_interface name="Present Position"/>
-        <param name="[unit info]">Present Position,0.00038349519697141030,rad,signed,0.0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>
@@ -261,7 +240,6 @@
         <param name="type">dxl</param>
         <param name="ID">134</param>
         <state_interface name="Present Position"/>
-        <param name="[unit info]">Present Position,0.00038349519697141030,rad,signed,0.0</param>
         <param name="Return Delay Time">0</param>
         <param name="Torque Enable">0</param>
       </gpio>

@@ -30,6 +30,10 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     declared_arguments = [
         DeclareLaunchArgument(
+            'port_name', default_value='/dev/serial/by-role/leader_a1',
+            description='A13 shared bus; use /dev/ttyACM0 for laptop testing.',
+        ),
+        DeclareLaunchArgument(
             'style', default_value='default', choices=['default', 'advanced'],
             description='Leader control style; A13 uses the pedal instead of physical triggers.',
         ),
@@ -82,6 +86,7 @@ def generate_launch_description():
             FindPackageShare('ffw_description'), 'urdf', 'ffw_a13_leader',
             LaunchConfiguration('description_file'),
         ]),
+        ' port_name:=', LaunchConfiguration('port_name'),
         ' use_mock_hardware:=', LaunchConfiguration('use_mock_hardware'),
         ' mock_sensor_commands:=', LaunchConfiguration('mock_sensor_commands'),
     ])
@@ -120,7 +125,10 @@ def generate_launch_description():
                            'joint_trajectory_command_broadcaster',
                            ['--controller-ros-args=-p style:=', LaunchConfiguration('style')],
                            '--controller-manager',
-                           'controller_manager'],
+                           'controller_manager',
+                           '--controller-ros-args',
+                           '-r hand_l_state_broadcaster:~/joint_states:=/a3_left/joint_states '
+                           '-r hand_r_state_broadcaster:~/joint_states:=/a3_right/joint_states'],
                 output='both',
             ),
             Node(
