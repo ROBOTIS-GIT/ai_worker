@@ -342,6 +342,10 @@ def generate_launch_description():
         package='ffw_bringup',
         executable='head_eef_tracker',
         name='head_eef_tracker',
+        parameters=[{
+            'eef_l_link': 'hx5_d20_left_base',
+            'eef_r_link': 'hx5_d20_right_base',
+        }],
         output='screen',
         condition=IfCondition(use_head_eef_tracker),
     )
@@ -449,28 +453,16 @@ def generate_launch_description():
         output='screen',
     )
 
-    # Start after every initial motion; without initial motion, wait for controllers.
-    initialization_processes = [
-        joint_trajectory_executor_left, joint_trajectory_executor_right,
-        joint_trajectory_executor_head, joint_trajectory_executor_lift,
-        joint_trajectory_executor_left_hand, joint_trajectory_executor_right_hand,
-        swerve_drive_spawner,
-    ]
-    after_initialization = start_after_success(initialization_processes, teleoperation_node)
-    teleoperation_start_handlers = [
-        RegisterEventHandler(
-            OnProcessExit(target_action=process, on_exit=after_initialization),
-            condition=IfCondition(init_position),
-        ) for process in initialization_processes
-    ]
-    teleoperation_start_handlers.append(RegisterEventHandler(OnProcessExit(
-        target_action=robot_controller_spawner,
-        on_exit=start_after_success([robot_controller_spawner], teleoperation_node)),
-        condition=UnlessCondition(init_position)))
+    teleoperation_start_handler = RegisterEventHandler(
+        OnProcessExit(
+            target_action=robot_controller_spawner,
+            on_exit=start_after_success([robot_controller_spawner], teleoperation_node),
+        ),
+    )
 
     return LaunchDescription(
         declared_arguments + [
-            *teleoperation_start_handlers,
+            teleoperation_start_handler,
             control_node,
             robot_state_pub_node,
             joint_state_broadcaster_spawner,
