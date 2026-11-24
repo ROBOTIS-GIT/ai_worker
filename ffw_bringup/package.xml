@@ -26,6 +26,7 @@
   <exec_depend>ament_index_python</exec_depend>
   <exec_depend>controller_manager</exec_depend>
   <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>cyclo_motion_controller_ros_py</exec_depend>
   <exec_depend>cyclo_motion_controller_models</exec_depend>
   <exec_depend>cyclo_teleoperation</exec_depend>
   <exec_depend>ffw_joint_trajectory_command_broadcaster</exec_depend>

@@ -38,6 +38,10 @@ def generate_launch_description():
             description='Leader control style; A13 uses the pedal instead of physical triggers.',
         ),
         DeclareLaunchArgument('launch_pedal', default_value='true'),
+        DeclareLaunchArgument('launch_hands', default_value='true',
+                              description='Start A3 landmark publishing and HX5 retargeting.'),
+        DeclareLaunchArgument('hand_side', default_value='both',
+                              choices=['left', 'right', 'both']),
         DeclareLaunchArgument(
             'pedal_port_name',
             default_value=(
@@ -137,6 +141,13 @@ def generate_launch_description():
                 condition=IfCondition(LaunchConfiguration('start_rviz')),
                 output='both',
             ),
+        ]),
+        GroupAction(condition=IfCondition(LaunchConfiguration('launch_hands')), actions=[
+            Node(package='cyclo_motion_controller_ros_py', executable='a3_hand_joints',
+                 parameters=[{'hand_side': LaunchConfiguration('hand_side')}], output='screen'),
+            Node(package='cyclo_motion_controller_ros_py', executable='hx5_retargeting',
+                 parameters=[{'side': LaunchConfiguration('hand_side'), 'use_pedal': True}],
+                 output='screen'),
         ]),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(PathJoinSubstitution([
