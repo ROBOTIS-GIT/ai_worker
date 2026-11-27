@@ -70,6 +70,7 @@
         - 0.0
         - 0.4
       trigger_threshold: -0.5
+      trigger_duration: 0.0
 
   trigger_position_controller:
     ros__parameters:

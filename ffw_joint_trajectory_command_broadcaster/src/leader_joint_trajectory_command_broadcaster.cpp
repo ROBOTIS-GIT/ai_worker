@@ -1017,17 +1017,10 @@ void LeaderJointTrajectoryCommandBroadcaster::teleoperation_command_callback(
       case robotis_interfaces::msg::TeleoperationCommand::COMMAND_DISABLE:
         requested_arms_ &= static_cast<uint8_t>(~target_arms);
         break;
-      case robotis_interfaces::msg::TeleoperationCommand::COMMAND_TOGGLE: {
-          const uint8_t disable_arms = target_arms & requested_arms_;
-          const uint8_t requested_enable_arms = target_arms &
-            static_cast<uint8_t>(~requested_arms_);
-          blocked_arms = requested_enable_arms & initial_pose_busy_arms_;
-          const uint8_t enable_arms = requested_enable_arms &
-            static_cast<uint8_t>(~blocked_arms);
-          requested_arms_ &= static_cast<uint8_t>(~disable_arms);
-          requested_arms_ |= enable_arms;
-          break;
-        }
+      case robotis_interfaces::msg::TeleoperationCommand::COMMAND_TOGGLE:
+        // A joystick toggle hands the selected arm back to manual control mid-return.
+        requested_arms_ ^= target_arms;
+        break;
       default:
         RCLCPP_WARN(
           get_node()->get_logger(), "Ignoring unknown teleoperation command: %u",

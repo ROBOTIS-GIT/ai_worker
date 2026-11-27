@@ -68,6 +68,16 @@ cyclo_teleoperation:
           self_collision: true
         initial_pose:
           enabled: false
+          duration: 2.0
+          step_names: [step0]
+          steps:
+            step0:
+              left:
+                positions: [0.75, 0.0, 0.0, -2.3, 0.0, 0.0, 0.0]
+                gripper_position: 0.0
+              right:
+                positions: [0.75, 0.0, 0.0, -2.3, 0.0, 0.0, 0.0]
+                gripper_position: 0.0
         exit_pose:
           enabled: false
 
